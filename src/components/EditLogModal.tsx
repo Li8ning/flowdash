@@ -39,7 +39,7 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { data: updatedLog } = await api.put(`/inventory/log/${log.id}`, {
+      const { data: updatedLog } = await api.put(`/inventory/logs/${log.id}`, {
         quantity_change: quantityChange,
       });
       onUpdate(updatedLog);

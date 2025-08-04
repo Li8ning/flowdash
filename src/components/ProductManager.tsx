@@ -42,7 +42,6 @@ interface Product {
 
 const ProductManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newProduct, setNewProduct] = useState({ sku: '', name: '', model: '', color: '', image_url: '' });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { token } = useAuth();
@@ -56,18 +55,14 @@ const ProductManager = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       if (!token) {
-        setLoading(false);
         return;
       }
       try {
-        setLoading(true);
         const response = await api.get('/products');
         setProducts(response.data);
       } catch (err) {
         console.error(err);
         toast({ title: 'Error fetching products', status: 'error', duration: 3000, isClosable: true });
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -128,7 +123,6 @@ const ProductManager = () => {
     }
   };
 
-  if (loading) return <Spinner />;
 
   const filteredProducts = products.filter(
     (product) =>

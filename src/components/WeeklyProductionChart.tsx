@@ -2,11 +2,30 @@
 
 import { Box, useColorModeValue, useToast } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
 import api from '../lib/api';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 interface WeeklyData {
   labels: string[];
@@ -44,9 +63,11 @@ const WeeklyProductionChart = () => {
       {
         label: 'Production Quantity',
         data: chartData.data,
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
         borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
       },
     ],
   };
@@ -93,7 +114,7 @@ const WeeklyProductionChart = () => {
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl" h={{ base: '300px', md: '400px' }}>
-      <Bar data={data} options={options} />
+      <Line data={data} options={options} />
     </Box>
   );
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from '../lib/api';
 import EditLogModal from '@/components/EditLogModal';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,13 @@ import {
   Heading,
   Divider,
   TableContainer,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure,
 } from '@chakra-ui/react';
 
 interface InventoryLog {
@@ -42,6 +49,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [editingLog, setEditingLog] = useState<InventoryLog | null>(null);
   const toast = useToast();
   const { user } = useAuth();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef(null);
+  const [logToDelete, setLogToDelete] = useState<number | null>(null);
   const [filters, setFilters] = useState({
     user: '',
     product: '',
@@ -103,7 +113,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   const handleDelete = async (logId: number) => {
     try {
-      await api.delete(`/inventory/log/${logId}`);
+      await api.delete(`/inventory/logs/${logId}`);
       setLogs(logs.filter((log) => log.id !== logId));
       toast({
         title: 'Log deleted.',
@@ -122,6 +132,18 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       });
       console.error('Failed to delete log:', err);
     }
+  };
+
+  const openDeleteDialog = (logId: number) => {
+    setLogToDelete(logId);
+    onOpen();
+  };
+
+  const confirmDelete = () => {
+    if (logToDelete) {
+      handleDelete(logToDelete);
+    }
+    onClose();
   };
 
   if (error) {
@@ -235,7 +257,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       <Button
                         size="sm"
                         colorScheme="red"
-                        onClick={() => handleDelete(log.id)}
+                        onClick={() => openDeleteDialog(log.id)}
                       >
                         Delete
                       </Button>
@@ -255,6 +277,32 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           onUpdate={handleUpdate}
         />
       )}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Log Entry
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure? You can't undo this action afterwards.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 };
