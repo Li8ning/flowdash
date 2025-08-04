@@ -11,6 +11,9 @@ import {
   Input,
   Stack,
   Spinner,
+  Image,
+  Select,
+  SimpleGrid,
   Table,
   Thead,
   Tbody,
@@ -47,26 +50,34 @@ const ProductManager = () => {
   const { token } = useAuth();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ color: '', model: '' });
+  const [distinctColors, setDistinctColors] = useState([]);
+  const [distinctModels, setDistinctModels] = useState([]);
 
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
 
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!token) {
-        return;
-      }
+    const fetchFilterData = async () => {
       try {
-        const response = await api.get('/products');
-        setProducts(response.data);
+        const [productsRes, colorsRes, modelsRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/products/distinct-colors'),
+          api.get('/products/distinct-models'),
+        ]);
+        setProducts(productsRes.data);
+        setDistinctColors(colorsRes.data);
+        setDistinctModels(modelsRes.data);
       } catch (err) {
-        console.error(err);
-        toast({ title: 'Error fetching products', status: 'error', duration: 3000, isClosable: true });
+        console.error('Failed to fetch product data', err);
+        toast({ title: 'Error fetching product data', status: 'error', duration: 3000, isClosable: true });
       }
     };
 
-    fetchProducts();
+    if (token) {
+      fetchFilterData();
+    }
   }, [token, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<any>>) => {
@@ -124,13 +135,16 @@ const ProductManager = () => {
   };
 
 
-  const filteredProducts = products.filter(
-    (product) =>
+  const filteredProducts = products.filter((product) => {
+    const searchMatch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.color.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const colorMatch = filters.color ? product.color === filters.color : true;
+    const modelMatch = filters.model ? product.model === filters.model : true;
+
+    return searchMatch && colorMatch && modelMatch;
+  });
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
@@ -150,6 +164,37 @@ const ProductManager = () => {
         </Flex>
       </Flex>
       <Divider mb={6} />
+
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
+        <Select
+          placeholder="Filter by Color"
+          value={filters.color}
+          onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+        >
+          {distinctColors.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Select>
+        <Select
+          placeholder="Filter by Model"
+          value={filters.model}
+          onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+        >
+          {distinctModels.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </Select>
+        <Button
+          onClick={() => setFilters({ color: '', model: '' })}
+          colorScheme="gray"
+        >
+          Clear Filters
+        </Button>
+      </SimpleGrid>
 
       {/* Create Product Modal */}
       <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
@@ -202,6 +247,7 @@ const ProductManager = () => {
           <Table variant="simple" colorScheme="teal">
             <Thead bg="brand.background">
               <Tr>
+                <Th>Image</Th>
                 <Th>Name</Th>
               <Th>SKU</Th>
               <Th>Model</Th>
@@ -212,6 +258,16 @@ const ProductManager = () => {
           <Tbody>
             {filteredProducts.map((product) => (
               <Tr key={product.id}>
+                <Td>
+                  <Image
+                    src={product.image_url}
+                    alt={product.name}
+                    boxSize="50px"
+                    objectFit="cover"
+                    borderRadius="md"
+                    fallbackSrc="https://via.placeholder.com/50"
+                  />
+                </Td>
                 <Td>
                   <Text noOfLines={1}>{product.name}</Text>
                 </Td>
