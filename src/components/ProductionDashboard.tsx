@@ -45,19 +45,19 @@ const ProductionDashboard = () => {
       <Heading mb={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>Production Dashboard</Heading>
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={{ base: 6, md: 10 }} px={{ base: 4, md: 6 }}>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
-          <StatLabel fontWeight="bold" color="brand.textSecondary">Today's Production</StatLabel>
+          <StatLabel fontWeight="bold" color="brand.textSecondary">Today&apos;s Production</StatLabel>
           <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.today}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
-          <StatLabel fontWeight="bold" color="brand.textSecondary">This Week's Production</StatLabel>
+          <StatLabel fontWeight="bold" color="brand.textSecondary">This Week&apos;s Production</StatLabel>
           <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.week}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
-          <StatLabel fontWeight="bold" color="brand.textSecondary">This Month's Production</StatLabel>
+          <StatLabel fontWeight="bold" color="brand.textSecondary">This Month&apos;s Production</StatLabel>
           <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.month}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
-          <StatLabel fontWeight="bold" color="brand.textSecondary">Today's Log Entries</StatLabel>
+          <StatLabel fontWeight="bold" color="brand.textSecondary">Today&apos;s Log Entries</StatLabel>
           <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.todaysLogs}</StatNumber>
         </Stat>
       </SimpleGrid>
