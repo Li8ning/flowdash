@@ -24,6 +24,7 @@ import {
   Image,
   HStack,
   IconButton,
+  Select,
 } from '@chakra-ui/react';
 import { AddIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '../lib/api';
@@ -43,18 +44,27 @@ const LogEntryForm = () => {
   const [quantity, setQuantity] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ color: '', model: '' });
+  const [distinctColors, setDistinctColors] = useState([]);
+  const [distinctModels, setDistinctModels] = useState([]);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await api.get('/products');
-        setProducts(response.data);
+        const [productsRes, colorsRes, modelsRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/products/distinct-colors'),
+          api.get('/products/distinct-models'),
+        ]);
+        setProducts(productsRes.data);
+        setDistinctColors(colorsRes.data);
+        setDistinctModels(modelsRes.data);
       } catch (error) {
-        console.error('Failed to fetch products', error);
+        console.error('Failed to fetch product data', error);
         toast({
-          title: 'Error fetching products',
+          title: 'Error fetching product data',
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -109,12 +119,16 @@ const LogEntryForm = () => {
     }
   };
 
-  const filteredProducts = products.filter(
-    (product) =>
+  const filteredProducts = products.filter((product) => {
+    const searchMatch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.color.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const colorMatch = filters.color ? product.color === filters.color : true;
+    const modelMatch = filters.model ? product.model === filters.model : true;
+
+    return searchMatch && colorMatch && modelMatch;
+  });
 
   return (
     <Box p={{ base: 2, md: 4 }} bg="brand.surface">
@@ -126,7 +140,37 @@ const LogEntryForm = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           size="lg"
         />
-        <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing={{ base: 3, md: 4 }}>
+       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
+         <Select
+           placeholder="Filter by Color"
+           value={filters.color}
+           onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+         >
+           {distinctColors.map((c) => (
+             <option key={c} value={c}>
+               {c}
+             </option>
+           ))}
+         </Select>
+         <Select
+           placeholder="Filter by Model"
+           value={filters.model}
+           onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+         >
+           {distinctModels.map((m) => (
+             <option key={m} value={m}>
+               {m}
+             </option>
+           ))}
+         </Select>
+         <Button
+           onClick={() => setFilters({ color: '', model: '' })}
+           colorScheme="gray"
+         >
+           Clear Filters
+         </Button>
+       </SimpleGrid>
+       <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing={{ base: 3, md: 4 }}>
           {filteredProducts.map((product) => (
             <Box
               key={product.id}
@@ -142,10 +186,10 @@ const LogEntryForm = () => {
               _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'teal.500' }}
             >
               <VStack spacing={2}>
-                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '60px', md: '80px' }} objectFit="cover" borderRadius="md" />
-                <Text fontWeight="bold" fontSize={{ base: 'xs', md: 'sm' }} noOfLines={2}>{product.name}</Text>
-                <Text fontSize={{ base: '2xs', md: 'xs' }} color="gray.600">{product.model}</Text>
-                <Text fontSize={{ base: '2xs', md: 'xs' }} color="gray.500">{product.color}</Text>
+                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '100px', md: '150px' }} objectFit="cover" borderRadius="lg" />
+                <Text fontWeight="bold" fontSize={{ base: 'md', md: 'lg' }} noOfLines={2}>{product.name}</Text>
+                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.600">{product.model}</Text>
+                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">{product.color}</Text>
               </VStack>
             </Box>
           ))}
