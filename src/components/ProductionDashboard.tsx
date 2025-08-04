@@ -9,7 +9,7 @@ interface DashboardSummary {
   today: number;
   week: number;
   month: number;
-  totalLogs: number;
+  todaysLogs: number;
 }
 
 const ProductionDashboard = () => {
@@ -17,7 +17,7 @@ const ProductionDashboard = () => {
     today: 0,
     week: 0,
     month: 0,
-    totalLogs: 0,
+    todaysLogs: 0,
   });
   const toast = useToast();
 
@@ -57,8 +57,8 @@ const ProductionDashboard = () => {
           <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.month}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
-          <StatLabel fontWeight="bold" color="brand.textSecondary">Total Log Entries</StatLabel>
-          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.totalLogs}</StatNumber>
+          <StatLabel fontWeight="bold" color="brand.textSecondary">Today's Log Entries</StatLabel>
+          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.todaysLogs}</StatNumber>
         </Stat>
       </SimpleGrid>
       <Box px={{ base: 4, md: 6 }}>

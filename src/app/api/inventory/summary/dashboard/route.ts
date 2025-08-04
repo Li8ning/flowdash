@@ -27,25 +27,25 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       WHERE p.organization_id = ${organization_id} AND l.created_at >= DATE_TRUNC('month', CURRENT_DATE)
     `;
 
-    const totalLogsQuery = sql`
+    const todaysLogsQuery = sql`
       SELECT COUNT(*) as total
       FROM inventory_logs l
       JOIN users u ON l.user_id = u.id
-      WHERE u.organization_id = ${organization_id}
+      WHERE u.organization_id = ${organization_id} AND l.created_at >= CURRENT_DATE
     `;
 
-    const [todayResult, weekResult, monthResult, totalLogsResult] = await Promise.all([
+    const [todayResult, weekResult, monthResult, todaysLogsResult] = await Promise.all([
       todayQuery,
       weekQuery,
       monthQuery,
-      totalLogsQuery,
+      todaysLogsQuery,
     ]);
 
     return NextResponse.json({
       today: todayResult[0].total,
       week: weekResult[0].total,
       month: monthResult[0].total,
-      totalLogs: totalLogsResult[0].total,
+      todaysLogs: todaysLogsResult[0].total,
     });
   } catch (err) {
     console.error(err);
