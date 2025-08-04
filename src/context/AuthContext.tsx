@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           const { data: userData } = await api.get('/auth/me');
-          let finalUserData = { ...userData };
+          const finalUserData = { ...userData };
           if (finalUserData.organization_id && !finalUserData.organization_name) {
             try {
               // Fetch organization name if it's not included in the 'me' response
