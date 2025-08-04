@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       [username]
     );
 
-    if (existingUser.rows.length > 0) {
+    if (existingUser.length > 0) {
       return NextResponse.json({ msg: 'Username is already taken.' }, { status: 400 });
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
       [organizationName]
     );
-    const organization_id = orgResult.rows[0].id;
+    const organization_id = orgResult[0].id;
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       [organization_id, name, username, password_hash, 'factory_admin', true]
     );
 
-    const user = userResult.rows[0];
+    const user = userResult[0];
 
     const payload = {
       user: {
