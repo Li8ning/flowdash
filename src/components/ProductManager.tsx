@@ -10,7 +10,6 @@ import {
   Heading,
   Input,
   Stack,
-  Spinner,
   Image,
   Select,
   SimpleGrid,

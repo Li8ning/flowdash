@@ -33,11 +33,10 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
     const isWithin24Hours = (currentTime - logTime) < 24 * 60 * 60 * 1000;
 
     if (role === 'factory_admin' || (isOwner && isWithin24Hours)) {
-      const [updatedLog] = await sql`
+      await sql`
         UPDATE inventory_logs
         SET quantity_change = ${quantity_change}
         WHERE id = ${logId}
-        RETURNING *
       `;
       
       const [result] = await sql`

@@ -36,7 +36,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 });
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
-    const { organization_id, id: user_id } = req.user;
+    const { id: user_id } = req.user;
     const { product_id, quantity_change } = await req.json();
 
     if (!product_id || !Number.isInteger(quantity_change) || quantity_change < 1) {

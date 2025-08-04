@@ -183,7 +183,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         endDate: newEndDate,
     }));
 
-  }, [dateRange]);
+  }, [dateRange, filters.endDate, filters.startDate]);
 
   const isEditable = (createdAt: string) => {
     if (user?.role === 'factory_admin') {

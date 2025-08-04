@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useLoading } from '../context/LoadingContext';
-import { Box, Spinner, Modal, ModalOverlay, ModalContent, Flex } from '@chakra-ui/react';
+import { Spinner, Modal, ModalOverlay, ModalContent } from '@chakra-ui/react';
 
 const GlobalSpinner = () => {
   const { isLoading } = useLoading();
