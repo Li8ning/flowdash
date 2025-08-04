@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 interface Log {
@@ -12,12 +12,6 @@ interface Log {
   username?: string;
 }
 
-// Extend jspdf-autotable types
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 export const exportToPdf = (logs: Log[], allLogs: boolean) => {
   const doc = new jsPDF();
@@ -46,7 +40,7 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
     tableRows.push(logData);
   });
 
-  doc.autoTable({
+  autoTable(doc, {
     head: [tableColumn],
     body: tableRows,
     startY: 20,
