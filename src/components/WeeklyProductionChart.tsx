@@ -2,6 +2,7 @@
 
 import { Box, useColorModeValue, useToast } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -33,6 +34,7 @@ interface WeeklyData {
 }
 
 const WeeklyProductionChart = () => {
+  const { t } = useTranslation();
   const [chartData, setChartData] = useState<WeeklyData>({ labels: [], data: [] });
   const toast = useToast();
   const chartTextColor = useColorModeValue('gray.800', 'white');
@@ -46,7 +48,7 @@ const WeeklyProductionChart = () => {
       } catch (error) {
         console.error('Error fetching weekly production data:', error);
         toast({
-          title: 'Error fetching weekly production data.',
+          title: t('weekly_production_chart.toast.error_fetching_data'),
           status: 'error',
           duration: 3000,
           isClosable: true,
@@ -55,13 +57,13 @@ const WeeklyProductionChart = () => {
     };
 
     fetchWeeklyProduction();
-  }, [toast]);
+  }, [toast, t]);
 
   const data = {
     labels: chartData.labels,
     datasets: [
       {
-        label: 'Production Quantity',
+        label: t('weekly_production_chart.label'),
         data: chartData.data,
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
         borderColor: 'rgba(54, 162, 235, 1)',
@@ -84,7 +86,7 @@ const WeeklyProductionChart = () => {
       },
       title: {
         display: true,
-        text: 'Last 7 Days Production',
+        text: t('weekly_production_chart.title'),
         color: chartTextColor,
         font: {
           size: 16,

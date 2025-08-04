@@ -17,9 +17,15 @@ import {
   Alert,
   AlertIcon,
   Text,
+  Select,
+  HStack,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Register() {
+  const { t } = useTranslation();
+  const { changeLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -41,16 +47,15 @@ export default function Register() {
       });
       await handleAuthentication(response.data);
       toast({
-        title: 'Account created.',
-        description:
-          "We've created your account for you. Redirecting to admin dashboard.",
+        title: t('register.toast.success_title'),
+        description: t('register.toast.success_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
       router.push('/admin'); // Redirect to admin dashboard
     } catch (err) {
-      setError('Failed to create account. Please try again.');
+      setError(t('register.error.generic'));
       console.error(err);
     }
   };
@@ -68,9 +73,18 @@ export default function Register() {
         width="full"
         maxWidth="450px"
       >
-        <Box textAlign="center" mb={8}>
-          <Heading>Admin Registration</Heading>
-        </Box>
+        <HStack w="full" justifyContent="space-between" mb={8}>
+          <Heading>{t('register.title')}</Heading>
+          <Select
+            w="120px"
+            onChange={(e) => changeLanguage(e.target.value)}
+            defaultValue="en"
+          >
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="gu">Gujarati</option>
+          </Select>
+        </HStack>
         <form onSubmit={handleSubmit}>
           {error && (
             <Alert status="error" mb={4} borderRadius="md">
@@ -79,7 +93,7 @@ export default function Register() {
             </Alert>
           )}
           <FormControl id="organizationName" isRequired>
-            <FormLabel>Organization Name</FormLabel>
+            <FormLabel>{t('register.org_name')}</FormLabel>
             <Input
               type="text"
               value={organizationName}
@@ -87,7 +101,7 @@ export default function Register() {
             />
           </FormControl>
           <FormControl id="name" mt={4} isRequired>
-            <FormLabel>Full Name</FormLabel>
+            <FormLabel>{t('register.full_name')}</FormLabel>
             <Input
               type="text"
               value={name}
@@ -95,7 +109,7 @@ export default function Register() {
             />
           </FormControl>
           <FormControl id="username" mt={4} isRequired>
-            <FormLabel>Admin Username</FormLabel>
+            <FormLabel>{t('register.admin_username')}</FormLabel>
             <Input
               type="text"
               value={username}
@@ -103,7 +117,7 @@ export default function Register() {
             />
           </FormControl>
           <FormControl id="password" mt={4} isRequired>
-            <FormLabel>Password</FormLabel>
+            <FormLabel>{t('register.password')}</FormLabel>
             <Input
               type="password"
               value={password}
@@ -115,15 +129,15 @@ export default function Register() {
             mt={8}
             type="submit"
           >
-            Register
+            {t('register.button')}
           </Button>
         </form>
         <Box mt={6} textAlign="center">
           <Text>
-            Already have an account?{' '}
+            {t('register.already_have_account')}{' '}
             <Link href="/">
               <Text as="span" color="brand.accent" fontWeight="bold">
-                Login
+                {t('register.login_link')}
               </Text>
             </Link>
           </Text>

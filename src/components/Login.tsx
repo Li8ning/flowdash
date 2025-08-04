@@ -11,12 +11,18 @@ import {
   Text,
   Link,
   useToast,
+  Select,
+  HStack,
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import NextLink from 'next/link';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 
 const Login = () => {
+  const { t } = useTranslation();
+  const { changeLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
@@ -27,16 +33,16 @@ const Login = () => {
     try {
       await login(username, password);
       toast({
-        title: 'Login Successful.',
-        description: "You've been logged in.",
+        title: t('login.success.title'),
+        description: t('login.success.description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
     } catch (err: any) {
       toast({
-        title: 'Login Failed.',
-        description: err.response?.data?.msg || 'Invalid credentials.',
+        title: t('login.error.title'),
+        description: err.response?.data?.msg || t('login.error.description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -61,11 +67,22 @@ const Login = () => {
         boxShadow="lg"
         w={{ base: '90%', md: '400px' }}
       >
-        <Heading as="h1" size="lg">
-          Login
-        </Heading>
+        <HStack w="full" justifyContent="space-between">
+          <Heading as="h1" size="lg">
+            {t('login.title')}
+          </Heading>
+          <Select
+            w="120px"
+            onChange={(e) => changeLanguage(e.target.value)}
+            defaultValue="en"
+          >
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="gu">Gujarati</option>
+          </Select>
+        </HStack>
         <FormControl id="username">
-          <FormLabel>Username</FormLabel>
+          <FormLabel>{t('login.email')}</FormLabel>
           <Input
             type="text"
             value={username}
@@ -74,7 +91,7 @@ const Login = () => {
           />
         </FormControl>
         <FormControl id="password">
-          <FormLabel>Password</FormLabel>
+          <FormLabel>{t('login.password')}</FormLabel>
           <Input
             type="password"
             value={password}
@@ -83,12 +100,12 @@ const Login = () => {
           />
         </FormControl>
         <Button type="submit" colorScheme="blue" width="full">
-          Login
+          {t('login.button')}
         </Button>
         <Text>
-          Don&apos;t have an account?{' '}
+          {t('login.no_account')}{' '}
           <Link as={NextLink} href="/register" color="blue.500">
-            Sign up
+            {t('login.signup_link')}
           </Link>
         </Text>
       </VStack>

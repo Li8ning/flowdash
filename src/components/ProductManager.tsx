@@ -45,6 +45,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   id: number;
@@ -56,6 +57,7 @@ interface Product {
 }
 
 const ProductManager = () => {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [newProduct, setNewProduct] = useState({ sku: '', name: '', model: '', color: '', image_url: '' });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -90,8 +92,8 @@ const ProductManager = () => {
       } catch (err) {
         console.error('Failed to fetch product data', err);
         toast({
-          title: 'Error Fetching Data',
-          description: (err as any).response?.data?.error || 'Could not load product data.',
+          title: t('product_manager.toast.error_fetching_data'),
+          description: (err as any).response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
           status: 'error',
           duration: 5000,
           isClosable: true,
@@ -102,7 +104,7 @@ const ProductManager = () => {
     if (token) {
       fetchFilterData();
     }
-  }, [token, toast]);
+  }, [token, toast, t]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<any>>) => {
     const { name, value } = e.target;
@@ -117,12 +119,12 @@ const ProductManager = () => {
       setProducts([...products, response.data]);
       setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '' });
       onCreateClose();
-      toast({ title: 'Product created.', status: 'success', duration: 3000, isClosable: true });
+      toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
       console.error(err);
       toast({
-        title: 'Error Creating Product',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('product_manager.toast.error_creating_product'),
+        description: (err as any).response?.data?.error || t('product_manager.toast.error_creating_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -143,12 +145,12 @@ const ProductManager = () => {
       setProducts(products.map(p => p.id === editingProduct.id ? response.data : p));
       setEditingProduct(null);
       onEditClose();
-      toast({ title: 'Product updated.', status: 'success', duration: 3000, isClosable: true });
+      toast({ title: t('product_manager.toast.product_updated'), status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
       console.error(err);
       toast({
-        title: 'Error Updating Product',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('product_manager.toast.error_updating_product'),
+        description: (err as any).response?.data?.error || t('product_manager.toast.error_updating_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -161,12 +163,12 @@ const ProductManager = () => {
     try {
       await api.patch(`/products/${productId}/archive`);
       setProducts(products.filter(p => p.id !== productId));
-      toast({ title: 'Product archived.', status: 'warning', duration: 3000, isClosable: true });
+      toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
     } catch (err) {
       console.error('Failed to archive product:', err);
       toast({
-        title: 'Error Archiving Product',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('product_manager.toast.error_archiving_product'),
+        description: (err as any).response?.data?.error || t('product_manager.toast.error_archiving_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -206,16 +208,16 @@ const ProductManager = () => {
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
         <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>
-          Product Management
+          {t('product_manager.title')}
         </Heading>
         <Flex direction={{ base: 'column', sm: 'row' }} gap={2}>
           <Input
-            placeholder="Search products..."
+            placeholder={t('product_manager.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <Button onClick={onCreateOpen} colorScheme="blue" flexShrink={0}>
-            Add New Product
+            {t('product_manager.add_new_product')}
           </Button>
         </Flex>
       </Flex>
@@ -223,7 +225,7 @@ const ProductManager = () => {
 
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select
-          placeholder="Filter by Color"
+          placeholder={t('product_manager.filter_by_color')}
           value={filters.color}
           onChange={(e) => setFilters({ ...filters, color: e.target.value })}
         >
@@ -234,7 +236,7 @@ const ProductManager = () => {
           ))}
         </Select>
         <Select
-          placeholder="Filter by Model"
+          placeholder={t('product_manager.filter_by_model')}
           value={filters.model}
           onChange={(e) => setFilters({ ...filters, model: e.target.value })}
         >
@@ -244,7 +246,7 @@ const ProductManager = () => {
             </option>
           ))}
         </Select>
-        <Button onClick={handleFilter} colorScheme="blue">Filter</Button>
+        <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
         <Button
           onClick={() => {
             setFilters({ color: '', model: '' });
@@ -252,7 +254,7 @@ const ProductManager = () => {
           }}
           colorScheme="gray"
         >
-          Clear Filters
+          {t('product_manager.clear_filters')}
         </Button>
       </SimpleGrid>
 
@@ -260,20 +262,20 @@ const ProductManager = () => {
       <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleCreateProduct}>
-          <ModalHeader>Add New Product</ModalHeader>
+          <ModalHeader>{t('product_manager.create_modal.title')}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Stack gap={3}>
-              <Input placeholder="SKU" name="sku" value={newProduct.sku} onChange={(e) => handleInputChange(e, setNewProduct)} required />
-              <Input placeholder="Name" name="name" value={newProduct.name} onChange={(e) => handleInputChange(e, setNewProduct)} required />
-              <Input placeholder="Model" name="model" value={newProduct.model} onChange={(e) => handleInputChange(e, setNewProduct)} />
-              <Input placeholder="Color" name="color" value={newProduct.color} onChange={(e) => handleInputChange(e, setNewProduct)} />
-              <Input placeholder="Image URL" name="image_url" value={newProduct.image_url} onChange={(e) => handleInputChange(e, setNewProduct)} />
+              <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={newProduct.sku} onChange={(e) => handleInputChange(e, setNewProduct)} required />
+              <Input placeholder={t('product_manager.create_modal.name')} name="name" value={newProduct.name} onChange={(e) => handleInputChange(e, setNewProduct)} required />
+              <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={(e) => handleInputChange(e, setNewProduct)} />
+              <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={(e) => handleInputChange(e, setNewProduct)} />
+              <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={(e) => handleInputChange(e, setNewProduct)} />
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} type="submit">Create Product</Button>
-            <Button variant="ghost" onClick={onCreateClose}>Cancel</Button>
+            <Button colorScheme="green" mr={3} type="submit">{t('product_manager.create_modal.create_button')}</Button>
+            <Button variant="ghost" onClick={onCreateClose}>{t('product_manager.create_modal.cancel_button')}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -283,20 +285,20 @@ const ProductManager = () => {
         <Modal isOpen={isEditOpen} onClose={onEditClose}>
           <ModalOverlay />
           <ModalContent as="form" onSubmit={handleUpdateProduct}>
-            <ModalHeader>Edit Product</ModalHeader>
+            <ModalHeader>{t('product_manager.edit_modal.title')}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <Stack gap={3}>
-                <Input placeholder="SKU" name="sku" value={editingProduct.sku} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
-                <Input placeholder="Name" name="name" value={editingProduct.name} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
-                <Input placeholder="Model" name="model" value={editingProduct.model} onChange={(e) => handleInputChange(e, setEditingProduct)} />
-                <Input placeholder="Color" name="color" value={editingProduct.color} onChange={(e) => handleInputChange(e, setEditingProduct)} />
-                <Input placeholder="Image URL" name="image_url" value={editingProduct.image_url} onChange={(e) => handleInputChange(e, setEditingProduct)} />
+                <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={editingProduct.sku} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
+                <Input placeholder={t('product_manager.create_modal.name')} name="name" value={editingProduct.name} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
+                <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={(e) => handleInputChange(e, setEditingProduct)} />
+                <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={(e) => handleInputChange(e, setEditingProduct)} />
+                <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={(e) => handleInputChange(e, setEditingProduct)} />
               </Stack>
             </ModalBody>
             <ModalFooter>
-              <Button colorScheme="green" mr={3} type="submit">Save Changes</Button>
-              <Button variant="ghost" onClick={onEditClose}>Cancel</Button>
+              <Button colorScheme="green" mr={3} type="submit">{t('product_manager.edit_modal.save_button')}</Button>
+              <Button variant="ghost" onClick={onEditClose}>{t('product_manager.edit_modal.cancel_button')}</Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
@@ -330,20 +332,20 @@ const ProductManager = () => {
                   <AccordionPanel pb={4}>
                     <VStack align="stretch" spacing={2}>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">SKU:</Text>
+                        <Text fontWeight="bold">{t('product_manager.mobile.sku')}</Text>
                         <Text>{product.sku}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Model:</Text>
+                        <Text fontWeight="bold">{t('product_manager.mobile.model')}</Text>
                         <Text>{product.model}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Color:</Text>
+                        <Text fontWeight="bold">{t('product_manager.mobile.color')}</Text>
                         <Text>{product.color}</Text>
                       </Flex>
                       <Flex mt={4} wrap="wrap" gap={2}>
-                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">Edit</Button>
-                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>Archive</Button>
+                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
+                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
                       </Flex>
                     </VStack>
                   </AccordionPanel>
@@ -351,7 +353,7 @@ const ProductManager = () => {
               ))
             ) : (
               <Text textAlign="center" p={4}>
-                No products found.
+                {t('product_manager.no_products_found')}
               </Text>
             )}
           </Accordion>
@@ -360,12 +362,12 @@ const ProductManager = () => {
             <Table variant="simple" colorScheme="teal">
               <Thead bg="brand.background">
                 <Tr>
-                  <Th>Image</Th>
-                  <Th>Name</Th>
-                  <Th>SKU</Th>
-                  <Th>Model</Th>
-                  <Th>Color</Th>
-                  <Th>Actions</Th>
+                  <Th>{t('product_manager.table.image')}</Th>
+                  <Th>{t('product_manager.table.name')}</Th>
+                  <Th>{t('product_manager.table.sku')}</Th>
+                  <Th>{t('product_manager.table.model')}</Th>
+                  <Th>{t('product_manager.table.color')}</Th>
+                  <Th>{t('product_manager.table.actions')}</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -400,8 +402,8 @@ const ProductManager = () => {
                     <Td><Text noOfLines={1}>{product.color}</Text></Td>
                     <Td>
                       <Flex wrap="wrap" gap={2}>
-                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">Edit</Button>
-                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>Archive</Button>
+                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
+                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
                       </Flex>
                     </Td>
                   </Tr>
@@ -420,19 +422,19 @@ const ProductManager = () => {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Archive Product
+              {t('product_manager.archive_dialog.title')}
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure? This will mark the product as inactive.
+              {t('product_manager.archive_dialog.body')}
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onArchiveClose}>
-                Cancel
+                {t('product_manager.archive_dialog.cancel_button')}
               </Button>
               <Button colorScheme="red" onClick={confirmArchive} ml={3}>
-                Archive
+                {t('product_manager.archive_dialog.archive_button')}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

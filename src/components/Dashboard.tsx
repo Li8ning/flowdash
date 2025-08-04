@@ -12,7 +12,11 @@ import {
   Tab,
   TabPanel,
   Text,
+  Select,
+  HStack,
 } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import ProductManager from './ProductManager';
 import UserManager from './UserManager';
 import InventoryLogs from './InventoryLogs';
@@ -22,25 +26,39 @@ import ProductSelector from './ProductSelector';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { changeLanguage, language } = useLanguage();
+
   return (
     <Box p={{ base: 2, md: 6 }}>
       <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder" mb={8}>
         <Flex justify="space-between" align="center">
           <Box>
-            <Heading size={{ base: 'md', md: 'lg' }}>Welcome, {user?.name || 'Admin'}</Heading>
+            <Heading size={{ base: 'md', md: 'lg' }}>{t('dashboard.welcome')}, {user?.name || 'Admin'}</Heading>
             <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
           </Box>
-          <Button colorScheme="red" onClick={logout}>Logout</Button>
+          <HStack>
+            <Select
+              w="120px"
+              onChange={(e) => changeLanguage(e.target.value)}
+              value={language}
+            >
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="gu">Gujarati</option>
+            </Select>
+            <Button colorScheme="red" onClick={logout}>{t('dashboard.logout')}</Button>
+          </HStack>
         </Flex>
       </Box>
       <Tabs isLazy variant="line-alt" colorScheme="blue">
         <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           <TabList minW="max-content">
-            <Tab>Dashboard</Tab>
-            <Tab>Inventory Logs</Tab>
-            <Tab>Product Management</Tab>
-            <Tab>User Management</Tab>
-            <Tab>Profile</Tab>
+            <Tab>{t('dashboard.tabs.dashboard')}</Tab>
+            <Tab>{t('dashboard.tabs.inventory_logs')}</Tab>
+            <Tab>{t('dashboard.tabs.product_management')}</Tab>
+            <Tab>{t('dashboard.tabs.user_management')}</Tab>
+            <Tab>{t('dashboard.tabs.profile')}</Tab>
           </TabList>
         </Box>
         <TabPanels>
@@ -57,23 +75,36 @@ const AdminDashboard = () => {
 
 const FloorStaffDashboard = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { changeLanguage, language } = useLanguage();
   return (
     <Box p={{ base: 2, md: 6 }}>
        <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder" mb={8}>
         <Flex justify="space-between" align="center">
           <Box>
-            <Heading size={{ base: 'md', md: 'lg' }}>Welcome, {user?.name || 'User'}</Heading>
+            <Heading size={{ base: 'md', md: 'lg' }}>{t('dashboard.welcome')}, {user?.name || 'User'}</Heading>
             <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
           </Box>
-          <Button colorScheme="red" onClick={logout}>Logout</Button>
+          <HStack>
+            <Select
+              w="120px"
+              onChange={(e) => changeLanguage(e.target.value)}
+              value={language}
+            >
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="gu">Gujarati</option>
+            </Select>
+            <Button colorScheme="red" onClick={logout}>{t('dashboard.logout')}</Button>
+          </HStack>
         </Flex>
       </Box>
       <Tabs isLazy variant="line-alt" colorScheme="blue">
         <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           <TabList minW="max-content">
-            <Tab>Entry</Tab>
-            <Tab>Logs</Tab>
-            <Tab>Profile</Tab>
+            <Tab>{t('dashboard.tabs.entry')}</Tab>
+            <Tab>{t('dashboard.tabs.logs')}</Tab>
+            <Tab>{t('dashboard.tabs.profile')}</Tab>
           </TabList>
         </Box>
         <TabPanels>
@@ -88,6 +119,7 @@ const FloorStaffDashboard = () => {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   if (user?.role === 'factory_admin') {
     return <AdminDashboard />;
@@ -99,8 +131,8 @@ const Dashboard = () => {
 
   return (
     <Box p={8}>
-      <Heading>Welcome</Heading>
-      <Text>You are not assigned a role. Please contact an administrator.</Text>
+      <Heading>{t('unassigned.role.title')}</Heading>
+      <Text>{t('unassigned.role.description')}</Text>
     </Box>
   );
 };

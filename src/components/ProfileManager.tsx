@@ -15,9 +15,11 @@ import {
 } from '@chakra-ui/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
 const ProfileManager = () => {
   const { user, updateUser, organizationName, setOrganizationName } = useAuth();
+  const { t } = useTranslation();
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
   const [orgName, setOrgName] = useState('');
@@ -35,8 +37,8 @@ const ProfileManager = () => {
     e.preventDefault();
     if (!user || !user.organization_id) {
       toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to update the organization.',
+        title: t('profile_manager.toast.auth_error'),
+        description: t('profile_manager.toast.auth_error_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -48,8 +50,8 @@ const ProfileManager = () => {
       const response = await api.put(`/organizations/${user.organization_id}`, { name: orgName });
       setOrganizationName(response.data.name);
       toast({
-        title: 'Organization Updated',
-        description: 'The organization name has been successfully updated.',
+        title: t('profile_manager.toast.org_updated'),
+        description: t('profile_manager.toast.org_updated_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -57,8 +59,8 @@ const ProfileManager = () => {
     } catch (err) {
       console.error(err);
       toast({
-        title: 'Update Failed',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('profile_manager.toast.update_failed'),
+        description: (err as any).response?.data?.error || t('profile_manager.toast.update_failed_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -72,15 +74,15 @@ const ProfileManager = () => {
       const { data } = await api.put(`/users/${user?.id}`, payload);
       updateUser(data);
       toast({
-        title: 'Details updated successfully.',
+        title: t('profile_manager.toast.details_updated'),
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
     } catch (err: any) {
       toast({
-        title: 'Error updating details.',
-        description: err.response?.data?.error || 'An unexpected error occurred.',
+        title: t('profile_manager.toast.error_updating_details'),
+        description: err.response?.data?.error || t('profile_manager.toast.error_updating_details_description'),
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -91,7 +93,7 @@ const ProfileManager = () => {
   const handleUpdatePassword = async () => {
     if (password !== confirmPassword) {
       toast({
-        title: 'Passwords do not match.',
+        title: t('profile_manager.toast.passwords_no_match'),
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -100,7 +102,7 @@ const ProfileManager = () => {
     }
     if (!password) {
         toast({
-            title: 'Password cannot be empty.',
+            title: t('profile_manager.toast.password_empty'),
             status: 'error',
             duration: 3000,
             isClosable: true,
@@ -112,7 +114,7 @@ const ProfileManager = () => {
       const payload = { password };
       await api.put(`/users/${user?.id}`, payload);
       toast({
-        title: 'Password updated successfully.',
+        title: t('profile_manager.toast.password_updated'),
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -121,7 +123,7 @@ const ProfileManager = () => {
       setConfirmPassword('');
     } catch {
       toast({
-        title: 'Error updating password.',
+        title: t('profile_manager.toast.error_updating_password'),
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -132,18 +134,18 @@ const ProfileManager = () => {
   return (
     <Stack spacing={8} p={{ base: 2, md: 8 }} maxW="2xl" mx="auto">
       <Box p={6} borderWidth="1px" borderRadius="lg" shadow="md">
-        <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>User Details</Heading>
+        <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>{t('profile_manager.user_details.title')}</Heading>
         <Stack spacing={4}>
           <FormControl>
-            <FormLabel>Username</FormLabel>
+            <FormLabel>{t('profile_manager.user_details.username')}</FormLabel>
             <Input value={username} onChange={(e) => setUsername(e.target.value)} />
           </FormControl>
           <FormControl>
-            <FormLabel>Full Name</FormLabel>
+            <FormLabel>{t('profile_manager.user_details.full_name')}</FormLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </FormControl>
           <Button colorScheme="teal" onClick={handleUpdateDetails} alignSelf="flex-start">
-            Update Details
+            {t('profile_manager.user_details.update_button')}
           </Button>
         </Stack>
       </Box>
@@ -158,22 +160,22 @@ const ProfileManager = () => {
           shadow="md"
         >
           <Heading size={{ base: 'sm', md: 'lg' }} mb={4}>
-            Organization Settings
+            {t('profile_manager.organization_settings.title')}
           </Heading>
           <Divider mb={6} />
           <Stack spacing={4}>
             <FormControl isRequired>
-              <FormLabel>Organization Name</FormLabel>
+              <FormLabel>{t('profile_manager.organization_settings.name')}</FormLabel>
               <Input
                 type="text"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
-                placeholder="Enter organization name"
+                placeholder={t('profile_manager.organization_settings.name_placeholder')}
               />
             </FormControl>
             <Flex justify="flex-end">
               <Button type="submit" colorScheme="blue">
-                Update Name
+                {t('profile_manager.organization_settings.update_button')}
               </Button>
             </Flex>
           </Stack>
@@ -181,10 +183,10 @@ const ProfileManager = () => {
       )}
 
       <Box p={6} borderWidth="1px" borderRadius="lg" shadow="md">
-        <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>Change Password</Heading>
+        <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>{t('profile_manager.change_password.title')}</Heading>
         <Stack spacing={4}>
           <FormControl>
-            <FormLabel>New Password</FormLabel>
+            <FormLabel>{t('profile_manager.change_password.new_password')}</FormLabel>
             <Input
               type="password"
               value={password}
@@ -192,7 +194,7 @@ const ProfileManager = () => {
             />
           </FormControl>
           <FormControl>
-            <FormLabel>Confirm New Password</FormLabel>
+            <FormLabel>{t('profile_manager.change_password.confirm_new_password')}</FormLabel>
             <Input
               type="password"
               value={confirmPassword}
@@ -200,7 +202,7 @@ const ProfileManager = () => {
             />
           </FormControl>
           <Button colorScheme="teal" onClick={handleUpdatePassword} alignSelf="flex-start">
-            Update Password
+            {t('profile_manager.change_password.update_button')}
           </Button>
         </Stack>
       </Box>

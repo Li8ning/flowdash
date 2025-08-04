@@ -61,21 +61,35 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
 export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: RouteContext) => {
   try {
     const { id: logId } = params;
-    const { role } = req.user;
+    const { id: userId, role } = req.user;
 
-    if (role !== 'factory_admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const result = await sql`
-      DELETE FROM inventory_logs WHERE id = ${logId} RETURNING id
+    const [log] = await sql`
+      SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
     `;
 
-    if (result.length === 0) {
-      return NextResponse.json({ error: 'Log not found or you do not have permission to delete it' }, { status: 404 });
+    if (!log) {
+      return NextResponse.json({ error: 'Log not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Log deleted successfully' });
+    const isOwner = log.user_id === userId;
+    const logTime = new Date(log.created_at).getTime();
+    const currentTime = new Date().getTime();
+    const isWithin24Hours = (currentTime - logTime) < 24 * 60 * 60 * 1000;
+
+    if (role === 'factory_admin' || (role === 'floor_staff' && isOwner && isWithin24Hours)) {
+      const result = await sql`
+        DELETE FROM inventory_logs WHERE id = ${logId} RETURNING id
+      `;
+
+      if (result.length === 0) {
+        // This case should ideally not be reached if the log was found before
+        return NextResponse.json({ error: 'Log not found during deletion' }, { status: 404 });
+      }
+
+      return NextResponse.json({ message: 'Log deleted successfully' });
+    }
+    
+    return NextResponse.json({ error: 'You do not have permission to delete this log.' }, { status: 403 });
 
   } catch (err) {
     console.error(err);

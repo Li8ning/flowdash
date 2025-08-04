@@ -43,6 +43,7 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
+import { useTranslation } from 'react-i18next';
 
 interface User {
   id: number;
@@ -53,6 +54,7 @@ interface User {
 }
 
 const UserManager: React.FC = () => {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuth();
   const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
@@ -84,15 +86,15 @@ const UserManager: React.FC = () => {
       }
     } catch (err) {
       toast({
-        title: 'Error Fetching Users',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred while fetching users.',
+        title: t('user_manager.toast.error_fetching_users'),
+        description: (err as any).response?.data?.error || t('user_manager.toast.error_fetching_users_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
       console.error(err);
     }
-  }, [toast, statusFilter, searchQuery]);
+  }, [toast, statusFilter, searchQuery, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -103,8 +105,8 @@ const UserManager: React.FC = () => {
     try {
       await api.post('/users', { username: newUsername, name: newName, password: newPassword, role: newRole });
       toast({
-        title: 'User Invited',
-        description: `An invitation has been sent to ${newUsername}.`,
+        title: t('user_manager.toast.user_invited'),
+        description: t('user_manager.toast.user_invited_description', { username: newUsername }),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -116,8 +118,8 @@ const UserManager: React.FC = () => {
       fetchUsers();
     } catch (err) {
       toast({
-        title: 'Invitation Failed',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('user_manager.toast.invitation_failed'),
+        description: (err as any).response?.data?.error || t('user_manager.toast.invitation_failed_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -130,8 +132,8 @@ const UserManager: React.FC = () => {
     try {
       await api.delete(`/users/${userId}`);
       toast({
-        title: 'User Removed',
-        description: 'The user has been successfully removed.',
+        title: t('user_manager.toast.user_removed'),
+        description: t('user_manager.toast.user_removed_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -139,8 +141,8 @@ const UserManager: React.FC = () => {
       fetchUsers();
     } catch (err) {
       toast({
-        title: 'Error Removing User',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('user_manager.toast.error_removing_user'),
+        description: (err as any).response?.data?.error || t('user_manager.toast.error_removing_user_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -153,8 +155,8 @@ const UserManager: React.FC = () => {
     try {
       await api.put(`/users/${userId}/reactivate`);
       toast({
-        title: 'User Reactivated',
-        description: 'The user has been successfully reactivated.',
+        title: t('user_manager.toast.user_reactivated'),
+        description: t('user_manager.toast.user_reactivated_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -162,8 +164,8 @@ const UserManager: React.FC = () => {
       fetchUsers();
     } catch (err) {
       toast({
-        title: 'Error Reactivating User',
-        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('user_manager.toast.error_reactivating_user'),
+        description: (err as any).response?.data?.error || t('user_manager.toast.error_reactivating_user_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -209,8 +211,8 @@ const UserManager: React.FC = () => {
         />
       )}
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>User Management</Heading>
-        <Button onClick={onOpen} colorScheme="blue">Invite New User</Button>
+        <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>{t('user_manager.title')}</Heading>
+        <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
       </Flex>
       <Divider mb={6} />
 
@@ -220,69 +222,69 @@ const UserManager: React.FC = () => {
             <SearchIcon color="gray.300" />
           </InputLeftElement>
           <Input
-            placeholder="Search by name"
+            placeholder={t('user_manager.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </InputGroup>
         <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All Users</option>
-          <option value="active">Active Users</option>
-          <option value="inactive">Inactive Users</option>
+          <option value="all">{t('user_manager.status_filter.all')}</option>
+          <option value="active">{t('user_manager.status_filter.active')}</option>
+          <option value="inactive">{t('user_manager.status_filter.inactive')}</option>
         </Select>
       </Flex>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleInviteUser}>
-          <ModalHeader>Invite New User</ModalHeader>
+          <ModalHeader>{t('user_manager.invite_modal.title')}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Stack spacing={4}>
               <FormControl isRequired>
-                <FormLabel>Username</FormLabel>
+                <FormLabel>{t('user_manager.invite_modal.username')}</FormLabel>
                 <Input
                   type="text"
-                  placeholder="Enter username"
+                  placeholder={t('user_manager.invite_modal.username_placeholder')}
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                 />
               </FormControl>
               <FormControl isRequired>
-               <FormLabel>Full Name</FormLabel>
+               <FormLabel>{t('user_manager.invite_modal.full_name')}</FormLabel>
                <Input
                  type="text"
-                 placeholder="Enter full name"
+                 placeholder={t('user_manager.invite_modal.full_name_placeholder')}
                  value={newName}
                  onChange={(e) => setNewName(e.target.value)}
                />
              </FormControl>
              <FormControl isRequired>
-               <FormLabel>Password or PIN</FormLabel>
+               <FormLabel>{t('user_manager.invite_modal.password')}</FormLabel>
                <Input
                  type="password"
-                 placeholder="Enter temporary password"
+                 placeholder={t('user_manager.invite_modal.password_placeholder')}
                  value={newPassword}
                  onChange={(e) => setNewPassword(e.target.value)}
                />
              </FormControl>
               <FormControl isRequired>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>{t('user_manager.invite_modal.role')}</FormLabel>
                 <Select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                 >
-                  <option value="floor_staff">Floor Staff</option>
-                  <option value="factory_admin">Factory Admin</option>
+                  <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>
+                  <option value="factory_admin">{t('user_manager.invite_modal.role.factory_admin')}</option>
                 </Select>
               </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>
             <Button type="submit" colorScheme="green" mr={3}>
-              Invite User
+              {t('user_manager.invite_modal.invite_button')}
             </Button>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button variant="ghost" onClick={onClose}>{t('user_manager.invite_modal.cancel_button')}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -322,11 +324,11 @@ const UserManager: React.FC = () => {
           }}>
             <Thead bg="brand.background">
               <Tr>
-                <Th>Name</Th>
-                <Th>Username</Th>
-                <Th>Role</Th>
-                <Th>Status</Th>
-                <Th>Actions</Th>
+                <Th>{t('user_manager.table.name')}</Th>
+                <Th>{t('user_manager.table.username')}</Th>
+                <Th>{t('user_manager.table.role')}</Th>
+                <Th>{t('user_manager.table.status')}</Th>
+                <Th>{t('user_manager.table.actions')}</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -341,18 +343,18 @@ const UserManager: React.FC = () => {
                         }
                     }}
                 >
-                  <Td data-label="Name"><Text noOfLines={1}>{user.name}</Text></Td>
-                  <Td data-label="Username"><Text noOfLines={1}>{user.username}</Text></Td>
-                  <Td data-label="Role"><Text noOfLines={1}>{user.role}</Text></Td>
-                  <Td data-label="Status">
+                  <Td data-label={t('user_manager.table.name')}><Text noOfLines={1}>{user.name}</Text></Td>
+                  <Td data-label={t('user_manager.table.username')}><Text noOfLines={1}>{user.username}</Text></Td>
+                  <Td data-label={t('user_manager.table.role')}><Text noOfLines={1}>{user.role}</Text></Td>
+                  <Td data-label={t('user_manager.table.status')}>
                     <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
-                      {user.is_active !== false ? 'Active' : 'Inactive'}
+                      {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
                     </Text>
                   </Td>
-                  <Td data-label="Actions">
+                  <Td data-label={t('user_manager.table.actions')}>
                     <Flex gap={2}>
                       <IconButton
-                        aria-label="Edit user"
+                        aria-label={t('user_manager.actions.edit')}
                         icon={<EditIcon />}
                         colorScheme="blue"
                         size="sm"
@@ -360,7 +362,7 @@ const UserManager: React.FC = () => {
                       />
                       {user.is_active !== false ? (
                         <IconButton
-                          aria-label="Deactivate user"
+                          aria-label={t('user_manager.actions.deactivate')}
                           icon={<DeleteIcon />}
                           colorScheme="red"
                           size="sm"
@@ -368,7 +370,7 @@ const UserManager: React.FC = () => {
                         />
                       ) : (
                         <IconButton
-                          aria-label="Reactivate user"
+                          aria-label={t('user_manager.actions.reactivate')}
                           icon={<RepeatIcon />}
                           colorScheme="green"
                           size="sm"
@@ -392,23 +394,23 @@ const UserManager: React.FC = () => {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              {alertAction?.type === 'remove' ? 'Deactivate User' : 'Reactivate User'}
+              {alertAction?.type === 'remove' ? t('user_manager.alert.deactivate.title') : t('user_manager.alert.reactivate.title')}
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to {alertAction?.type === 'remove' ? 'deactivate' : 'reactivate'} this user?
+              {t('user_manager.alert.body', { action: alertAction?.type === 'remove' ? t('user_manager.alert.action.deactivate') : t('user_manager.alert.action.reactivate') })}
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onAlertClose}>
-                Cancel
+                {t('user_manager.alert.cancel_button')}
               </Button>
               <Button
                 colorScheme={alertAction?.type === 'remove' ? 'red' : 'green'}
                 onClick={confirmAction}
                 ml={3}
               >
-                {alertAction?.type === 'remove' ? 'Deactivate' : 'Reactivate'}
+                {alertAction?.type === 'remove' ? t('user_manager.alert.deactivate_button') : t('user_manager.alert.reactivate_button')}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

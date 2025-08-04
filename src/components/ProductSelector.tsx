@@ -28,6 +28,7 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   id: number;
@@ -50,6 +51,7 @@ const LogEntryForm = () => {
   const [distinctModels, setDistinctModels] = useState([]);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -65,8 +67,8 @@ const LogEntryForm = () => {
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast({
-          title: 'Error Fetching Products',
-          description: (error as any).response?.data?.error || 'Could not load product data.',
+          title: t('product_selector.toast.error_fetching_products'),
+          description: (error as any).response?.data?.error || t('product_selector.toast.error_fetching_products_description'),
           status: 'error',
           duration: 5000,
           isClosable: true,
@@ -74,7 +76,7 @@ const LogEntryForm = () => {
       }
     };
     fetchProducts();
-  }, [toast]);
+  }, [toast, t]);
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -86,7 +88,7 @@ const LogEntryForm = () => {
     const numQuantity = parseInt(quantity, 10);
     if (!selectedProduct || !quantity || numQuantity < 1) {
       toast({
-        title: 'Please select a product and enter a quantity greater than 0.',
+        title: t('product_selector.toast.invalid_input'),
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -101,7 +103,7 @@ const LogEntryForm = () => {
         quantity_change: numQuantity,
       });
       toast({
-        title: 'Log entry created.',
+        title: t('product_selector.toast.log_created'),
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -111,8 +113,8 @@ const LogEntryForm = () => {
     } catch (error) {
       console.error('Failed to create log entry', error);
       toast({
-        title: 'Error Creating Log Entry',
-        description: (error as any).response?.data?.error || 'An unexpected error occurred.',
+        title: t('product_selector.toast.error_creating_log'),
+        description: (error as any).response?.data?.error || t('product_selector.toast.error_creating_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -140,16 +142,16 @@ const LogEntryForm = () => {
   return (
     <Box p={{ base: 2, md: 4 }} bg="brand.surface">
       <Stack spacing={6}>
-        <Heading as="h2" size="lg" textAlign="center">Create Production Log</Heading>
+        <Heading as="h2" size="lg" textAlign="center">{t('product_selector.title')}</Heading>
         <Input
-          placeholder="Search by name, model, or color..."
+          placeholder={t('product_selector.search_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           size="lg"
         />
        <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
          <Select
-           placeholder="Filter by Color"
+           placeholder={t('product_selector.filter_by_color')}
            value={filters.color}
            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
          >
@@ -160,7 +162,7 @@ const LogEntryForm = () => {
            ))}
          </Select>
          <Select
-           placeholder="Filter by Model"
+           placeholder={t('product_selector.filter_by_model')}
            value={filters.model}
            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
          >
@@ -170,7 +172,7 @@ const LogEntryForm = () => {
              </option>
            ))}
          </Select>
-         <Button onClick={handleFilter} colorScheme="blue">Filter</Button>
+         <Button onClick={handleFilter} colorScheme="blue">{t('product_selector.filter')}</Button>
          <Button
            onClick={() => {
              setFilters({ color: '', model: '' });
@@ -178,7 +180,7 @@ const LogEntryForm = () => {
            }}
            colorScheme="gray"
          >
-           Clear Filters
+           {t('product_selector.clear_filters')}
          </Button>
        </SimpleGrid>
        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing={{ base: 6, md: 5 }}>
@@ -211,7 +213,7 @@ const LogEntryForm = () => {
         <Modal isOpen={isOpen} onClose={onClose} isCentered>
           <ModalOverlay />
           <ModalContent as="form" onSubmit={handleSubmit}>
-            <ModalHeader>Enter Quantity for</ModalHeader>
+            <ModalHeader>{t('product_selector.quantity_modal.title')}</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <VStack>
@@ -220,7 +222,7 @@ const LogEntryForm = () => {
                 <Text color="gray.500">{selectedProduct.model} - {selectedProduct.color}</Text>
               </VStack>
               <FormControl mt={6} isRequired>
-                <FormLabel>Quantity</FormLabel>
+                <FormLabel>{t('product_selector.quantity_modal.quantity')}</FormLabel>
                 <HStack maxW="320px" margin="0 auto">
                   <IconButton
                     aria-label="Decrement"
@@ -248,14 +250,14 @@ const LogEntryForm = () => {
               </FormControl>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
+              <Button variant="ghost" mr={3} onClick={onClose}>{t('product_selector.quantity_modal.cancel')}</Button>
               <Button
                 colorScheme="blue"
                 type="submit"
                 isLoading={loading}
                 loadingText="Submitting"
               >
-                Submit Entry
+                {t('product_selector.quantity_modal.submit')}
               </Button>
             </ModalFooter>
           </ModalContent>

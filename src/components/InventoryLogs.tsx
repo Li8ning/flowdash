@@ -6,6 +6,7 @@ import { AxiosError } from 'axios';
 import { exportToPdf, exportToExcel } from '../lib/export';
 import EditLogModal from '@/components/EditLogModal';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   Table,
   Thead,
@@ -62,6 +63,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [editingLog, setEditingLog] = useState<InventoryLog | null>(null);
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef(null);
   const [logToDelete, setLogToDelete] = useState<number | null>(null);
@@ -106,14 +108,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     } catch (err) {
       console.error('Failed to fetch distinct filter values', err);
       toast({
-        title: 'Error Loading Filters',
-        description: (err as any).response?.data?.error || 'Could not load filter options.',
+        title: t('inventory.logs.toast.error_loading_filters'),
+        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_loading_filters_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     }
-  }, [allLogs, toast]);
+  }, [allLogs, toast, t]);
 
   useEffect(() => {
     fetchDistinctValues();
@@ -132,14 +134,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         return;
       }
       toast({
-        title: 'Error Fetching Logs',
-        description: (err as any).response?.data?.error || 'There was an issue retrieving the inventory logs.',
+        title: t('inventory.logs.toast.error_fetching_logs'),
+        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_fetching_logs_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     }
-  }, [allLogs, appliedFilters, toast, user]);
+  }, [allLogs, appliedFilters, toast, user, t]);
 
   useEffect(() => {
     fetchLogs();
@@ -148,8 +150,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const handleFilterClick = () => {
     if (dateRange === 'custom' && (!filters.startDate || !filters.endDate)) {
       toast({
-        title: 'Invalid Date Range',
-        description: 'Please select both a start and end date for the custom range.',
+        title: t('inventory.logs.toast.invalid_date_range'),
+        description: t('inventory.logs.toast.invalid_date_range_description'),
         status: 'warning',
         duration: 5000,
         isClosable: true,
@@ -208,16 +210,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       await api.delete(`/inventory/logs/${logId}`);
       setLogs(prevLogs => prevLogs.filter((log) => log.id !== logId));
       toast({
-        title: 'Log deleted.',
-        description: 'The inventory log has been successfully deleted.',
+        title: t('inventory.logs.toast.log_deleted'),
+        description: t('inventory.logs.toast.log_deleted_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
     } catch (err) {
       toast({
-        title: 'Error Deleting Log',
-        description: (err as any).response?.data?.error || 'Failed to delete the log.',
+        title: t('inventory.logs.toast.error_deleting_log'),
+        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_deleting_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -251,7 +253,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
       <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }}>Inventory Logs</Heading>
+        <Heading as="h2" size={{ base: 'sm', md: 'lg' }}>{t('inventory.logs.title')}</Heading>
         <Flex
           direction={{ base: 'column', md: 'row' }}
           align={{ base: 'stretch', md: 'center' }}
@@ -260,13 +262,13 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         >
             {allLogs && (
               <>
-                <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>Export to PDF</Button>
-                <Button colorScheme="green" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>Export to Excel</Button>
+                <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_pdf')}</Button>
+                <Button colorScheme="green" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_excel')}</Button>
               </>
             )}
-            <Button colorScheme="blue" onClick={handleFilterClick}>Filter</Button>
+            <Button colorScheme="blue" onClick={handleFilterClick}>{t('inventory.logs.filter')}</Button>
             <Button onClick={handleClearFilters} colorScheme="gray">
-              Clear Filters
+              {t('inventory.logs.clear_filters')}
             </Button>
         </Flex>
       </Flex>
@@ -275,7 +277,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         <SimpleGrid columns={{ base: 1, md: 2, lg: allLogs ? 5 : 4 }} spacing={4} mb={4}>
           {allLogs && (
             <Select
-              placeholder="Filter by User"
+              placeholder={t('inventory.logs.filter_by_user')}
               value={filters.user}
               onChange={(e) => setFilters({ ...filters, user: e.target.value })}
             >
@@ -287,7 +289,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             </Select>
           )}
           <Select
-            placeholder="Filter by Product"
+            placeholder={t('inventory.logs.filter_by_product')}
             value={filters.product}
             onChange={(e) =>
               setFilters({ ...filters, product: e.target.value })
@@ -300,7 +302,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             ))}
           </Select>
           <Select
-            placeholder="Filter by Color"
+            placeholder={t('inventory.logs.filter_by_color')}
             value={filters.color}
             onChange={(e) => setFilters({ ...filters, color: e.target.value })}
           >
@@ -311,7 +313,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             ))}
           </Select>
           <Select
-            placeholder="Filter by Model"
+            placeholder={t('inventory.logs.filter_by_model')}
             value={filters.model}
             onChange={(e) => setFilters({ ...filters, model: e.target.value })}
           >
@@ -322,10 +324,10 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             ))}
           </Select>
           <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
-            <option value="today">Today</option>
-            <option value="last7days">Last 7 Days</option>
-            <option value="thisMonth">This Month</option>
-            <option value="custom">Custom Date</option>
+            <option value="today">{t('inventory.logs.date_range.today')}</option>
+            <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
+            <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
+            <option value="custom">{t('inventory.logs.date_range.custom')}</option>
           </Select>
         </SimpleGrid>
         
@@ -333,13 +335,13 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           <HStack spacing={4} mb={6}>
             <Input
               type="date"
-              placeholder="Start Date"
+              placeholder={t('inventory.logs.start_date')}
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
             />
             <Input
               type="date"
-              placeholder="End Date"
+              placeholder={t('inventory.logs.end_date')}
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
             />
@@ -386,25 +388,25 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                   <AccordionPanel pb={4}>
                     <VStack align="stretch" spacing={2}>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Color:</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.color')}:</Text>
                         <Text>{log.color}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Model:</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.model')}:</Text>
                         <Text>{log.model}</Text>
                       </Flex>
                       {allLogs && (
                         <Flex justify="space-between">
-                          <Text fontWeight="bold">User:</Text>
+                          <Text fontWeight="bold">{t('inventory.logs.table.user')}:</Text>
                           <Text>{log.username}</Text>
                         </Flex>
                       )}
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Quantity Change:</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.quantity_change')}:</Text>
                         <Text>{log.quantity_change}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">Date:</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.date')}:</Text>
                         <Text>{new Date(log.created_at).toLocaleString()}</Text>
                       </Flex>
                       <Flex mt={4}>
@@ -414,15 +416,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                           disabled={!isEditable(log.created_at)}
                           onClick={() => setEditingLog(log)}
                         >
-                          Edit
+                          {t('inventory.logs.edit')}
                         </Button>
-                        {user?.role === 'factory_admin' && (
+                        {(user?.role === 'factory_admin' || user?.role === 'floor_staff') && (
                           <Button
                             size="sm"
                             colorScheme="red"
                             onClick={() => openDeleteDialog(log.id)}
+                            disabled={!isEditable(log.created_at)}
                           >
-                            Delete
+                            {t('inventory.logs.delete')}
                           </Button>
                         )}
                       </Flex>
@@ -432,7 +435,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               ))
             ) : (
               <Text textAlign="center" p={4}>
-                No logs found for the selected filters.
+                {t('inventory.logs.no_logs_found')}
               </Text>
             )}
           </Accordion>
@@ -441,14 +444,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             <Table variant="simple" colorScheme="teal">
               <Thead bg="brand.background">
                 <Tr>
-                  <Th>Image</Th>
-                  <Th>Product Name</Th>
-                  <Th>Color</Th>
-                  <Th>Model</Th>
-                  {allLogs && <Th>User</Th>}
-                  <Th isNumeric>Quantity Change</Th>
-                  <Th>Date</Th>
-                  <Th>Actions</Th>
+                  <Th>{t('inventory.logs.table.image')}</Th>
+                  <Th>{t('inventory.logs.table.product_name')}</Th>
+                  <Th>{t('inventory.logs.table.color')}</Th>
+                  <Th>{t('inventory.logs.table.model')}</Th>
+                  {allLogs && <Th>{t('inventory.logs.table.user')}</Th>}
+                  <Th isNumeric>{t('inventory.logs.table.quantity_change')}</Th>
+                  <Th>{t('inventory.logs.table.date')}</Th>
+                  <Th>{t('inventory.logs.table.actions')}</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -487,15 +490,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                             disabled={!isEditable(log.created_at)}
                             onClick={() => setEditingLog(log)}
                           >
-                            Edit
+                            {t('inventory.logs.edit')}
                           </Button>
-                          {user?.role === 'factory_admin' && (
+                          {(user?.role === 'factory_admin' || user?.role === 'floor_staff') && (
                             <Button
                               size="sm"
                               colorScheme="red"
                               onClick={() => openDeleteDialog(log.id)}
+                              disabled={!isEditable(log.created_at)}
                             >
-                              Delete
+                              {t('inventory.logs.delete')}
                             </Button>
                           )}
                         </Flex>
@@ -505,7 +509,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                 ) : (
                   <Tr>
                     <Td colSpan={allLogs ? 8 : 7} textAlign="center">
-                      No logs found for the selected filters.
+                      {t('inventory.logs.no_logs_found')}
                     </Td>
                   </Tr>
                 )}
@@ -529,19 +533,19 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Log Entry
+              {t('inventory.logs.delete_confirmation.title')}
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure? You can&apos;t undo this action afterwards.
+              {t('inventory.logs.delete_confirmation.body')}
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onClose}>
-                Cancel
+                {t('inventory.logs.delete_confirmation.cancel')}
               </Button>
               <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                Delete
+                {t('inventory.logs.delete_confirmation.delete')}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

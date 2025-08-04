@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import api from '../lib/api';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   ModalOverlay,
@@ -38,6 +39,7 @@ interface EditLogModalProps {
 const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) => {
   const [quantityChange, setQuantityChange] = useState(log.quantity_change);
   const toast = useToast();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,16 +50,16 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
       onUpdate(updatedLog);
       onClose();
       toast({
-        title: 'Log updated.',
-        description: 'The inventory log has been successfully updated.',
+        title: t('edit_log_modal.toast.log_updated'),
+        description: t('edit_log_modal.toast.log_updated_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
     } catch (err) {
       toast({
-        title: 'Error Updating Log',
-        description: (err as any).response?.data?.error || 'Failed to update the inventory log.',
+        title: t('edit_log_modal.toast.error_updating_log'),
+        description: (err as any).response?.data?.error || t('edit_log_modal.toast.error_updating_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -70,12 +72,12 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
     <Modal isOpen={true} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Edit Inventory Log</ModalHeader>
+        <ModalHeader>{t('edit_log_modal.title')}</ModalHeader>
         <ModalCloseButton />
         <form onSubmit={handleSubmit}>
           <ModalBody>
             <FormControl>
-              <FormLabel>Quantity Change</FormLabel>
+              <FormLabel>{t('edit_log_modal.quantity_change')}</FormLabel>
               <HStack>
                 <IconButton
                   aria-label="Decrease quantity"
@@ -98,10 +100,10 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" mr={3} type="submit">
-              Update
+              {t('edit_log_modal.update')}
             </Button>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t('edit_log_modal.cancel')}
             </Button>
           </ModalFooter>
         </form>
