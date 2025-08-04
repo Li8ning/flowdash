@@ -51,6 +51,7 @@ const ProductManager = () => {
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ color: '', model: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '', model: '' });
   const [distinctColors, setDistinctColors] = useState([]);
   const [distinctModels, setDistinctModels] = useState([]);
 
@@ -135,13 +136,17 @@ const ProductManager = () => {
   };
 
 
+  const handleFilter = () => {
+    setActiveFilters(filters);
+  };
+
   const filteredProducts = products.filter((product) => {
     const searchMatch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const colorMatch = filters.color ? product.color === filters.color : true;
-    const modelMatch = filters.model ? product.model === filters.model : true;
+    const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
+    const modelMatch = activeFilters.model ? product.model === activeFilters.model : true;
 
     return searchMatch && colorMatch && modelMatch;
   });
@@ -165,7 +170,7 @@ const ProductManager = () => {
       </Flex>
       <Divider mb={6} />
 
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
+      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select
           placeholder="Filter by Color"
           value={filters.color}
@@ -188,8 +193,12 @@ const ProductManager = () => {
             </option>
           ))}
         </Select>
+        <Button onClick={handleFilter} colorScheme="blue">Filter</Button>
         <Button
-          onClick={() => setFilters({ color: '', model: '' })}
+          onClick={() => {
+            setFilters({ color: '', model: '' });
+            setActiveFilters({ color: '', model: '' });
+          }}
           colorScheme="gray"
         >
           Clear Filters

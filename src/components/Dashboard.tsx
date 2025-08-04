@@ -17,7 +17,6 @@ import ProductManager from './ProductManager';
 import UserManager from './UserManager';
 import InventoryLogs from './InventoryLogs';
 import ProductionDashboard from './ProductionDashboard';
-import Reports from './Reports';
 import ProfileManager from './ProfileManager';
 import ProductSelector from './ProductSelector';
 
@@ -33,7 +32,6 @@ const AdminDashboard = () => {
         <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           <TabList>
             <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Dashboard</Tab>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Reports</Tab>
             <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Inventory Logs</Tab>
             <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Product Management</Tab>
             <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>User Management</Tab>
@@ -42,7 +40,6 @@ const AdminDashboard = () => {
         </Box>
         <TabPanels>
           <TabPanel p={0} pt={6}><ProductionDashboard /></TabPanel>
-          <TabPanel p={0} pt={6}><Reports /></TabPanel>
           <TabPanel p={0} pt={6}><InventoryLogs allLogs={true} /></TabPanel>
           <TabPanel p={0} pt={6}><ProductManager /></TabPanel>
           <TabPanel p={0} pt={6}><UserManager /></TabPanel>

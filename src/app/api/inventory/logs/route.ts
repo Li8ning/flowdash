@@ -10,23 +10,24 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const product = searchParams.get('product');
     const color = searchParams.get('color');
     const model = searchParams.get('model');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
-    let query = `
-      SELECT l.id, p.name as product_name, p.color, p.model, u.name as username, l.quantity_change, l.created_at
+    const rows = await sql`
+      SELECT l.id, p.name as product_name, p.color, p.model, p.image_url, u.name as username, l.quantity_change, l.created_at
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       JOIN users u ON l.user_id = u.id
       WHERE p.organization_id = ${organization_id}
+      ${user ? sql` AND u.name = ${user}` : sql``}
+      ${product ? sql` AND p.name = ${product}` : sql``}
+      ${color ? sql` AND p.color = ${color}` : sql``}
+      ${model ? sql` AND p.model = ${model}` : sql``}
+      ${startDate ? sql` AND l.created_at >= ${startDate}` : sql``}
+      ${endDate ? sql` AND l.created_at < ${(new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1))).toISOString().split('T')[0]}` : sql``}
+      ORDER BY l.created_at DESC
     `;
-    
-    if (user) query += ` AND u.name = '${user}'`;
-    if (product) query += ` AND p.name = '${product}'`;
-    if (color) query += ` AND p.color = '${color}'`;
-    if (model) query += ` AND p.model = '${model}'`;
 
-    query += ' ORDER BY l.created_at DESC';
-
-    const rows = await sql.query(query);
     return NextResponse.json(rows);
   } catch (err) {
     console.error(err);
