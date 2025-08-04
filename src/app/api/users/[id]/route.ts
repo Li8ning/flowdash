@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
 
 interface RouteParams {
   params: {

@@ -13,7 +13,7 @@ interface RouteParams {
 const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) => {
   const userId = parseInt(params.id, 10);
   const { currentPassword, newPassword } = await req.json();
-  const { id: currentUserId, role } = req.user;
+  const { id: currentUserId } = req.user;
 
   // A user can change their own password, or an admin can change any user's password.
   // For simplicity, we'll only allow users to change their own password for now.

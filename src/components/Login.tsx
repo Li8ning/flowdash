@@ -33,7 +33,7 @@ const Login = () => {
         duration: 5000,
         isClosable: true,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Login Failed.',
         description: 'Invalid credentials.',
@@ -86,7 +86,7 @@ const Login = () => {
           Login
         </Button>
         <Text>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link as={NextLink} href="/register" color="blue.500">
             Sign up
           </Link>

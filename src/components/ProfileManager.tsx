@@ -48,7 +48,7 @@ const ProfileManager = () => {
       });
       setPassword('');
       setConfirmPassword('');
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error updating profile.',
         status: 'error',

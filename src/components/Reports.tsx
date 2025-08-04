@@ -33,7 +33,7 @@ const Reports = () => {
       try {
         const { data } = await api.get('/inventory/logs');
         setLogs(data);
-      } catch (error) {
+      } catch {
         toast({
           title: 'Error fetching logs.',
           status: 'error',

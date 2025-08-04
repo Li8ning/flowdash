@@ -37,7 +37,7 @@ export const withAuth = (handler: Handler, roles?: string[]) => {
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = payload as unknown as UserPayload;
       return handler(authenticatedReq, ...args);
-    } catch (err) {
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   };

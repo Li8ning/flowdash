@@ -16,7 +16,6 @@ import {
   Box,
   Flex,
   Select,
-  Input,
   SimpleGrid,
   Heading,
   Divider,
@@ -71,16 +70,6 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     }
   };
 
-  const fetchLogs = async () => {
-    try {
-      const url = allLogs ? '/inventory/logs' : '/inventory/logs/me';
-      const { data } = await api.get(url, { params: filters });
-      setLogs(data);
-    } catch (err) {
-      setError('Failed to fetch inventory logs.');
-      console.error(err);
-    }
-  };
 
   useEffect(() => {
     if (allLogs) {
@@ -89,8 +78,19 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   }, [allLogs]);
 
   useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const url = allLogs ? '/inventory/logs' : '/inventory/logs/me';
+        const { data } = await api.get(url, { params: filters });
+        setLogs(data);
+      } catch (err) {
+        setError('Failed to fetch inventory logs.');
+        console.error(err);
+      }
+    };
+
     fetchLogs();
-  }, [filters]);
+  }, [filters, allLogs]);
 
   const isEditable = (createdAt: string) => {
     if (user?.role === 'factory_admin') {

@@ -52,26 +52,27 @@ const ProductManager = () => {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
 
-  const fetchProducts = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const response = await api.get('/products');
-      setProducts(response.data);
-    } catch (err) {
-      console.error(err);
-      toast({ title: 'Error fetching products', status: 'error', duration: 3000, isClosable: true });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchProducts = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const response = await api.get('/products');
+        setProducts(response.data);
+      } catch (err) {
+        console.error(err);
+        toast({ title: 'Error fetching products', status: 'error', duration: 3000, isClosable: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProducts();
-  }, [token]);
+  }, [token, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<any>>) => {
     const { name, value } = e.target;

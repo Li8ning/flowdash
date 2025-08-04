@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // or that organization name is not immediately required on load.
           }
           setUser(userData);
-        } catch (error) {
+        } catch {
           // Token might be invalid
           Cookies.remove('token');
           setToken(null);
