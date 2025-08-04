@@ -11,16 +11,16 @@ interface RouteParams {
 export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteParams) => {
   try {
     const { id } = params;
-    const { name, color, model, quantity } = await req.json();
+    const { name, sku, model, color, image_url } = await req.json();
     const { organization_id } = req.user;
 
-    if (!name || !color || !model || quantity === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!name || !sku) {
+      return NextResponse.json({ error: 'Name and SKU are required' }, { status: 400 });
     }
 
     const rows = await sql`
       UPDATE products
-      SET name = ${name}, color = ${color}, model = ${model}, quantity = ${quantity}
+      SET name = ${name}, sku = ${sku}, model = ${model}, color = ${color}, image_url = ${image_url}
       WHERE id = ${id} AND organization_id = ${organization_id}
       RETURNING *
     `;

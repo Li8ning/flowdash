@@ -21,15 +21,15 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
-    const { name, color, model, quantity } = await req.json();
+    const { name, sku, model, color, image_url } = await req.json();
     
-    if (!name || !color || !model || quantity === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!name || !sku) {
+      return NextResponse.json({ error: 'Name and SKU are required fields' }, { status: 400 });
     }
 
     const rows = await sql`
-      INSERT INTO products (name, color, model, quantity, organization_id)
-      VALUES (${name}, ${color}, ${model}, ${quantity}, ${organization_id})
+      INSERT INTO products (name, sku, model, color, image_url, organization_id)
+      VALUES (${name}, ${sku}, ${model}, ${color}, ${image_url}, ${organization_id})
       RETURNING *
     `;
 
