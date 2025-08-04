@@ -33,10 +33,10 @@ const Login = () => {
         duration: 5000,
         isClosable: true,
       });
-    } catch {
+    } catch (err: any) {
       toast({
         title: 'Login Failed.',
-        description: 'Invalid credentials.',
+        description: err.response?.data?.msg || 'Invalid credentials.',
         status: 'error',
         duration: 5000,
         isClosable: true,

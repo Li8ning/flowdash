@@ -21,21 +21,26 @@ import ProfileManager from './ProfileManager';
 import ProductSelector from './ProductSelector';
 
 const AdminDashboard = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <Box p={{ base: 2, md: 6 }}>
-      <Flex justify="space-between" align="center" mb={8}>
-        <Heading>Admin Dashboard</Heading>
-        <Button colorScheme="red" onClick={logout}>Logout</Button>
-      </Flex>
-      <Tabs isLazy colorScheme="teal" variant="enclosed-colored" size="lg">
+      <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder" mb={8}>
+        <Flex justify="space-between" align="center">
+          <Box>
+            <Heading size={{ base: 'md', md: 'lg' }}>Welcome, {user?.name || 'Admin'}</Heading>
+            <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
+          </Box>
+          <Button colorScheme="red" onClick={logout}>Logout</Button>
+        </Flex>
+      </Box>
+      <Tabs isLazy variant="line-alt" colorScheme="blue">
         <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-          <TabList>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Dashboard</Tab>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Inventory Logs</Tab>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Product Management</Tab>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>User Management</Tab>
-            <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Profile</Tab>
+          <TabList minW="max-content">
+            <Tab>Dashboard</Tab>
+            <Tab>Inventory Logs</Tab>
+            <Tab>Product Management</Tab>
+            <Tab>User Management</Tab>
+            <Tab>Profile</Tab>
           </TabList>
         </Box>
         <TabPanels>
@@ -51,19 +56,26 @@ const AdminDashboard = () => {
 };
 
 const FloorStaffDashboard = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <Box p={{ base: 2, md: 6 }}>
-      <Flex justify="space-between" align="center" mb={8}>
-        <Heading>Floor Staff Panel</Heading>
-        <Button colorScheme="red" onClick={logout}>Logout</Button>
-      </Flex>
-      <Tabs isLazy colorScheme="teal" variant="enclosed-colored" size="lg">
-        <TabList>
-          <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Entry</Tab>
-          <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Logs</Tab>
-          <Tab _selected={{ color: 'white', bg: 'teal.500' }} fontWeight="bold" fontSize="lg" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }}>Profile</Tab>
-        </TabList>
+       <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder" mb={8}>
+        <Flex justify="space-between" align="center">
+          <Box>
+            <Heading size={{ base: 'md', md: 'lg' }}>Welcome, {user?.name || 'User'}</Heading>
+            <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
+          </Box>
+          <Button colorScheme="red" onClick={logout}>Logout</Button>
+        </Flex>
+      </Box>
+      <Tabs isLazy variant="line-alt" colorScheme="blue">
+        <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+          <TabList minW="max-content">
+            <Tab>Entry</Tab>
+            <Tab>Logs</Tab>
+            <Tab>Profile</Tab>
+          </TabList>
+        </Box>
         <TabPanels>
           <TabPanel p={0} pt={6}><ProductSelector /></TabPanel>
           <TabPanel p={0} pt={6}><InventoryLogs /></TabPanel>

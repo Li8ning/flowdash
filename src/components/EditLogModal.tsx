@@ -15,7 +15,10 @@ import {
   Input,
   Button,
   useToast,
+  HStack,
+  IconButton,
 } from '@chakra-ui/react';
+import { AddIcon, MinusIcon } from '@chakra-ui/icons';
 
 interface InventoryLog {
   id: number;
@@ -53,8 +56,8 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
       });
     } catch (err) {
       toast({
-        title: 'Error updating log.',
-        description: 'Failed to update the inventory log.',
+        title: 'Error Updating Log',
+        description: (err as any).response?.data?.error || 'Failed to update the inventory log.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -73,11 +76,24 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
           <ModalBody>
             <FormControl>
               <FormLabel>Quantity Change</FormLabel>
-              <Input
-                type="number"
-                value={quantityChange}
-                onChange={(e) => setQuantityChange(Number(e.target.value))}
-              />
+              <HStack>
+                <IconButton
+                  aria-label="Decrease quantity"
+                  icon={<MinusIcon />}
+                  onClick={() => setQuantityChange(quantityChange - 1)}
+                />
+                <Input
+                  type="number"
+                  value={quantityChange}
+                  onChange={(e) => setQuantityChange(Number(e.target.value))}
+                  textAlign="center"
+                />
+                <IconButton
+                  aria-label="Increase quantity"
+                  icon={<AddIcon />}
+                  onClick={() => setQuantityChange(quantityChange + 1)}
+                />
+              </HStack>
             </FormControl>
           </ModalBody>
           <ModalFooter>

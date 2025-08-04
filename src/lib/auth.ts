@@ -14,10 +14,17 @@ export interface AuthenticatedRequest extends NextRequest {
   user: UserPayload;
 }
 
-type Handler = (req: AuthenticatedRequest, ...args: any[]) => Promise<NextResponse>;
+export interface HandlerContext {
+  params: { [key: string]: string | string[] | undefined };
+}
+
+type Handler = (
+  req: AuthenticatedRequest,
+  context: any
+) => Promise<NextResponse>;
 
 export const withAuth = (handler: Handler, roles?: string[]) => {
-  return async (req: NextRequest, ...args: any[]) => {
+  return async (req: NextRequest, context: any) => {
     const token = req.cookies.get('token')?.value;
 
     if (!token) {
@@ -26,7 +33,7 @@ export const withAuth = (handler: Handler, roles?: string[]) => {
 
     try {
       const { payload } = await jwtVerify(token, JWT_SECRET);
-      
+
       if (roles && roles.length > 0) {
         const userRole = (payload as unknown as UserPayload).role;
         if (!roles.includes(userRole)) {
@@ -36,7 +43,7 @@ export const withAuth = (handler: Handler, roles?: string[]) => {
 
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = payload as unknown as UserPayload;
-      return handler(authenticatedReq, ...args);
+      return handler(authenticatedReq, context);
     } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

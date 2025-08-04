@@ -42,7 +42,7 @@ const ProductionDashboard = () => {
 
   return (
     <Box p={0}>
-      <Heading mb={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>Production Dashboard</Heading>
+      <Heading size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>Production Dashboard</Heading>
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={{ base: 6, md: 10 }} px={{ base: 4, md: 6 }}>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
           <StatLabel fontWeight="bold" color="brand.textSecondary">Today&apos;s Production</StatLabel>

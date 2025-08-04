@@ -23,6 +23,8 @@ interface AuthContextType {
   loading: boolean;
   handleAuthentication: (data: { user: User; token: string }) => Promise<User>;
   updateUser: (user: Partial<User>) => void;
+  organizationName: string | null;
+  setOrganizationName: (name: string) => void;
 }
 
 // Create the context with a default value
@@ -35,18 +37,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Cookies.get('token') || null
   );
   const [loading, setLoading] = useState(true);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
       if (token) {
         try {
           const { data: userData } = await api.get('/auth/me');
-          if (userData.organization_id) {
-            // In a more complex app, you might have a separate endpoint for this
-            // For now, we assume the user object from /api/auth/me is sufficient
-            // or that organization name is not immediately required on load.
-          }
-          setUser(userData);
+          let finalUserData = { ...userData };
+          if (finalUserData.organization_id && !finalUserData.organization_name) {
+            try {
+              // Fetch organization name if it's not included in the 'me' response
+             const { data: orgData } = await api.get(`/organizations/${finalUserData.organization_id}`);
+             finalUserData.organization_name = orgData.name;
+             setOrganizationName(orgData.name);
+           } catch (orgErr) {
+             console.error("Could not fetch organization details", orgErr);
+             // Proceed without organization name if it fails, so the app doesn't crash
+           }
+         } else if (finalUserData.organization_name) {
+           setOrganizationName(finalUserData.organization_name);
+         }
+         setUser(finalUserData);
         } catch {
           // Token might be invalid
           Cookies.remove('token');
@@ -98,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, loading, handleAuthentication, updateUser }}
+      value={{ user, token, login, logout, loading, handleAuthentication, updateUser, organizationName, setOrganizationName }}
     >
       {children}
     </AuthContext.Provider>

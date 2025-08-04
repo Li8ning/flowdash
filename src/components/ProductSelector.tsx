@@ -65,9 +65,10 @@ const LogEntryForm = () => {
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast({
-          title: 'Error fetching product data',
+          title: 'Error Fetching Products',
+          description: (error as any).response?.data?.error || 'Could not load product data.',
           status: 'error',
-          duration: 3000,
+          duration: 5000,
           isClosable: true,
         });
       }
@@ -110,9 +111,10 @@ const LogEntryForm = () => {
     } catch (error) {
       console.error('Failed to create log entry', error);
       toast({
-        title: 'Error creating log entry.',
+        title: 'Error Creating Log Entry',
+        description: (error as any).response?.data?.error || 'An unexpected error occurred.',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -179,11 +181,11 @@ const LogEntryForm = () => {
            Clear Filters
          </Button>
        </SimpleGrid>
-       <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing={{ base: 3, md: 4 }}>
+       <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing={{ base: 6, md: 5 }}>
           {filteredProducts.map((product) => (
             <Box
               key={product.id}
-              p={3}
+              p={4}
               borderWidth="1px"
               borderRadius="lg"
               cursor="pointer"
@@ -194,11 +196,11 @@ const LogEntryForm = () => {
               transition="all 0.2s"
               _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'teal.500' }}
             >
-              <VStack spacing={2}>
-                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '100px', md: '150px' }} objectFit="cover" borderRadius="lg" />
-                <Text fontWeight="bold" fontSize={{ base: 'md', md: 'lg' }} noOfLines={2}>{product.name}</Text>
-                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.600">{product.model}</Text>
-                <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.500">{product.color}</Text>
+              <VStack spacing={3}>
+                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="cover" borderRadius="lg" />
+                <Text fontWeight="bold" fontSize={{ base: 'xl', md: 'lg' }} noOfLines={2}>{product.name}</Text>
+                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.600">{product.model}</Text>
+                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.500">{product.color}</Text>
               </VStack>
             </Box>
           ))}

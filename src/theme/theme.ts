@@ -17,11 +17,16 @@ const colors = {
 
 const theme = extendTheme({
   colors,
+  fonts: {
+    heading: `'Inter', sans-serif`,
+    body: `'Inter', sans-serif`,
+  },
   styles: {
     global: {
       'html, body': {
         bg: 'brand.background',
         color: 'brand.textSecondary',
+        fontFamily: 'body',
       },
     },
   },
@@ -91,6 +96,35 @@ const theme = extendTheme({
             bg: 'gray.100',
             fontWeight: 'bold',
             color: 'brand.textPrimary',
+          },
+        },
+      },
+    },
+    Tabs: {
+      variants: {
+        'line-alt': {
+          tablist: {
+            borderBottom: '2px solid',
+            borderColor: 'brand.lightBorder',
+          },
+          tab: {
+            fontWeight: 'semibold',
+            color: 'brand.textSecondary',
+            borderBottom: '2px solid transparent',
+            py: 3,
+            px: 5,
+            transition: 'all 0.2s',
+            _selected: {
+              color: 'brand.primary',
+              borderColor: 'brand.primary',
+            },
+            _hover: {
+              bg: 'gray.100',
+              borderColor: 'gray.300',
+            },
+            _active: {
+              bg: 'gray.200',
+            }
           },
         },
       },

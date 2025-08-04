@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 import { startApiLoading, stopApiLoading } from '../context/LoadingContext';
 
 const api = axios.create({
@@ -27,6 +28,17 @@ api.interceptors.response.use(
   },
   (error) => {
     stopApiLoading();
+    // Check for 401 Unauthorized response
+    if (error.response && error.response.status === 401) {
+      // Ensure this code runs only in the browser
+      if (typeof window !== 'undefined') {
+        // Avoid redirect loops if already on the login page
+        if (window.location.pathname !== '/') {
+          Cookies.remove('token');
+          window.location.href = '/';
+        }
+      }
+    }
     return Promise.reject(error);
   }
 );

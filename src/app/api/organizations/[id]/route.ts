@@ -2,13 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../../lib/auth';
 import sql from '../../../../lib/db';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export const GET = withAuth(async (req: AuthenticatedRequest, { params }: RouteParams) => {
+export const GET = withAuth(async (req: AuthenticatedRequest, { params }: { params: { id: string } }) => {
   try {
     const { id } = params;
     const rows = await sql`SELECT name FROM organizations WHERE id = ${id}`;
@@ -24,7 +18,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }: RouteP
   }
 });
 
-export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteParams) => {
+export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { params: { id: string } }) => {
   try {
     const { id } = params;
     const { name } = await req.json();

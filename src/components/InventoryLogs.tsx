@@ -32,6 +32,14 @@ import {
   AlertDialogOverlay,
   useDisclosure,
   Image,
+  useBreakpointValue,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Text,
+  VStack,
 } from '@chakra-ui/react';
 
 interface InventoryLog {
@@ -73,6 +81,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   const [filters, setFilters] = useState(getInitialFilters());
   const [appliedFilters, setAppliedFilters] = useState(filters);
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   const [distinctUsers, setDistinctUsers] = useState<string[]>([]);
   const [distinctProducts, setDistinctProducts] = useState<string[]>([]);
@@ -97,8 +106,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     } catch (err) {
       console.error('Failed to fetch distinct filter values', err);
       toast({
-        title: 'Error',
-        description: 'Could not load filter options.',
+        title: 'Error Loading Filters',
+        description: (err as any).response?.data?.error || 'Could not load filter options.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -123,8 +132,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         return;
       }
       toast({
-        title: 'Error fetching logs',
-        description: 'There was an issue retrieving the inventory logs.',
+        title: 'Error Fetching Logs',
+        description: (err as any).response?.data?.error || 'There was an issue retrieving the inventory logs.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -207,8 +216,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       });
     } catch (err) {
       toast({
-        title: 'Error deleting log.',
-        description: 'You do not have permission to delete this log.',
+        title: 'Error Deleting Log',
+        description: (err as any).response?.data?.error || 'Failed to delete the log.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -242,19 +251,24 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
       <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
-        <Heading as="h2" size="lg">Inventory Logs</Heading>
-        <HStack spacing={4}>
-            <Button colorScheme="blue" onClick={handleFilterClick}>Filter</Button>
-            <Button onClick={handleClearFilters} colorScheme="gray">
-              Clear Filters
-            </Button>
+        <Heading as="h2" size={{ base: 'sm', md: 'lg' }}>Inventory Logs</Heading>
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          align={{ base: 'stretch', md: 'center' }}
+          gap={{ base: 2, md: 4 }}
+          width={{ base: '100%', md: 'auto' }}
+        >
             {allLogs && (
               <>
                 <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>Export to PDF</Button>
                 <Button colorScheme="green" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>Export to Excel</Button>
               </>
             )}
-        </HStack>
+            <Button colorScheme="blue" onClick={handleFilterClick}>Filter</Button>
+            <Button onClick={handleClearFilters} colorScheme="gray">
+              Clear Filters
+            </Button>
+        </Flex>
       </Flex>
       <Divider mb={6} />
       <Box>
@@ -332,42 +346,68 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           </HStack>
         )}
       </Box>
-      <Box overflowX="auto">
-        <TableContainer>
-          <Table variant="simple" colorScheme="teal">
-            <Thead bg="brand.background">
-              <Tr>
-                <Th>Image</Th>
-                <Th>Product Name</Th>
-                <Th>Color</Th>
-                <Th>Model</Th>
-                {allLogs && <Th>User</Th>}
-                <Th isNumeric>Quantity Change</Th>
-                <Th>Date</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {logs.length > 0 ? (
-                logs.map((log) => (
-                  <Tr key={log.id}>
-                    <Td>
-                      <Image
-                        src={log.image_url || 'https://via.placeholder.com/50'}
-                        alt={log.product_name}
-                        boxSize="50px"
-                        objectFit="cover"
-                        borderRadius="md"
-                      />
-                    </Td>
-                    <Td>{log.product_name}</Td>
-                    <Td>{log.color}</Td>
-                    <Td>{log.model}</Td>
-                    {allLogs && <Td>{log.username}</Td>}
-                    <Td isNumeric>{log.quantity_change}</Td>
-                    <Td>{new Date(log.created_at).toLocaleString()}</Td>
-                    <Td>
-                      <Flex>
+      <Box>
+        {isMobile ? (
+          <Accordion allowMultiple>
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <AccordionItem key={log.id} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
+                  <h2>
+                    <AccordionButton>
+                      <Box flex="1" textAlign="left">
+                        <Flex align="center" w="100%">
+                          <Image
+                            src={log.image_url || 'https://via.placeholder.com/50'}
+                            alt={log.product_name}
+                            boxSize="50px"
+                            objectFit="cover"
+                            borderRadius="md"
+                            mr={4}
+                          />
+                          <Flex justify="space-between" align="center" w="100%">
+                            <VStack align="flex-start" spacing={0}>
+                              <Text fontWeight="bold">{log.product_name}</Text>
+                              <Text fontSize="sm" color="gray.500">
+                                {new Date(log.created_at).toLocaleDateString()}
+                              </Text>
+                            </VStack>
+                            <Text
+                              fontWeight="bold"
+                              color={log.quantity_change > 0 ? 'green.500' : 'red.500'}
+                            >
+                              Qty: {log.quantity_change}
+                            </Text>
+                          </Flex>
+                        </Flex>
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={4}>
+                    <VStack align="stretch" spacing={2}>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">Color:</Text>
+                        <Text>{log.color}</Text>
+                      </Flex>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">Model:</Text>
+                        <Text>{log.model}</Text>
+                      </Flex>
+                      {allLogs && (
+                        <Flex justify="space-between">
+                          <Text fontWeight="bold">User:</Text>
+                          <Text>{log.username}</Text>
+                        </Flex>
+                      )}
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">Quantity Change:</Text>
+                        <Text>{log.quantity_change}</Text>
+                      </Flex>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">Date:</Text>
+                        <Text>{new Date(log.created_at).toLocaleString()}</Text>
+                      </Flex>
+                      <Flex mt={4}>
                         <Button
                           size="sm"
                           mr={2}
@@ -386,19 +426,93 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                           </Button>
                         )}
                       </Flex>
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              ))
+            ) : (
+              <Text textAlign="center" p={4}>
+                No logs found for the selected filters.
+              </Text>
+            )}
+          </Accordion>
+        ) : (
+          <TableContainer>
+            <Table variant="simple" colorScheme="teal">
+              <Thead bg="brand.background">
+                <Tr>
+                  <Th>Image</Th>
+                  <Th>Product Name</Th>
+                  <Th>Color</Th>
+                  <Th>Model</Th>
+                  {allLogs && <Th>User</Th>}
+                  <Th isNumeric>Quantity Change</Th>
+                  <Th>Date</Th>
+                  <Th>Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {logs.length > 0 ? (
+                  logs.map((log) => (
+                    <Tr key={log.id}
+                      sx={{
+                          '@media (min-width: 769px)': {
+                              '&:hover': {
+                                  backgroundColor: 'gray.50',
+                                  cursor: 'pointer'
+                              }
+                          }
+                      }}
+                    >
+                      <Td>
+                        <Image
+                          src={log.image_url || 'https://via.placeholder.com/50'}
+                          alt={log.product_name}
+                          boxSize="50px"
+                          objectFit="cover"
+                          borderRadius="md"
+                        />
+                      </Td>
+                      <Td>{log.product_name}</Td>
+                      <Td>{log.color}</Td>
+                      <Td>{log.model}</Td>
+                      {allLogs && <Td>{log.username}</Td>}
+                      <Td isNumeric>{log.quantity_change}</Td>
+                      <Td>{new Date(log.created_at).toLocaleString()}</Td>
+                      <Td>
+                        <Flex>
+                          <Button
+                            size="sm"
+                            mr={2}
+                            disabled={!isEditable(log.created_at)}
+                            onClick={() => setEditingLog(log)}
+                          >
+                            Edit
+                          </Button>
+                          {user?.role === 'factory_admin' && (
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              onClick={() => openDeleteDialog(log.id)}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  ))
+                ) : (
+                  <Tr>
+                    <Td colSpan={allLogs ? 8 : 7} textAlign="center">
+                      No logs found for the selected filters.
                     </Td>
                   </Tr>
-                ))
-              ) : (
-                <Tr>
-                  <Td colSpan={allLogs ? 8 : 7} textAlign="center">
-                    No logs found for the selected filters.
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-        </TableContainer>
+                )}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        )}
       </Box>
       {editingLog && (
         <EditLogModal

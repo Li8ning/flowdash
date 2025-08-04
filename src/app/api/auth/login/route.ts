@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const user = userResult[0];
 
     if (!user.is_active) {
-      return NextResponse.json({ msg: 'User account is deactivated' }, { status: 401 });
+      return NextResponse.json({ msg: 'Your account is currently inactive. Please contact an administrator.' }, { status: 403 });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);

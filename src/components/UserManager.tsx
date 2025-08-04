@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import {
@@ -34,6 +34,12 @@ import {
   ModalCloseButton,
   Divider,
   Text,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
@@ -59,6 +65,9 @@ const UserManager: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
+  const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
+  const [alertAction, setAlertAction] = useState<{ type: 'remove' | 'reactivate'; userId: number } | null>(null);
+  const cancelRef = useRef(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -75,8 +84,8 @@ const UserManager: React.FC = () => {
       }
     } catch (err) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch users.',
+        title: 'Error Fetching Users',
+        description: (err as any).response?.data?.error || 'An unexpected error occurred while fetching users.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -108,7 +117,7 @@ const UserManager: React.FC = () => {
     } catch (err) {
       toast({
         title: 'Invitation Failed',
-        description: 'There was an error inviting the user.',
+        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -118,53 +127,64 @@ const UserManager: React.FC = () => {
   };
 
   const handleRemoveUser = async (userId: number) => {
-    if (window.confirm('Are you sure you want to remove this user?')) {
-      try {
-        await api.delete(`/users/${userId}`);
-        toast({
-          title: 'User Removed',
-          description: 'The user has been successfully removed.',
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        });
-        fetchUsers();
-      } catch (err) {
-        toast({
-          title: 'Error',
-          description: 'Failed to remove the user.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-        console.error(err);
-      }
+    try {
+      await api.delete(`/users/${userId}`);
+      toast({
+        title: 'User Removed',
+        description: 'The user has been successfully removed.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+      fetchUsers();
+    } catch (err) {
+      toast({
+        title: 'Error Removing User',
+        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      console.error(err);
     }
   };
 
   const handleReactivateUser = async (userId: number) => {
-    if (window.confirm('Are you sure you want to reactivate this user?')) {
-      try {
-        await api.put(`/users/${userId}/reactivate`);
-        toast({
-          title: 'User Reactivated',
-          description: 'The user has been successfully reactivated.',
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        });
-        fetchUsers();
-      } catch (err) {
-        toast({
-          title: 'Error',
-          description: 'Failed to reactivate the user.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-        console.error(err);
-      }
+    try {
+      await api.put(`/users/${userId}/reactivate`);
+      toast({
+        title: 'User Reactivated',
+        description: 'The user has been successfully reactivated.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+      fetchUsers();
+    } catch (err) {
+      toast({
+        title: 'Error Reactivating User',
+        description: (err as any).response?.data?.error || 'An unexpected error occurred.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      console.error(err);
     }
+  };
+
+  const openAlert = (type: 'remove' | 'reactivate', userId: number) => {
+    setAlertAction({ type, userId });
+    onAlertOpen();
+  };
+
+  const confirmAction = () => {
+    if (!alertAction) return;
+    if (alertAction.type === 'remove') {
+      handleRemoveUser(alertAction.userId);
+    } else if (alertAction.type === 'reactivate') {
+      handleReactivateUser(alertAction.userId);
+    }
+    onAlertClose();
   };
 
   const handleEditUser = (user: User) => {
@@ -189,7 +209,7 @@ const UserManager: React.FC = () => {
         />
       )}
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
-        <Heading as="h2" size="lg" mb={{ base: 4, md: 0 }}>User Management</Heading>
+        <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>User Management</Heading>
         <Button onClick={onOpen} colorScheme="blue">Invite New User</Button>
       </Flex>
       <Divider mb={6} />
@@ -269,61 +289,131 @@ const UserManager: React.FC = () => {
 
       <Box overflowX="auto">
         <TableContainer>
-          <Table variant="simple" colorScheme="teal">
+          <Table variant="simple" colorScheme="teal" sx={{
+            '@media (max-width: 768px)': {
+              thead: {
+                display: 'none',
+              },
+              tr: {
+                display: 'block',
+                marginBottom: '1rem',
+                border: '1px solid',
+                borderColor: 'gray.200',
+                borderRadius: 'md',
+                padding: '1rem',
+              },
+              td: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid',
+                borderColor: 'gray.200',
+                padding: '0.75rem 0',
+                '&:last-child': {
+                  borderBottom: 'none',
+                },
+                '&::before': {
+                  content: 'attr(data-label)',
+                  fontWeight: 'bold',
+                  marginRight: '1rem',
+                },
+              },
+            },
+          }}>
             <Thead bg="brand.background">
               <Tr>
                 <Th>Name</Th>
-              <Th>Username</Th>
-              <Th>Role</Th>
-              <Th>Status</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {filteredUsers.map((user) => (
-              <Tr key={user.id}>
-                <Td><Text noOfLines={1}>{user.name}</Text></Td>
-                <Td><Text noOfLines={1}>{user.username}</Text></Td>
-                <Td><Text noOfLines={1}>{user.role}</Text></Td>
-                <Td>
-                  <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
-                    {user.is_active !== false ? 'Active' : 'Inactive'}
-                  </Text>
-                </Td>
-                <Td>
-                  <Flex gap={2}>
-                    <IconButton
-                      aria-label="Edit user"
-                      icon={<EditIcon />}
-                      colorScheme="blue"
-                      size="sm"
-                      onClick={() => handleEditUser(user)}
-                    />
-                    {user.is_active !== false ? (
-                      <IconButton
-                        aria-label="Deactivate user"
-                        icon={<DeleteIcon />}
-                        colorScheme="red"
-                        size="sm"
-                        onClick={() => handleRemoveUser(user.id)}
-                      />
-                    ) : (
-                      <IconButton
-                        aria-label="Reactivate user"
-                        icon={<RepeatIcon />}
-                        colorScheme="green"
-                        size="sm"
-                        onClick={() => handleReactivateUser(user.id)}
-                      />
-                    )}
-                  </Flex>
-                </Td>
+                <Th>Username</Th>
+                <Th>Role</Th>
+                <Th>Status</Th>
+                <Th>Actions</Th>
               </Tr>
-            ))}
-          </Tbody>
+            </Thead>
+            <Tbody>
+              {filteredUsers.map((user) => (
+                <Tr key={user.id}
+                    sx={{
+                        '@media (min-width: 769px)': {
+                            '&:hover': {
+                                backgroundColor: 'gray.50',
+                                cursor: 'pointer'
+                            }
+                        }
+                    }}
+                >
+                  <Td data-label="Name"><Text noOfLines={1}>{user.name}</Text></Td>
+                  <Td data-label="Username"><Text noOfLines={1}>{user.username}</Text></Td>
+                  <Td data-label="Role"><Text noOfLines={1}>{user.role}</Text></Td>
+                  <Td data-label="Status">
+                    <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
+                      {user.is_active !== false ? 'Active' : 'Inactive'}
+                    </Text>
+                  </Td>
+                  <Td data-label="Actions">
+                    <Flex gap={2}>
+                      <IconButton
+                        aria-label="Edit user"
+                        icon={<EditIcon />}
+                        colorScheme="blue"
+                        size="sm"
+                        onClick={() => handleEditUser(user)}
+                      />
+                      {user.is_active !== false ? (
+                        <IconButton
+                          aria-label="Deactivate user"
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          size="sm"
+                          onClick={() => openAlert('remove', user.id)}
+                        />
+                      ) : (
+                        <IconButton
+                          aria-label="Reactivate user"
+                          icon={<RepeatIcon />}
+                          colorScheme="green"
+                          size="sm"
+                          onClick={() => openAlert('reactivate', user.id)}
+                        />
+                      )}
+                    </Flex>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
           </Table>
         </TableContainer>
       </Box>
+
+      <AlertDialog
+        isOpen={isAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onAlertClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              {alertAction?.type === 'remove' ? 'Deactivate User' : 'Reactivate User'}
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to {alertAction?.type === 'remove' ? 'deactivate' : 'reactivate'} this user?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onAlertClose}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme={alertAction?.type === 'remove' ? 'red' : 'green'}
+                onClick={confirmAction}
+                ml={3}
+              >
+                {alertAction?.type === 'remove' ? 'Deactivate' : 'Reactivate'}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 };
