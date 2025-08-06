@@ -13,15 +13,16 @@ const getHandler = async (req: AuthenticatedRequest) => {
   }
 
   try {
-    let query = sql`SELECT id FROM users WHERE LOWER(username) = LOWER(${username})`;
-
+    let query;
     if (excludeId) {
       query = sql`SELECT id FROM users WHERE LOWER(username) = LOWER(${username}) AND id != ${parseInt(excludeId, 10)}`;
+    } else {
+      query = sql`SELECT id FROM users WHERE LOWER(username) = LOWER(${username})`;
     }
 
-    const [existingUser] = await query;
+    const { rows } = await query;
 
-    return NextResponse.json({ isAvailable: !existingUser });
+    return NextResponse.json({ isAvailable: rows.length === 0 });
   } catch (err) {
     console.error(err);
     const error = err as Error;
