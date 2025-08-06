@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import sql from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
@@ -19,29 +19,28 @@ export async function POST(request: Request) {
     }
 
     // Check if username already exists (case-insensitive)
-    const existingUser = await pool.query(
-      'SELECT id FROM users WHERE LOWER(username) = LOWER($1)',
-      [username]
-    );
+    const { rows: existingUser } = await sql`
+      SELECT id FROM users WHERE LOWER(username) = LOWER(${username})
+    `;
 
     if (existingUser.length > 0) {
       return NextResponse.json({ msg: 'Username is already taken.' }, { status: 400 });
     }
 
     // In a real app, you'd use a transaction here
-    const orgResult = await pool.query(
-      'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
-      [organizationName]
-    );
+    const { rows: orgResult } = await sql`
+      INSERT INTO organizations (name) VALUES (${organizationName}) RETURNING id
+    `;
     const organization_id = orgResult[0].id;
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const userResult = await pool.query(
-      'INSERT INTO users (organization_id, name, username, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, username, role, is_active',
-      [organization_id, name, username, password_hash, 'factory_admin', true]
-    );
+    const { rows: userResult } = await sql`
+      INSERT INTO users (organization_id, name, username, password_hash, role, is_active)
+      VALUES (${organization_id}, ${name}, ${username}, ${password_hash}, 'factory_admin', true)
+      RETURNING id, name, username, role, is_active
+    `;
 
     const user = userResult[0];
 
