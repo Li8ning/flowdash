@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../../lib/auth';
 import sql from '../../../../lib/db';
 
-export const GET = withAuth(async (req: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+export const GET = withAuth(async (req: AuthenticatedRequest, context: { params: { id: string } }) => {
   try {
-    const { id } = params;
-    const rows = await sql`SELECT name FROM organizations WHERE id = ${id}`;
+    const { id } = context.params;
+    const { rows } = await sql`SELECT name FROM organizations WHERE id = ${id}`;
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
@@ -18,10 +18,10 @@ export const GET = withAuth(async (req: AuthenticatedRequest, { params }: { para
   }
 });
 
-export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { params: { id: string } }) => {
+export const PUT = withAuth(async (req: AuthenticatedRequest, context: { params: { id: string } }) => {
   try {
-    const { id } = params;
     const { name } = await req.json();
+    const { id } = context.params;
     const { organization_id, role } = req.user;
 
     if (role !== 'factory_admin' || Number(id) !== organization_id) {
@@ -32,10 +32,10 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: { para
       return NextResponse.json({ error: 'Organization name is required' }, { status: 400 });
     }
 
-    const rows = await sql`
-      UPDATE organizations 
-      SET name = ${name} 
-      WHERE id = ${id} 
+    const { rows } = await sql`
+      UPDATE organizations
+      SET name = ${name}
+      WHERE id = ${id}
       RETURNING id, name
     `;
 

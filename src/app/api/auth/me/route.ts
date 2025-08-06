@@ -5,7 +5,7 @@ import sql from '../../../../lib/db';
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { id } = req.user;
-    const rows = await sql`SELECT id, username, name, role, organization_id, is_active FROM users WHERE id = ${id}`;
+    const { rows } = await sql`SELECT id, username, name, role, organization_id, is_active, language FROM users WHERE id = ${id}`;
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

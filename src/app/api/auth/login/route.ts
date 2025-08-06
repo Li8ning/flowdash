@@ -14,19 +14,22 @@ export async function POST(request: Request) {
   try {
     const { username, password } = await request.json();
 
-    const userResult = await sql`SELECT * FROM users WHERE username = ${username}`;
+    const { rows: userResult } = await sql`SELECT * FROM users WHERE username = ${username}`;
 
     if (userResult.length === 0) {
       return NextResponse.json({ msg: 'Invalid credentials' }, { status: 401 });
     }
 
     const user = userResult[0];
+    console.log('User found:', user);
+    console.log('Password hash:', user.password_hash);
 
     if (!user.is_active) {
       return NextResponse.json({ msg: 'Your account is currently inactive. Please contact an administrator.' }, { status: 403 });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
+    console.log('Password match:', isMatch);
 
     if (!isMatch) {
       return NextResponse.json({ msg: 'Invalid credentials' }, { status: 401 });

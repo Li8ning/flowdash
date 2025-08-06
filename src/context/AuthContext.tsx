@@ -3,6 +3,7 @@
 import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
+import { useTranslation } from 'react-i18next';
 
 // Define the shape of the user object and the context
 interface User {
@@ -13,6 +14,7 @@ interface User {
   organization_id: number;
   organization_name?: string;
   is_active: boolean;
+  language?: string;
 }
 
 interface AuthContextType {
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -59,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
            setOrganizationName(finalUserData.organization_name);
          }
          setUser(finalUserData);
+         if (finalUserData.language) {
+            i18n.changeLanguage(finalUserData.language);
+         }
         } catch {
           // Token might be invalid
           Cookies.remove('token');
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     loadUser();
-  }, [token]);
+  }, [token, i18n]);
 
   const login = async (username: string, password: string) => {
     try {
@@ -98,10 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // The user object from login/register should be complete
     setUser(userData);
+    if (userData.language) {
+      i18n.changeLanguage(userData.language);
+    }
     return userData;
   };
 
   const updateUser = (updatedData: Partial<User>) => {
+    if (updatedData.language) {
+      i18n.changeLanguage(updatedData.language);
+    }
     setUser(currentUser => {
       if (!currentUser) return null;
       return { ...currentUser, ...updatedData };

@@ -16,6 +16,7 @@
     "@emotion/styled": "^11.11.5",
     "@neondatabase/serverless": "^1.0.1",
     "@types/js-cookie": "^3.0.6",
+    "@vercel/postgres": "^0.10.0",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.5.0",

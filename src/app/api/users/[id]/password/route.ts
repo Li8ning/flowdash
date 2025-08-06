@@ -26,7 +26,7 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
   }
 
   try {
-    const [userRecord] = await sql`
+    const { rows: [userRecord] } = await sql`
       SELECT password_hash FROM users WHERE id = ${userId}
     `;
 

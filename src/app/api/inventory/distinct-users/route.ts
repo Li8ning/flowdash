@@ -5,7 +5,7 @@ import sql from '../../../../lib/db';
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
-    const rows = await sql`
+    const { rows } = await sql`
       SELECT DISTINCT u.name
       FROM users u
       JOIN inventory_logs l ON u.id = l.user_id

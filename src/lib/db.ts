@@ -1,9 +1,6 @@
-import { neon } from '@neondatabase/serverless';
+import { createPool, sql } from '@vercel/postgres';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
-}
+const db = createPool();
 
-const sql = neon(process.env.DATABASE_URL);
-
+export { db };
 export default sql;

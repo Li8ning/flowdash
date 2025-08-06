@@ -12,11 +12,9 @@ import {
   Tab,
   TabPanel,
   Text,
-  Select,
   HStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { useLanguage } from '@/context/LanguageContext';
 import ProductManager from './ProductManager';
 import UserManager from './UserManager';
 import InventoryLogs from './InventoryLogs';
@@ -27,7 +25,6 @@ import ProductSelector from './ProductSelector';
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
-  const { changeLanguage, language } = useLanguage();
 
   return (
     <Box p={{ base: 2, md: 6 }}>
@@ -38,15 +35,6 @@ const AdminDashboard = () => {
             <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
           </Box>
           <HStack>
-            <Select
-              w="120px"
-              onChange={(e) => changeLanguage(e.target.value)}
-              value={language}
-            >
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="gu">Gujarati</option>
-            </Select>
             <Button colorScheme="red" onClick={logout}>{t('dashboard.logout')}</Button>
           </HStack>
         </Flex>
@@ -76,7 +64,6 @@ const AdminDashboard = () => {
 const FloorStaffDashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
-  const { changeLanguage, language } = useLanguage();
   return (
     <Box p={{ base: 2, md: 6 }}>
        <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder" mb={8}>
@@ -86,15 +73,6 @@ const FloorStaffDashboard = () => {
             <Text color="brand.textSecondary" fontSize={{ base: 'sm', md: 'md' }}>{user?.organization_name}</Text>
           </Box>
           <HStack>
-            <Select
-              w="120px"
-              onChange={(e) => changeLanguage(e.target.value)}
-              value={language}
-            >
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="gu">Gujarati</option>
-            </Select>
             <Button colorScheme="red" onClick={logout}>{t('dashboard.logout')}</Button>
           </HStack>
         </Flex>

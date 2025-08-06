@@ -11,19 +11,23 @@ const getHandler = async (req: AuthenticatedRequest) => {
     const search = searchParams.get('search');
     const { organization_id } = req.user;
 
-    let query = sql`SELECT id, username, name, role, is_active FROM users WHERE organization_id = ${organization_id}`;
+    let query = `SELECT id, username, name, role, is_active FROM users WHERE organization_id = $1`;
+    const params: any[] = [organization_id];
+    let paramIndex = 2;
 
     if (status === 'inactive') {
-      query = sql`${query} AND is_active = false`;
+      query += ` AND is_active = false`;
     } else if (status !== 'all') {
-      query = sql`${query} AND (is_active = true OR is_active IS NULL)`;
+      query += ` AND (is_active = true OR is_active IS NULL)`;
     }
 
     if (search) {
-      query = sql`${query} AND (username ILIKE ${'%' + search + '%'} OR name ILIKE ${'%' + search + '%'})`;
+      query += ` AND (username ILIKE $${paramIndex++} OR name ILIKE $${paramIndex++})`;
+      params.push(`%${search}%`);
+      params.push(`%${search}%`);
     }
 
-    const users = await query;
+    const { rows: users } = await sql.query(query, params);
 
     return NextResponse.json(users);
   } catch (err) {
@@ -46,7 +50,7 @@ const postHandler = async (req: AuthenticatedRequest) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const [newUser] = await sql`
+    const { rows: [newUser] } = await sql`
       INSERT INTO users (username, name, password_hash, role, organization_id)
       VALUES (${username}, ${name}, ${password_hash}, ${role}, ${organization_id})
       RETURNING id, username, role, name, is_active

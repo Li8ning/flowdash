@@ -10,25 +10,29 @@ const getHandler = async (req: AuthenticatedRequest) => {
   const { organization_id } = req.user;
 
   try {
-    let query = sql`
-      SELECT p.name as product_name, p.model, p.color, SUM(l.quantity_change) as total_production
+    let query = `
+      SELECT p.name as product_name, p.model, p.color, SUM(l.produced) as total_production
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
-      WHERE p.organization_id = ${organization_id} AND l.quantity_change > 0
+      WHERE p.organization_id = $1 AND l.produced > 0
     `;
+    const params: any[] = [organization_id];
+    let paramIndex = 2;
 
     if (startDate) {
-      query = sql`${query} AND DATE(l.created_at) >= ${startDate}`;
+      query += ` AND DATE(l.created_at) >= $${paramIndex++}`;
+      params.push(startDate);
     }
     if (endDate) {
-      query = sql`${query} AND DATE(l.created_at) <= ${endDate}`;
+      query += ` AND DATE(l.created_at) <= $${paramIndex++}`;
+      params.push(endDate);
     }
 
-    query = sql`${query} GROUP BY p.name, p.model, p.color ORDER BY p.name, p.model, p.color`;
+    query += ` GROUP BY p.name, p.model, p.color ORDER BY p.name, p.model, p.color`;
 
-    const reportData = await query;
+    const { rows } = await sql.query(query, params);
 
-    return NextResponse.json(reportData);
+    return NextResponse.json(rows);
   } catch (err) {
     console.error(err);
     const error = err as Error;

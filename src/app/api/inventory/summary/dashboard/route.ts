@@ -7,21 +7,21 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const { organization_id } = req.user;
 
     const todayQuery = sql`
-      SELECT COALESCE(SUM(quantity_change), 0) as total
+      SELECT COALESCE(SUM(produced), 0) as total
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       WHERE p.organization_id = ${organization_id} AND l.created_at >= CURRENT_DATE
     `;
 
     const weekQuery = sql`
-      SELECT COALESCE(SUM(quantity_change), 0) as total
+      SELECT COALESCE(SUM(produced), 0) as total
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       WHERE p.organization_id = ${organization_id} AND l.created_at >= CURRENT_DATE - INTERVAL '7 days'
     `;
 
     const monthQuery = sql`
-      SELECT COALESCE(SUM(quantity_change), 0) as total
+      SELECT COALESCE(SUM(produced), 0) as total
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       WHERE p.organization_id = ${organization_id} AND l.created_at >= DATE_TRUNC('month', CURRENT_DATE)
@@ -42,10 +42,10 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     ]);
 
     return NextResponse.json({
-      today: todayResult[0].total,
-      week: weekResult[0].total,
-      month: monthResult[0].total,
-      todaysLogs: todaysLogsResult[0].total,
+      today: todayResult.rows[0].total,
+      week: weekResult.rows[0].total,
+      month: monthResult.rows[0].total,
+      todaysLogs: todaysLogsResult.rows[0].total,
     });
   } catch (err) {
     console.error(err);

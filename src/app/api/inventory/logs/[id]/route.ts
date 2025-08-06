@@ -13,13 +13,16 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
   try {
     const { id: logId } = params;
     const { id: userId, role } = req.user;
-    const { quantity_change } = await req.json();
+    const { produced, quality, packaging_type } = await req.json();
 
-    if (!quantity_change || isNaN(Number(quantity_change))) {
+    if (produced === undefined || isNaN(Number(produced))) {
       return NextResponse.json({ error: 'Invalid quantity provided' }, { status: 400 });
     }
+    if (!quality || !packaging_type) {
+      return NextResponse.json({ error: 'Quality and packaging type are required' }, { status: 400 });
+    }
 
-    const [log] = await sql`
+    const { rows: [log] } = await sql`
       SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
     `;
 
@@ -35,12 +38,15 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
     if (role === 'factory_admin' || (isOwner && isWithin24Hours)) {
       await sql`
         UPDATE inventory_logs
-        SET quantity_change = ${quantity_change}
+        SET
+          produced = ${produced},
+          quality = ${quality},
+          packaging_type = ${packaging_type}
         WHERE id = ${logId}
       `;
       
-      const [result] = await sql`
-        SELECT l.id, p.name as product_name, p.color, p.model, l.quantity_change, l.created_at
+      const { rows: [result] } = await sql`
+        SELECT l.id, p.name as product_name, p.color, p.model, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
         FROM inventory_logs l
         JOIN products p ON l.product_id = p.id
         WHERE l.id = ${logId}
@@ -63,7 +69,7 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: Rou
     const { id: logId } = params;
     const { id: userId, role } = req.user;
 
-    const [log] = await sql`
+    const { rows: [log] } = await sql`
       SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
     `;
 
@@ -77,7 +83,7 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: Rou
     const isWithin24Hours = (currentTime - logTime) < 24 * 60 * 60 * 1000;
 
     if (role === 'factory_admin' || (role === 'floor_staff' && isOwner && isWithin24Hours)) {
-      const result = await sql`
+      const { rows: result } = await sql`
         DELETE FROM inventory_logs WHERE id = ${logId} RETURNING id
       `;
 

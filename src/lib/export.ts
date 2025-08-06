@@ -7,7 +7,7 @@ interface Log {
   product_name: string;
   color: string;
   model: string;
-  quantity_change: number;
+  produced: number;
   created_at: string;
   username?: string;
 }
@@ -27,14 +27,14 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
           log.color,
           log.model,
           log.username,
-          log.quantity_change,
+          log.produced,
           new Date(log.created_at).toLocaleString(),
         ]
       : [
           log.product_name,
           log.color,
           log.model,
-          log.quantity_change,
+          log.produced,
           new Date(log.created_at).toLocaleString(),
         ];
     tableRows.push(logData);
@@ -57,7 +57,7 @@ export const exportToExcel = (logs: Log[], allLogs: boolean) => {
         "Color": log.color,
         "Model": log.model,
         "User": log.username,
-        "Quantity Change": log.quantity_change,
+        "Quantity Change": log.produced,
         "Date": new Date(log.created_at).toLocaleString(),
       };
     }
@@ -65,7 +65,7 @@ export const exportToExcel = (logs: Log[], allLogs: boolean) => {
       "Product Name": log.product_name,
       "Color": log.color,
       "Model": log.model,
-      "Quantity Change": log.quantity_change,
+      "Quantity Change": log.produced,
       "Date": new Date(log.created_at).toLocaleString(),
     };
   });

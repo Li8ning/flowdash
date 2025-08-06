@@ -44,6 +44,10 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Checkbox,
+  CheckboxGroup,
+  FormControl,
+  FormLabel,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 
@@ -54,12 +58,17 @@ interface Product {
   model: string;
   color: string;
   image_url: string;
+  available_qualities: string[];
+  available_packaging_types: string[];
 }
+
+const QUALITY_OPTIONS = ['First', 'Second', 'ROK'];
+const PACKAGING_OPTIONS = ['Paper', 'Box', 'Grass'];
 
 const ProductManager = () => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
-  const [newProduct, setNewProduct] = useState({ sku: '', name: '', model: '', color: '', image_url: '' });
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { token } = useAuth();
   const toast = useToast();
@@ -117,7 +126,7 @@ const ProductManager = () => {
     try {
       const response = await api.post('/products', newProduct);
       setProducts([...products, response.data]);
-      setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '' });
+      setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
       onCreateClose();
       toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
@@ -271,6 +280,34 @@ const ProductManager = () => {
               <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={(e) => handleInputChange(e, setNewProduct)} />
               <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={(e) => handleInputChange(e, setNewProduct)} />
               <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={(e) => handleInputChange(e, setNewProduct)} />
+              <FormControl>
+                <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
+                <CheckboxGroup
+                  colorScheme="green"
+                  value={newProduct.available_qualities}
+                  onChange={(values) => setNewProduct(prev => ({ ...prev, available_qualities: values as string[] }))}
+                >
+                  <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
+                    {QUALITY_OPTIONS.map(quality => (
+                      <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
+                    ))}
+                  </Stack>
+                </CheckboxGroup>
+              </FormControl>
+              <FormControl>
+                <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
+                <CheckboxGroup
+                  colorScheme="green"
+                  value={newProduct.available_packaging_types}
+                  onChange={(values) => setNewProduct(prev => ({ ...prev, available_packaging_types: values as string[] }))}
+                >
+                  <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
+                    {PACKAGING_OPTIONS.map(pkg => (
+                      <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
+                    ))}
+                  </Stack>
+                </CheckboxGroup>
+              </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>
@@ -294,6 +331,34 @@ const ProductManager = () => {
                 <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={(e) => handleInputChange(e, setEditingProduct)} />
                 <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={(e) => handleInputChange(e, setEditingProduct)} />
                 <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={(e) => handleInputChange(e, setEditingProduct)} />
+                 <FormControl>
+                  <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
+                  <CheckboxGroup
+                    colorScheme="green"
+                    value={editingProduct.available_qualities}
+                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_qualities: values as string[] }) : null)}
+                  >
+                    <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
+                      {QUALITY_OPTIONS.map(quality => (
+                        <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
+                      ))}
+                    </Stack>
+                  </CheckboxGroup>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
+                  <CheckboxGroup
+                    colorScheme="green"
+                    value={editingProduct.available_packaging_types}
+                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_packaging_types: values as string[] }) : null)}
+                  >
+                    <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
+                      {PACKAGING_OPTIONS.map(pkg => (
+                        <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
+                      ))}
+                    </Stack>
+                  </CheckboxGroup>
+                </FormControl>
               </Stack>
             </ModalBody>
             <ModalFooter>

@@ -45,13 +45,16 @@ import {
 
 interface InventoryLog {
   id: number;
+  product_id: number;
   product_name: string;
   color: string;
   model: string;
-  quantity_change: number;
+  produced: number;
   created_at: string;
   username?: string;
   image_url?: string;
+  quality: string;
+  packaging_type: string;
 }
 
 interface InventoryLogsProps {
@@ -375,9 +378,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                             </VStack>
                             <Text
                               fontWeight="bold"
-                              color={log.quantity_change > 0 ? 'green.500' : 'red.500'}
+                              color={log.produced > 0 ? 'green.500' : 'red.500'}
                             >
-                              Qty: {log.quantity_change}
+                              Qty: {log.produced}
                             </Text>
                           </Flex>
                         </Flex>
@@ -395,6 +398,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                         <Text fontWeight="bold">{t('inventory.logs.table.model')}:</Text>
                         <Text>{log.model}</Text>
                       </Flex>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">{t('inventory.logs.table.quality')}:</Text>
+                        <Text>{log.quality ? t(`product_manager.quality.${log.quality.toLowerCase()}`) : ''}</Text>
+                      </Flex>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">{t('inventory.logs.table.packaging_type')}:</Text>
+                        <Text>{log.packaging_type ? t(`product_manager.packaging_type.${log.packaging_type.toLowerCase()}`) : ''}</Text>
+                      </Flex>
                       {allLogs && (
                         <Flex justify="space-between">
                           <Text fontWeight="bold">{t('inventory.logs.table.user')}:</Text>
@@ -403,7 +414,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       )}
                       <Flex justify="space-between">
                         <Text fontWeight="bold">{t('inventory.logs.table.quantity_change')}:</Text>
-                        <Text>{log.quantity_change}</Text>
+                        <Text>{log.produced}</Text>
                       </Flex>
                       <Flex justify="space-between">
                         <Text fontWeight="bold">{t('inventory.logs.table.date')}:</Text>
@@ -449,7 +460,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                   <Th>{t('inventory.logs.table.color')}</Th>
                   <Th>{t('inventory.logs.table.model')}</Th>
                   {allLogs && <Th>{t('inventory.logs.table.user')}</Th>}
-                  <Th isNumeric>{t('inventory.logs.table.quantity_change')}</Th>
+                  <Th>{t('inventory.logs.table.quality')}</Th>
+                  <Th>{t('inventory.logs.table.packaging_type')}</Th>
+                  <Th textAlign="center">{t('inventory.logs.table.quantity_change')}</Th>
                   <Th>{t('inventory.logs.table.date')}</Th>
                   <Th>{t('inventory.logs.table.actions')}</Th>
                 </Tr>
@@ -480,7 +493,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       <Td>{log.color}</Td>
                       <Td>{log.model}</Td>
                       {allLogs && <Td>{log.username}</Td>}
-                      <Td isNumeric>{log.quantity_change}</Td>
+                      <Td>{log.quality ? t(`product_manager.quality.${log.quality.toLowerCase()}`) : ''}</Td>
+                      <Td>{log.packaging_type ? t(`product_manager.packaging_type.${log.packaging_type.toLowerCase()}`) : ''}</Td>
+                      <Td textAlign="center">{log.produced}</Td>
                       <Td>{new Date(log.created_at).toLocaleString()}</Td>
                       <Td>
                         <Flex>
@@ -508,7 +523,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                   ))
                 ) : (
                   <Tr>
-                    <Td colSpan={allLogs ? 8 : 7} textAlign="center">
+                    <Td colSpan={allLogs ? 10 : 9} textAlign="center">
                       {t('inventory.logs.no_logs_found')}
                     </Td>
                   </Tr>

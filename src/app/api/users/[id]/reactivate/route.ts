@@ -14,7 +14,7 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
   const { organization_id } = req.user;
 
   try {
-    const [reactivatedUser] = await sql`
+    const { rows: [reactivatedUser] } = await sql`
       UPDATE users
       SET is_active = true
       WHERE id = ${userId} AND organization_id = ${organization_id}

@@ -8,44 +8,37 @@ interface RouteParams {
   };
 }
 
-// Update user details
-const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) => {
-  const userId = parseInt(params.id, 10);
-  const { name, username } = await req.json();
-  const { id: currentUserId, role, organization_id } = req.user;
+const patchHandler = async (req: AuthenticatedRequest, context: RouteParams) => {
+  const { name, language } = await req.json();
+  const userId = parseInt(context.params.id, 10);
+  const { id: currentUserId, role } = req.user;
 
-  // A user can update their own profile, or an admin can update any user in their org.
   if (currentUserId !== userId && role !== 'factory_admin') {
     return NextResponse.json({ msg: 'You are not authorized to perform this action.' }, { status: 403 });
   }
 
+  if (!name && !language) {
+    return NextResponse.json({ msg: 'No update information provided.' }, { status: 400 });
+  }
+
   try {
-    // If username is being changed, check for availability
-    if (username) {
-      const [existingUser] = await sql`
-        SELECT id FROM users WHERE LOWER(username) = LOWER(${username}) AND id != ${userId}
-      `;
-      if (existingUser) {
-        return NextResponse.json({ error: 'Username is already taken.' }, { status: 409 });
-      }
-    }
-
-    if (!name && !username) {
-        return NextResponse.json({ error: 'No fields to update.' }, { status: 400 });
-    }
-
-    const [updatedUser] = await sql`
-      UPDATE users
-      SET
-        name = COALESCE(${name}, name),
-        username = COALESCE(${username}, username)
-      WHERE id = ${userId} AND organization_id = ${organization_id}
-      RETURNING id, username, name, role, is_active
+    const { rows: [userRecord] } = await sql`
+      SELECT * FROM users WHERE id = ${userId}
     `;
 
-    if (!updatedUser) {
-      return NextResponse.json({ msg: 'User not found or you do not have permission to update this user.' }, { status: 404 });
+    if (!userRecord) {
+      return NextResponse.json({ msg: 'User not found.' }, { status: 404 });
     }
+
+    const newName = name || userRecord.name;
+    const newLanguage = language || userRecord.language;
+
+    const { rows: [updatedUser] } = await sql`
+      UPDATE users
+      SET name = ${newName}, language = ${newLanguage}
+      WHERE id = ${userId}
+      RETURNING id, name, username, role, language, is_active, organization_id
+    `;
 
     return NextResponse.json(updatedUser);
   } catch (err) {
@@ -55,30 +48,4 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
   }
 };
 
-// Soft delete a user
-const deleteHandler = async (req: AuthenticatedRequest, { params }: RouteParams) => {
-  const userId = parseInt(params.id, 10);
-  const { organization_id } = req.user;
-
-  try {
-    const result = await sql`
-      UPDATE users
-      SET is_active = false
-      WHERE id = ${userId} AND organization_id = ${organization_id}
-      RETURNING id
-    `;
-
-    if (result.length === 0) {
-      return NextResponse.json({ msg: 'User not found or you do not have permission to deactivate this user.' }, { status: 404 });
-    }
-
-    return NextResponse.json({ msg: 'User deactivated successfully' });
-  } catch (err) {
-    console.error(err);
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
-
-export const PUT = withAuth(putHandler);
-export const DELETE = withAuth(deleteHandler, ['factory_admin']);
+export const PATCH = withAuth(patchHandler);

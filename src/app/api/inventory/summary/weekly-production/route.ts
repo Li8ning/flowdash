@@ -6,7 +6,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
 
-    const result = await sql`
+    const { rows: result } = await sql`
       WITH date_series AS (
         SELECT generate_series(
           CURRENT_DATE - INTERVAL '6 days',
@@ -17,7 +17,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       daily_logs AS (
         SELECT
           DATE(l.created_at) as log_date,
-          SUM(l.quantity_change) as total
+          SUM(l.produced) as total
         FROM inventory_logs l
         JOIN products p ON l.product_id = p.id
         WHERE p.organization_id = ${organization_id} AND l.created_at >= CURRENT_DATE - INTERVAL '6 days'

@@ -6,7 +6,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
 
-    const result = await sql`
+    const { rows: result } = await sql`
       SELECT DISTINCT model FROM products
       WHERE organization_id = ${organization_id} AND model IS NOT NULL AND model != ''
       ORDER BY model

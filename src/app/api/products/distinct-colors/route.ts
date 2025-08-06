@@ -6,7 +6,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
 
-    const result = await sql`
+    const { rows: result } = await sql`
       SELECT DISTINCT color FROM products
       WHERE organization_id = ${organization_id} AND color IS NOT NULL AND color != ''
       ORDER BY color

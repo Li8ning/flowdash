@@ -12,6 +12,7 @@ import {
   Heading,
   Flex,
   Divider,
+  Select,
 } from '@chakra-ui/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -22,9 +23,11 @@ const ProfileManager = () => {
   const { t } = useTranslation();
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
+  const [language, setLanguage] = useState(user?.language || 'en');
   const [orgName, setOrgName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const toast = useToast();
 
   useEffect(() => {
@@ -70,8 +73,8 @@ const ProfileManager = () => {
 
   const handleUpdateDetails = async () => {
     try {
-      const payload = { name, username };
-      const { data } = await api.put(`/users/${user?.id}`, payload);
+      const payload = { name, language };
+      const { data } = await api.patch(`/users/${user?.id}`, payload);
       updateUser(data);
       toast({
         title: t('profile_manager.toast.details_updated'),
@@ -90,7 +93,8 @@ const ProfileManager = () => {
     }
   };
 
-  const handleUpdatePassword = async () => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (password !== confirmPassword) {
       toast({
         title: t('profile_manager.toast.passwords_no_match'),
@@ -111,8 +115,8 @@ const ProfileManager = () => {
     }
 
     try {
-      const payload = { password };
-      await api.put(`/users/${user?.id}`, payload);
+      const payload = { currentPassword, newPassword: password };
+      await api.put(`/users/${user?.id}/password`, payload);
       toast({
         title: t('profile_manager.toast.password_updated'),
         status: 'success',
@@ -121,6 +125,7 @@ const ProfileManager = () => {
       });
       setPassword('');
       setConfirmPassword('');
+      setCurrentPassword('');
     } catch {
       toast({
         title: t('profile_manager.toast.error_updating_password'),
@@ -143,6 +148,14 @@ const ProfileManager = () => {
           <FormControl>
             <FormLabel>{t('profile_manager.user_details.full_name')}</FormLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </FormControl>
+          <FormControl>
+            <FormLabel>{t('profile_manager.user_details.language')}</FormLabel>
+            <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="gu">Gujarati</option>
+            </Select>
           </FormControl>
           <Button colorScheme="teal" onClick={handleUpdateDetails} alignSelf="flex-start">
             {t('profile_manager.user_details.update_button')}
@@ -184,7 +197,15 @@ const ProfileManager = () => {
 
       <Box p={6} borderWidth="1px" borderRadius="lg" shadow="md">
         <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>{t('profile_manager.change_password.title')}</Heading>
-        <Stack spacing={4}>
+        <Stack as="form" onSubmit={handleUpdatePassword} spacing={4}>
+          <FormControl>
+            <FormLabel>{t('profile_manager.change_password.current_password')}</FormLabel>
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </FormControl>
           <FormControl>
             <FormLabel>{t('profile_manager.change_password.new_password')}</FormLabel>
             <Input
@@ -201,7 +222,7 @@ const ProfileManager = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </FormControl>
-          <Button colorScheme="teal" onClick={handleUpdatePassword} alignSelf="flex-start">
+          <Button type="submit" colorScheme="teal" alignSelf="flex-start">
             {t('profile_manager.change_password.update_button')}
           </Button>
         </Stack>

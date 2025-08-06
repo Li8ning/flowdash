@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
-  FormControl,
-  FormLabel,
   Input,
   Stack,
   useToast,
@@ -26,7 +24,7 @@ import {
   IconButton,
   Select,
 } from '@chakra-ui/react';
-import { AddIcon, MinusIcon } from '@chakra-ui/icons';
+import { AddIcon, DeleteIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '../lib/api';
 import { useTranslation } from 'react-i18next';
 
@@ -37,12 +35,21 @@ interface Product {
   model: string;
   color: string;
   image_url: string;
+  available_qualities: string[];
+  available_packaging_types: string[];
+}
+
+interface LogEntry {
+  id: number;
+  quantity: string;
+  quality: string;
+  packagingType: string;
 }
 
 const LogEntryForm = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState('');
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ color: '', model: '' });
@@ -80,15 +87,39 @@ const LogEntryForm = () => {
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
+    setLogEntries([{ id: Date.now(), quantity: '', quality: '', packagingType: '' }]);
     onOpen();
+  };
+
+  const handleLogEntryChange = (id: number, field: keyof Omit<LogEntry, 'id'>, value: string) => {
+    setLogEntries(entries =>
+      entries.map(entry => (entry.id === id ? { ...entry, [field]: value } : entry))
+    );
+  };
+
+  const addLogEntry = () => {
+    setLogEntries(entries => [
+      ...entries,
+      { id: Date.now(), quantity: '', quality: '', packagingType: '' },
+    ]);
+  };
+
+  const removeLogEntry = (id: number) => {
+    setLogEntries(entries => entries.filter(entry => entry.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const numQuantity = parseInt(quantity, 10);
-    if (!selectedProduct || !quantity || numQuantity < 1) {
+    if (!selectedProduct) return;
+
+    const invalidEntry = logEntries.some(
+      entry => !entry.quantity || parseInt(entry.quantity, 10) < 1 || !entry.quality || !entry.packagingType
+    );
+
+    if (invalidEntry) {
       toast({
         title: t('product_selector.toast.invalid_input'),
+        description: t('product_selector.toast.all_fields_required'),
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -96,19 +127,22 @@ const LogEntryForm = () => {
       return;
     }
 
+    const logsToCreate = logEntries.map(entry => ({
+      product_id: selectedProduct.id,
+      produced: parseInt(entry.quantity, 10),
+      quality: entry.quality,
+      packaging_type: entry.packagingType,
+    }));
+
     setLoading(true);
     try {
-      await api.post('/inventory/logs', {
-        product_id: selectedProduct.id,
-        quantity_change: numQuantity,
-      });
+      await api.post('/inventory/logs', logsToCreate);
       toast({
         title: t('product_selector.toast.log_created'),
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
-      setQuantity('');
       onClose();
     } catch (error) {
       console.error('Failed to create log entry', error);
@@ -149,40 +183,43 @@ const LogEntryForm = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           size="lg"
         />
-       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
-         <Select
-           placeholder={t('product_selector.filter_by_color')}
-           value={filters.color}
-           onChange={(e) => setFilters({ ...filters, color: e.target.value })}
-         >
-           {distinctColors.map((c) => (
-             <option key={c} value={c}>
-               {c}
-             </option>
-           ))}
-         </Select>
-         <Select
-           placeholder={t('product_selector.filter_by_model')}
-           value={filters.model}
-           onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-         >
-           {distinctModels.map((m) => (
-             <option key={m} value={m}>
-               {m}
-             </option>
-           ))}
-         </Select>
-         <Button onClick={handleFilter} colorScheme="blue">{t('product_selector.filter')}</Button>
-         <Button
-           onClick={() => {
-             setFilters({ color: '', model: '' });
-             setActiveFilters({ color: '', model: '' });
-           }}
-           colorScheme="gray"
-         >
-           {t('product_selector.clear_filters')}
-         </Button>
-       </SimpleGrid>
+       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2} mb={4}>
+          <Select
+            placeholder={t('product_selector.filter_by_color')}
+            value={filters.color}
+            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+            size="sm"
+          >
+            {distinctColors.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+          <Select
+            placeholder={t('product_selector.filter_by_model')}
+            value={filters.model}
+            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+            size="sm"
+          >
+            {distinctModels.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
+          <Button
+            onClick={() => {
+              setFilters({ color: '', model: '' });
+              setActiveFilters({ color: '', model: '' });
+            }}
+            colorScheme="gray"
+            size="sm"
+          >
+            {t('product_selector.clear_filters')}
+          </Button>
+        </SimpleGrid>
        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing={{ base: 6, md: 5 }}>
           {filteredProducts.map((product) => (
             <Box
@@ -210,7 +247,7 @@ const LogEntryForm = () => {
       </Stack>
 
       {selectedProduct && (
-        <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
           <ModalOverlay />
           <ModalContent as="form" onSubmit={handleSubmit}>
             <ModalHeader>{t('product_selector.quantity_modal.title')}</ModalHeader>
@@ -221,33 +258,75 @@ const LogEntryForm = () => {
                 <Heading size="md">{selectedProduct.name}</Heading>
                 <Text color="gray.500">{selectedProduct.model} - {selectedProduct.color}</Text>
               </VStack>
-              <FormControl mt={6} isRequired>
-                <FormLabel>{t('product_selector.quantity_modal.quantity')}</FormLabel>
-                <HStack maxW="320px" margin="0 auto">
-                  <IconButton
-                    aria-label="Decrement"
-                    icon={<MinusIcon />}
-                    size="lg"
-                    onClick={() => setQuantity(q => String(Math.max(1, (Number(q) || 0) - 1)))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="e.g., 10"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    autoFocus
-                    size="lg"
-                    textAlign="center"
-                    fontSize="2xl"
-                  />
-                  <IconButton
-                    aria-label="Increment"
-                    icon={<AddIcon />}
-                    size="lg"
-                    onClick={() => setQuantity(q => String((Number(q) || 0) + 1))}
-                  />
-                </HStack>
-              </FormControl>
+              <VStack spacing={4} mt={6}>
+                {logEntries.map((entry) => (
+                  <HStack key={entry.id} spacing={2} w="100%">
+                    <HStack width="150px">
+                      <IconButton
+                        aria-label="Decrement quantity"
+                        icon={<MinusIcon />}
+                        size="sm"
+                        onClick={() => {
+                          const currentValue = parseInt(entry.quantity, 10) || 0;
+                          if (currentValue > 1) {
+                            handleLogEntryChange(entry.id, 'quantity', String(currentValue - 1));
+                          }
+                        }}
+                      />
+                      <Input
+                        placeholder={t('product_selector.quantity_modal.quantity')}
+                        type="number"
+                        value={entry.quantity}
+                        onChange={(e) => handleLogEntryChange(entry.id, 'quantity', e.target.value)}
+                        isRequired
+                        textAlign="center"
+                        flex={1}
+                      />
+                      <IconButton
+                        aria-label="Increment quantity"
+                        icon={<AddIcon />}
+                        size="sm"
+                        onClick={() => {
+                          const currentValue = parseInt(entry.quantity, 10) || 0;
+                          handleLogEntryChange(entry.id, 'quantity', String(currentValue + 1));
+                        }}
+                      />
+                    </HStack>
+                    <Select
+                      placeholder={t('product_selector.quantity_modal.select_quality')}
+                      value={entry.quality}
+                      onChange={(e) => handleLogEntryChange(entry.id, 'quality', e.target.value)}
+                      isRequired
+                      flex={1}
+                    >
+                      {selectedProduct.available_qualities?.map(q => (
+                        <option key={q} value={q}>{t(`product_manager.quality.${q.toLowerCase()}`)}</option>
+                      ))}
+                    </Select>
+                    <Select
+                      placeholder={t('product_selector.quantity_modal.select_packaging')}
+                      value={entry.packagingType}
+                      onChange={(e) => handleLogEntryChange(entry.id, 'packagingType', e.target.value)}
+                      isRequired
+                      flex={1}
+                    >
+                      {selectedProduct.available_packaging_types?.map(p => (
+                        <option key={p} value={p}>{t(`product_manager.packaging_type.${p.toLowerCase()}`)}</option>
+                      ))}
+                    </Select>
+                    <IconButton
+                      aria-label="Remove Log Entry"
+                      icon={<DeleteIcon />}
+                      colorScheme="red"
+                      onClick={() => removeLogEntry(entry.id)}
+                      isDisabled={logEntries.length <= 1}
+                    />
+                  </HStack>
+                ))}
+              </VStack>
+              <Button leftIcon={<AddIcon />} mt={4} onClick={addLogEntry} w="100%">
+                {t('product_selector.add_another_entry')}
+              </Button>
             </ModalBody>
             <ModalFooter>
               <Button variant="ghost" mr={3} onClick={onClose}>{t('product_selector.quantity_modal.cancel')}</Button>
