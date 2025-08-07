@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 export async function POST(request: Request) {
-  if (!JWT_SECRET) {
-    console.error('JWT_SECRET is not set');
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    console.error('JWT_SECRET is not set or is too weak.');
     return NextResponse.json({ msg: 'Internal Server Error' }, { status: 500 });
   }
+  const JWT_SECRET = process.env.JWT_SECRET;
+  const secret = new TextEncoder().encode(JWT_SECRET);
 
   try {
     const { username, password } = await request.json();
@@ -21,15 +21,12 @@ export async function POST(request: Request) {
     }
 
     const user = userResult[0];
-    console.log('User found:', user);
-    console.log('Password hash:', user.password_hash);
 
     if (!user.is_active) {
       return NextResponse.json({ msg: 'Your account is currently inactive. Please contact an administrator.' }, { status: 403 });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    console.log('Password match:', isMatch);
 
     if (!isMatch) {
       return NextResponse.json({ msg: 'Invalid credentials' }, { status: 401 });
@@ -42,7 +39,10 @@ export async function POST(request: Request) {
       organization_id: user.organization_id,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: 3600 });
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('1h')
+      .sign(secret);
 
     const userResponse = {
       id: user.id,
@@ -55,8 +55,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ token, user: userResponse });
 
-  } catch (err: any) {
-    console.error(err.message);
-    return NextResponse.json({ msg: 'Server error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error('Login error:', message);
+    return NextResponse.json({ msg: 'Server error', details: message }, { status: 500 });
   }
 }

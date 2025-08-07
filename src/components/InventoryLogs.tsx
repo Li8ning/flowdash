@@ -63,6 +63,9 @@ interface InventoryLogsProps {
 
 const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [logs, setLogs] = useState<InventoryLog[]>([]);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [logsPerPage] = useState(20);
   const [editingLog, setEditingLog] = useState<InventoryLog | null>(null);
   const toast = useToast();
   const { user } = useAuth();
@@ -81,6 +84,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       model: '',
       startDate: today,
       endDate: today,
+      quality: '',
+      packaging_type: '',
     };
   };
 
@@ -92,20 +97,32 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [distinctProducts, setDistinctProducts] = useState<string[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
   const [distinctModels, setDistinctModels] = useState<string[]>([]);
+  const [distinctQualities, setDistinctQualities] = useState<string[]>([]);
+  const [distinctPackagingTypes, setDistinctPackagingTypes] = useState<string[]>([]);
 
   const fetchDistinctValues = useCallback(async () => {
     try {
-      const [productsRes, colorsRes, modelsRes] = await Promise.all([
-        api.get('/inventory/distinct-products'),
-        api.get('/inventory/distinct-colors'),
-        api.get('/inventory/distinct-models'),
-      ]);
+      const endpoints = [
+        api.get('/distinct/inventory/product_name'),
+        api.get('/distinct/products/color'),
+        api.get('/distinct/products/model'),
+        api.get('/distinct/inventory/quality'),
+        api.get('/distinct/inventory/packaging_type'),
+      ];
+
+      if (allLogs) {
+        endpoints.push(api.get('/distinct/inventory/users'));
+      }
+
+      const [productsRes, colorsRes, modelsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
+      
       setDistinctProducts(productsRes.data);
       setDistinctColors(colorsRes.data);
       setDistinctModels(modelsRes.data);
+      setDistinctQualities(qualitiesRes.data);
+      setDistinctPackagingTypes(packagingTypesRes.data);
 
-      if (allLogs) {
-        const usersRes = await api.get('/inventory/distinct-users');
+      if (allLogs && usersRes) {
         setDistinctUsers(usersRes.data);
       }
     } catch (err) {
@@ -128,8 +145,15 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     if (!user) return;
     try {
       const url = allLogs ? '/inventory/logs' : '/inventory/logs/me';
-      const { data } = await api.get(url, { params: appliedFilters });
-      setLogs(data);
+      const offset = (currentPage - 1) * logsPerPage;
+      const params = {
+        ...appliedFilters,
+        limit: logsPerPage,
+        offset,
+      };
+      const { data } = await api.get(url, { params });
+      setLogs(data.data);
+      setTotalLogs(data.totalCount);
     } catch (err) {
       console.error(err);
       if (err instanceof AxiosError && err.response?.status === 401) {
@@ -144,7 +168,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         isClosable: true,
       });
     }
-  }, [allLogs, appliedFilters, toast, user, t]);
+  }, [allLogs, appliedFilters, toast, user, t, currentPage, logsPerPage]);
 
   useEffect(() => {
     fetchLogs();
@@ -161,6 +185,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       });
       return;
     }
+    setCurrentPage(1);
     setAppliedFilters(filters);
   };
 
@@ -169,6 +194,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
     setDateRange('today');
+    setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -211,7 +237,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const handleDelete = async (logId: number) => {
     try {
       await api.delete(`/inventory/logs/${logId}`);
-      setLogs(prevLogs => prevLogs.filter((log) => log.id !== logId));
+      // After deleting, refetch the current page to get fresh data
+      fetchLogs();
       toast({
         title: t('inventory.logs.toast.log_deleted'),
         description: t('inventory.logs.toast.log_deleted_description'),
@@ -277,7 +304,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       </Flex>
       <Divider mb={6} />
       <Box>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: allLogs ? 5 : 4 }} spacing={4} mb={4}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: allLogs ? 7 : 6 }} spacing={4} mb={4}>
           {allLogs && (
             <Select
               placeholder={t('inventory.logs.filter_by_user')}
@@ -323,6 +350,30 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             {distinctModels.map((m) => (
               <option key={m} value={m}>
                 {m}
+              </option>
+            ))}
+          </Select>
+          <Select
+            placeholder={t('inventory.logs.filter_by_quality')}
+            value={filters.quality}
+            onChange={(e) => setFilters({ ...filters, quality: e.target.value })}
+          >
+            {distinctQualities.map((q) => (
+              <option key={q} value={q}>
+                {t(`product_manager.quality.${q.toLowerCase()}`)}
+              </option>
+            ))}
+          </Select>
+          <Select
+            placeholder={t('inventory.logs.filter_by_packaging_type')}
+            value={filters.packaging_type}
+            onChange={(e) =>
+              setFilters({ ...filters, packaging_type: e.target.value })
+            }
+          >
+            {distinctPackagingTypes.map((p) => (
+              <option key={p} value={p}>
+                {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
               </option>
             ))}
           </Select>
@@ -533,6 +584,27 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           </TableContainer>
         )}
       </Box>
+
+      <Flex justify="center" mt={6}>
+        <Button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          isDisabled={currentPage === 1}
+          mr={2}
+        >
+          {t('pagination.previous')}
+        </Button>
+        <Text m={2}>
+          {t('pagination.page')} {currentPage} {t('pagination.of')} {Math.ceil(totalLogs / logsPerPage)}
+        </Text>
+        <Button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalLogs / logsPerPage)))}
+          isDisabled={currentPage === Math.ceil(totalLogs / logsPerPage) || totalLogs === 0}
+          ml={2}
+        >
+          {t('pagination.next')}
+        </Button>
+      </Flex>
+
       {editingLog && (
         <EditLogModal
           log={editingLog}

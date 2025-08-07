@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import logger from '@/lib/logger';
 
 interface RouteParams {
   params: {
@@ -50,7 +51,7 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
 
     return NextResponse.json({ msg: 'Password updated successfully.' });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to update password');
     const error = err as Error;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

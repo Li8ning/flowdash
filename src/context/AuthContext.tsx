@@ -61,10 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          } else if (finalUserData.organization_name) {
            setOrganizationName(finalUserData.organization_name);
          }
-         setUser(finalUserData);
          if (finalUserData.language) {
-            i18n.changeLanguage(finalUserData.language);
+            await i18n.changeLanguage(finalUserData.language);
          }
+         setUser(finalUserData);
         } catch {
           // Token might be invalid
           Cookies.remove('token');
@@ -103,10 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(newToken);
     
     // The user object from login/register should be complete
-    setUser(userData);
     if (userData.language) {
-      i18n.changeLanguage(userData.language);
+      await i18n.changeLanguage(userData.language);
     }
+    setUser(userData);
     return userData;
   };
 

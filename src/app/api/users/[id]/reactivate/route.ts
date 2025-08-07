@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import logger from '@/lib/logger';
 
 interface RouteParams {
   params: {
@@ -27,7 +28,7 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
 
     return NextResponse.json({ msg: 'User reactivated successfully', user: reactivatedUser });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to reactivate user');
     const error = err as Error;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

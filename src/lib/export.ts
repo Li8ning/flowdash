@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 interface Log {
   id: number;
@@ -18,7 +18,7 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
   const tableColumn = allLogs 
     ? ["Product Name", "Color", "Model", "User", "Quantity Change", "Date"]
     : ["Product Name", "Color", "Model", "Quantity Change", "Date"];
-  const tableRows: any[][] = [];
+  const tableRows: (string | number)[][] = [];
 
   logs.forEach(log => {
     const logData = allLogs
@@ -26,7 +26,7 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
           log.product_name,
           log.color,
           log.model,
-          log.username,
+          log.username || '',
           log.produced,
           new Date(log.created_at).toLocaleString(),
         ]
@@ -49,29 +49,47 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
   doc.save("inventory_logs.pdf");
 };
 
-export const exportToExcel = (logs: Log[], allLogs: boolean) => {
-  const worksheetData = logs.map(log => {
-    if (allLogs) {
-      return {
-        "Product Name": log.product_name,
-        "Color": log.color,
-        "Model": log.model,
-        "User": log.username,
-        "Quantity Change": log.produced,
-        "Date": new Date(log.created_at).toLocaleString(),
-      };
-    }
-    return {
-      "Product Name": log.product_name,
-      "Color": log.color,
-      "Model": log.model,
-      "Quantity Change": log.produced,
-      "Date": new Date(log.created_at).toLocaleString(),
-    };
+export const exportToExcel = async (logs: Log[], allLogs: boolean) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Inventory Logs');
+
+  // Define columns
+  worksheet.columns = allLogs
+    ? [
+        { header: 'Product Name', key: 'product_name', width: 30 },
+        { header: 'Color', key: 'color', width: 15 },
+        { header: 'Model', key: 'model', width: 15 },
+        { header: 'User', key: 'username', width: 20 },
+        { header: 'Quantity Change', key: 'produced', width: 15 },
+        { header: 'Date', key: 'created_at', width: 25 },
+      ]
+    : [
+        { header: 'Product Name', key: 'product_name', width: 30 },
+        { header: 'Color', key: 'color', width: 15 },
+        { header: 'Model', key: 'model', width: 15 },
+        { header: 'Quantity Change', key: 'produced', width: 15 },
+        { header: 'Date', key: 'created_at', width: 25 },
+      ];
+
+  // Add data rows
+  const data = logs.map(log => ({
+    ...log,
+    created_at: new Date(log.created_at).toLocaleString(),
+  }));
+  worksheet.addRows(data);
+
+  // Style header
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true };
   });
 
-  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory Logs");
-  XLSX.writeFile(workbook, "inventory_logs.xlsx");
+  // Write to buffer and trigger download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'inventory_logs.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

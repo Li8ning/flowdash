@@ -18,7 +18,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       JOIN products p ON l.product_id = p.id
       WHERE l.user_id = $1
     `;
-    const params: any[] = [user_id];
+    const params: (string | number)[] = [user_id];
     let paramIndex = 2;
 
     if (product) {
@@ -47,8 +47,9 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const { rows } = await sql.query(query, params);
 
     return NextResponse.json(rows);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error('Failed to fetch personal inventory logs:', message);
+    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 });

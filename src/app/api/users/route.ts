@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import logger from '@/lib/logger';
 
 // Get all users in the admin's organization
 const getHandler = async (req: AuthenticatedRequest) => {
@@ -12,7 +13,7 @@ const getHandler = async (req: AuthenticatedRequest) => {
     const { organization_id } = req.user;
 
     let query = `SELECT id, username, name, role, is_active FROM users WHERE organization_id = $1`;
-    const params: any[] = [organization_id];
+    const params: (string | number)[] = [organization_id];
     let paramIndex = 2;
 
     if (status === 'inactive') {
@@ -30,10 +31,10 @@ const getHandler = async (req: AuthenticatedRequest) => {
     const { rows: users } = await sql.query(query, params);
 
     return NextResponse.json(users);
-  } catch (err) {
-    console.error(err);
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    logger.error({ err }, 'Failed to fetch users');
+    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 };
 
@@ -57,14 +58,14 @@ const postHandler = async (req: AuthenticatedRequest) => {
     `;
 
     return NextResponse.json(newUser, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    const error = err as Error;
+  } catch (err: unknown) {
+    logger.error({ err }, 'Failed to create user');
     // Handle unique constraint violation for username
-    if (error.message.includes('duplicate key value violates unique constraint "users_username_key"')) {
+    if (err instanceof Error && err.message.includes('duplicate key value violates unique constraint "users_username_key"')) {
         return NextResponse.json({ error: 'Username is already taken.' }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 };
 

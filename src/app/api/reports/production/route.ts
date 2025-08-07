@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import logger from '@/lib/logger';
 
 // Get production report
 const getHandler = async (req: AuthenticatedRequest) => {
@@ -16,7 +17,7 @@ const getHandler = async (req: AuthenticatedRequest) => {
       JOIN products p ON l.product_id = p.id
       WHERE p.organization_id = $1 AND l.produced > 0
     `;
-    const params: any[] = [organization_id];
+    const params: (string | number)[] = [organization_id];
     let paramIndex = 2;
 
     if (startDate) {
@@ -33,10 +34,10 @@ const getHandler = async (req: AuthenticatedRequest) => {
     const { rows } = await sql.query(query, params);
 
     return NextResponse.json(rows);
-  } catch (err) {
-    console.error(err);
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    logger.error({ err }, 'Failed to fetch production report');
+    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 };
 

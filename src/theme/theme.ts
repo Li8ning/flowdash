@@ -1,4 +1,4 @@
-import { extendTheme, theme as baseTheme } from '@chakra-ui/react';
+import { extendTheme, theme as baseTheme, StyleFunctionProps } from '@chakra-ui/react';
 
 const colors = {
   brand: {
@@ -39,7 +39,7 @@ const theme = extendTheme({
         px: { base: 3, md: 4, lg: 6 }, // Granular responsive padding
       },
       variants: {
-        solid: (props: any) => {
+        solid: (props: StyleFunctionProps) => {
           const { colorScheme: c } = props;
           if (c === 'green') {
             return {

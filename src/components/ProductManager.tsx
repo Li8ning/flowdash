@@ -68,6 +68,9 @@ const PACKAGING_OPTIONS = ['Paper', 'Box', 'Grass'];
 const ProductManager = () => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(10);
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { token } = useAuth();
@@ -88,18 +91,22 @@ const ProductManager = () => {
 
 
   useEffect(() => {
-    const fetchFilterData = async () => {
+    const fetchProducts = async () => {
+      if (!token) return;
       try {
-        const [productsRes, colorsRes, modelsRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/products/distinct-colors'),
-          api.get('/products/distinct-models'),
-        ]);
-        setProducts(productsRes.data);
-        setDistinctColors(colorsRes.data);
-        setDistinctModels(modelsRes.data);
+        const offset = (currentPage - 1) * productsPerPage;
+        const response = await api.get('/products', {
+          params: {
+            limit: productsPerPage,
+            offset,
+            // NOTE: Backend filtering is not yet implemented for products.
+            // The search and filter below are client-side on the current page.
+          },
+        });
+        setProducts(response.data.data);
+        setTotalProducts(response.data.totalCount);
       } catch (err) {
-        console.error('Failed to fetch product data', err);
+        console.error('Failed to fetch products', err);
         toast({
           title: t('product_manager.toast.error_fetching_data'),
           description: (err as any).response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
@@ -110,10 +117,26 @@ const ProductManager = () => {
       }
     };
 
+    fetchProducts();
+  }, [token, toast, t, currentPage, productsPerPage, activeFilters]);
+
+  useEffect(() => {
+    const fetchDistinctValues = async () => {
+      try {
+        const [colorsRes, modelsRes] = await Promise.all([
+          api.get('/distinct/products/color'),
+          api.get('/distinct/products/model'),
+        ]);
+        setDistinctColors(colorsRes.data);
+        setDistinctModels(modelsRes.data);
+      } catch (err) {
+        console.error('Failed to fetch distinct values', err);
+      }
+    };
     if (token) {
-      fetchFilterData();
+      fetchDistinctValues();
     }
-  }, [token, toast, t]);
+  }, [token]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<any>>) => {
     const { name, value } = e.target;
@@ -125,7 +148,9 @@ const ProductManager = () => {
     if (!token) return;
     try {
       const response = await api.post('/products', newProduct);
-      setProducts([...products, response.data]);
+      // After creating a product, refetch the first page to see the new product.
+      setCurrentPage(1);
+      // No need to manually add to state, the effect will refetch.
       setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
       onCreateClose();
       toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
@@ -142,7 +167,11 @@ const ProductManager = () => {
   };
 
   const startEditing = (product: Product) => {
-    setEditingProduct(product);
+    setEditingProduct({
+      ...product,
+      available_qualities: product.available_qualities || [],
+      available_packaging_types: product.available_packaging_types || [],
+    });
     onEditOpen();
   };
 
@@ -150,8 +179,8 @@ const ProductManager = () => {
     e.preventDefault();
     if (!token || !editingProduct) return;
     try {
-      const response = await api.put(`/products/${editingProduct.id}`, editingProduct);
-      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p));
+      const response = await api.patch(`/products/${editingProduct.id}`, editingProduct);
+      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p)); // This is fine, updates in-place
       setEditingProduct(null);
       onEditClose();
       toast({ title: t('product_manager.toast.product_updated'), status: 'success', duration: 3000, isClosable: true });
@@ -171,7 +200,15 @@ const ProductManager = () => {
     if (!token) return;
     try {
       await api.patch(`/products/${productId}/archive`);
+      // Refetch the current page after archiving
       setProducts(products.filter(p => p.id !== productId));
+      // A full refetch might be better to keep the page full.
+      const offset = (currentPage - 1) * productsPerPage;
+      const response = await api.get('/products', {
+        params: { limit: productsPerPage, offset },
+      });
+      setProducts(response.data.data);
+      setTotalProducts(response.data.totalCount);
       toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
     } catch (err) {
       console.error('Failed to archive product:', err);
@@ -199,6 +236,7 @@ const ProductManager = () => {
 
 
   const handleFilter = () => {
+    setCurrentPage(1); // Reset to first page on new filter
     setActiveFilters(filters);
   };
 
@@ -260,6 +298,7 @@ const ProductManager = () => {
           onClick={() => {
             setFilters({ color: '', model: '' });
             setActiveFilters({ color: '', model: '' });
+            setCurrentPage(1);
           }}
           colorScheme="gray"
         >
@@ -478,6 +517,26 @@ const ProductManager = () => {
           </TableContainer>
         )}
       </Box>
+
+      <Flex justify="center" mt={6}>
+        <Button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          isDisabled={currentPage === 1}
+          mr={2}
+        >
+          {t('pagination.previous')}
+        </Button>
+        <Text m={2}>
+          {t('pagination.page')} {currentPage} {t('pagination.of')} {Math.ceil(totalProducts / productsPerPage)}
+        </Text>
+        <Button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalProducts / productsPerPage)))}
+          isDisabled={currentPage === Math.ceil(totalProducts / productsPerPage)}
+          ml={2}
+        >
+          {t('pagination.next')}
+        </Button>
+      </Flex>
 
       <AlertDialog
         isOpen={isArchiveOpen}

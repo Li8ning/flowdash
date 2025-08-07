@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 import bcrypt from 'bcryptjs';
-
-const JWT_SECRET = process.env.JWT_SECRET;
+import logger from '@/lib/logger';
 
 export async function POST(request: Request) {
-  if (!JWT_SECRET) {
-    console.error('JWT_SECRET is not set');
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    logger.error('JWT_SECRET is not set or is too weak.');
     return NextResponse.json({ msg: 'Internal Server Error' }, { status: 500 });
   }
+  const JWT_SECRET = process.env.JWT_SECRET;
+  const secret = new TextEncoder().encode(JWT_SECRET);
 
   try {
     const { name, username, password, organizationName } = await request.json();
@@ -45,14 +46,16 @@ export async function POST(request: Request) {
     const user = userResult[0];
 
     const payload = {
-      user: {
-        id: user.id,
-        role: user.role,
-        organization_id: organization_id,
-      },
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      organization_id: organization_id,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: 3600 });
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('1h')
+      .sign(secret);
 
     return NextResponse.json({
       token,
@@ -66,11 +69,12 @@ export async function POST(request: Request) {
       },
     }, { status: 201 });
 
-  } catch (err: any) {
-    console.error(err.message);
-    if (err.code === '23505') { // Unique constraint violation
+  } catch (err: unknown) {
+    const error = err as { code?: string; message?: string };
+    logger.error({ err: error }, 'Registration error');
+    if (error.code === '23505') { // Unique constraint violation
       return NextResponse.json({ msg: 'User or organization already exists' }, { status: 400 });
     }
-    return NextResponse.json({ msg: 'Server error' }, { status: 500 });
+    return NextResponse.json({ msg: 'Server error', details: error.message }, { status: 500 });
   }
 }

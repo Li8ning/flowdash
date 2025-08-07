@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../../../lib/auth';
 import sql from '../../../../../lib/db';
+import logger from '../../../../../lib/logger';
 
 interface RouteContext {
   params: {
@@ -58,7 +59,7 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to update inventory log');
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 });
@@ -98,7 +99,7 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: Rou
     return NextResponse.json({ error: 'You do not have permission to delete this log.' }, { status: 403 });
 
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to delete inventory log');
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 });

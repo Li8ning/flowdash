@@ -12,47 +12,80 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const model = searchParams.get('model');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const quality = searchParams.get('quality');
+    const packaging_type = searchParams.get('packaging_type');
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    let query = `
+    const conditions = [`p.organization_id = $1`];
+    const params: (string | number)[] = [organization_id];
+    let paramIndex = 2;
+
+    if (user) {
+      conditions.push(`u.name = $${paramIndex++}`);
+      params.push(user);
+    }
+    if (product) {
+      conditions.push(`p.name = $${paramIndex++}`);
+      params.push(product);
+    }
+    if (color) {
+      conditions.push(`p.color = $${paramIndex++}`);
+      params.push(color);
+    }
+    if (model) {
+      conditions.push(`p.model = $${paramIndex++}`);
+      params.push(model);
+    }
+    if (quality) {
+      conditions.push(`l.quality = $${paramIndex++}`);
+      params.push(quality);
+    }
+    if (packaging_type) {
+      conditions.push(`l.packaging_type = $${paramIndex++}`);
+      params.push(packaging_type);
+    }
+    if (startDate) {
+      conditions.push(`l.created_at >= $${paramIndex++}`);
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push(`l.created_at < $${paramIndex++}`);
+      params.push((new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1))).toISOString().split('T')[0]);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    const logsQuery = `
       SELECT l.id, l.product_id, p.name as product_name, p.color, p.model, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       JOIN users u ON l.user_id = u.id
-      WHERE p.organization_id = $1
+      WHERE ${whereClause}
+      ORDER BY l.created_at DESC
+      LIMIT $${paramIndex++}
+      OFFSET $${paramIndex++}
     `;
-    const params: any[] = [organization_id];
-    let paramIndex = 2;
+    
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM inventory_logs l
+      JOIN products p ON l.product_id = p.id
+      JOIN users u ON l.user_id = u.id
+      WHERE ${whereClause}
+    `;
 
-    if (user) {
-      query += ` AND u.name = $${paramIndex++}`;
-      params.push(user);
-    }
-    if (product) {
-      query += ` AND p.name = $${paramIndex++}`;
-      params.push(product);
-    }
-    if (color) {
-      query += ` AND p.color = $${paramIndex++}`;
-      params.push(color);
-    }
-    if (model) {
-      query += ` AND p.model = $${paramIndex++}`;
-      params.push(model);
-    }
-    if (startDate) {
-      query += ` AND l.created_at >= $${paramIndex++}`;
-      params.push(startDate);
-    }
-    if (endDate) {
-      query += ` AND l.created_at < $${paramIndex++}`;
-      params.push((new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1))).toISOString().split('T')[0]);
-    }
+    const logsPromise = sql.query(logsQuery, [...params, limit, offset]);
+    const countPromise = sql.query(countQuery, params);
 
-    query += ` ORDER BY l.created_at DESC`;
+    const [logsResult, countResult] = await Promise.all([logsPromise, countPromise]);
 
-    const { rows } = await sql.query(query, params);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    return NextResponse.json(rows);
+    return NextResponse.json({
+      data: logsResult.rows,
+      totalCount,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
@@ -69,22 +102,28 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    const insertedLogs = [];
-    for (const log of logsToCreate) {
-      const { product_id, produced, quality, packaging_type } = log;
 
+    const values = logsToCreate.map(log => {
+      const { product_id, produced, quality, packaging_type } = log;
       if (!product_id || !Number.isInteger(produced) || produced < 1 || !quality || !packaging_type) {
         throw new Error('Invalid log entry data');
       }
+      return [product_id, user_id, produced, quality, packaging_type];
+    });
 
-      const { rows } = await client.query(
-        `INSERT INTO inventory_logs (product_id, user_id, produced, quality, packaging_type)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [product_id, user_id, produced, quality, packaging_type]
-      );
-      insertedLogs.push(rows[0]);
-    }
+    const flatValues = values.flat();
+    const valuePlaceholders = values.map((_, i) =>
+      `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`
+    ).join(',');
+
+    const query = `
+      INSERT INTO inventory_logs (product_id, user_id, produced, quality, packaging_type)
+      VALUES ${valuePlaceholders}
+      RETURNING *
+    `;
+
+    const { rows: insertedLogs } = await client.query(query, flatValues);
+
     await client.query('COMMIT');
     return NextResponse.json(insertedLogs, { status: 201 });
   } catch (err) {

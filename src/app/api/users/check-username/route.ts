@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import logger from '@/lib/logger';
 
 // Check if a username is available
 const getHandler = async (req: AuthenticatedRequest) => {
@@ -24,7 +25,7 @@ const getHandler = async (req: AuthenticatedRequest) => {
 
     return NextResponse.json({ isAvailable: rows.length === 0 });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to check username');
     const error = err as Error;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

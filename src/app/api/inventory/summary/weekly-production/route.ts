@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../../../lib/auth';
 import sql from '../../../../../lib/db';
+import logger from '../../../../../lib/logger';
+
+interface WeeklyDataRow {
+  date: string;
+  total: string; // The count from the DB is a string
+}
 
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
@@ -31,12 +37,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       ORDER BY d.date;
     `;
 
-    const labels = result.map((row: any) => new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }));
-    const data = result.map((row: any) => Number(row.total));
+    const typedResult = result as WeeklyDataRow[];
+    const labels = typedResult.map((row) => new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }));
+    const data = typedResult.map((row) => Number(row.total));
 
     return NextResponse.json({ labels, data });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    logger.error({ err }, 'Failed to fetch weekly production summary');
+    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import logger from '@/lib/logger';
 
 interface RouteParams {
   params: {
@@ -42,7 +43,7 @@ const patchHandler = async (req: AuthenticatedRequest, context: RouteParams) => 
 
     return NextResponse.json(updatedUser);
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to update user');
     const error = err as Error;
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

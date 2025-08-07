@@ -33,6 +33,8 @@
   "inventory.logs.filter_by_product": "Filter by Product",
   "inventory.logs.filter_by_color": "Filter by Color",
   "inventory.logs.filter_by_model": "Filter by Model",
+  "inventory.logs.filter_by_quality": "Filter by Quality",
+  "inventory.logs.filter_by_packaging_type": "Filter by Packaging",
   "inventory.logs.date_range.today": "Today",
   "inventory.logs.date_range.last7days": "Last 7 Days",
   "inventory.logs.date_range.thisMonth": "This Month",

@@ -22,7 +22,7 @@ import { useLanguage } from '@/context/LanguageContext';
 
 const Login = () => {
   const { t } = useTranslation();
-  const { changeLanguage } = useLanguage();
+  const { language, changeLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
@@ -74,7 +74,7 @@ const Login = () => {
           <Select
             w="120px"
             onChange={(e) => changeLanguage(e.target.value)}
-            defaultValue="en"
+            value={language}
           >
             <option value="en">English</option>
             <option value="hi">Hindi</option>

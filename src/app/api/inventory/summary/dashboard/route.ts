@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../../../lib/auth';
 import sql from '../../../../../lib/db';
+import logger from '../../../../../lib/logger';
 
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
@@ -48,7 +49,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       todaysLogs: todaysLogsResult.rows[0].total,
     });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'Failed to fetch dashboard summary');
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 });
