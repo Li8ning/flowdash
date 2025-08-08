@@ -22,7 +22,7 @@ The application is built using the Next.js framework for both the frontend and b
 - **Frontend:** The frontend is built with React and TypeScript, using the Chakra UI component library.
 - **Backend:** The backend is built with Next.js API routes.
 - **Database:** The application uses a PostgreSQL database, connected via the `@vercel/postgres` library.
-- **Authentication:** Authentication is handled using JSON Web Tokens (JWT), with the `jose` library for token signing and verification.
+- **Authentication:** Authentication is handled using JSON Web Tokens (JWT), with the `jose` library for token signing and verification. The token is stored in an `httpOnly` cookie. Logout is handled by a dedicated API endpoint that instructs the browser to expire the cookie, ensuring a secure session termination.
 
 ## Security
 
@@ -39,6 +39,7 @@ The following is a list of the main API endpoints and their functionalities:
 
 - **`POST /api/auth/login`**: Authenticates a user and returns a JWT.
 - **`GET /api/auth/me`**: Returns the currently authenticated user's details.
+- **`GET /api/auth/logout`**: Logs the user out by clearing the authentication cookie.
 - **`POST /api/users`**: Creates a new user.
 - **`GET /api/users`**: Returns a list of users.
 - **`PATCH /api/users/{id}`**: Updates a user's details.

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   const { i18n } = useTranslation();
+  const router = useRouter();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -89,10 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    Cookies.remove('token');
+  const logout = async () => {
+    try {
+      await api.get('/auth/logout');
+      setUser(null);
+      setToken(null);
+      // Redirect to login page to clear all state and prevent stale data issues
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+      // Even if API call fails, attempt to clear client-side state
+      setUser(null);
+      setToken(null);
+      router.push('/login');
+    }
   };
 
   const handleAuthentication = async (data: { user: User; token: string }) => {
