@@ -107,15 +107,11 @@ To get a local copy up and running, follow these simple steps.
     POSTGRES_URL=...
     JWT_SECRET=...
     ```
-4.  Run the database migrations
-    ```sh
-    npm run migrate up
-    ```
-5.  Run the development server
+4.  Run the development server
     ```sh
     npm run dev
     ```
 
 ## Deployment
 
-The application is deployed on Vercel. The deployment is automatically triggered on every push to the `main` branch. Database migrations are configured to run automatically as part of the build process, ensuring the schema is always synchronized with the application code.
+The application is deployed on Vercel. The deployment is automatically triggered on every push to the `main` branch.
