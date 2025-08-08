@@ -259,5 +259,10 @@
   "product_manager.packaging_type.box": "Box",
   "product_manager.packaging_type.paper": "Paper",
   "product_manager.packaging_type.grass": "Grass",
-  "product_manager.packaging_type.open": "Open"
+  "product_manager.packaging_type.open": "Open",
+  "pagination.previous": "Previous",
+  "pagination.next": "Next",
+  "pagination.page": "Page",
+  "pagination.of": "of",
+  "pagination.load_more": "Load More"
 }

@@ -15,6 +15,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { useState } from 'react';
+import { AxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import NextLink from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -39,10 +40,11 @@ const Login = () => {
         duration: 5000,
         isClosable: true,
       });
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as AxiosError<{ msg: string }>;
       toast({
         title: t('login.error.title'),
-        description: err.response?.data?.msg || t('login.error.description'),
+        description: error.response?.data?.msg || t('login.error.description'),
         status: 'error',
         duration: 5000,
         isClosable: true,

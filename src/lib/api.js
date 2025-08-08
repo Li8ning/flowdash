@@ -32,6 +32,11 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Ensure this code runs only in the browser
       if (typeof window !== 'undefined') {
+        // Do not redirect for password update errors
+        if (error.config.url.includes('/password')) {
+          return Promise.reject(error);
+        }
+
         // Avoid redirect loops if already on the login page
         if (window.location.pathname !== '/') {
           Cookies.remove('token');

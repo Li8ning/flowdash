@@ -26,6 +26,7 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '../lib/api';
+import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 
 interface Product {
@@ -65,17 +66,17 @@ const LogEntryForm = () => {
       try {
         const [productsRes, colorsRes, modelsRes] = await Promise.all([
           api.get('/products'),
-          api.get('/products/distinct-colors'),
-          api.get('/products/distinct-models'),
+          api.get('/distinct/products/color'),
+          api.get('/distinct/products/model'),
         ]);
-        setProducts(productsRes.data);
+        setProducts(productsRes.data.data || []);
         setDistinctColors(colorsRes.data);
         setDistinctModels(modelsRes.data);
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast({
           title: t('product_selector.toast.error_fetching_products'),
-          description: (error as any).response?.data?.error || t('product_selector.toast.error_fetching_products_description'),
+          description: (error as AxiosError<{ error: string }>)?.response?.data?.error || t('product_selector.toast.error_fetching_products_description'),
           status: 'error',
           duration: 5000,
           isClosable: true,
@@ -148,7 +149,7 @@ const LogEntryForm = () => {
       console.error('Failed to create log entry', error);
       toast({
         title: t('product_selector.toast.error_creating_log'),
-        description: (error as any).response?.data?.error || t('product_selector.toast.error_creating_log_description'),
+        description: (error as AxiosError<{ error: string }>)?.response?.data?.error || t('product_selector.toast.error_creating_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,

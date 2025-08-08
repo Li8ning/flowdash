@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 
 const ProfileManager = () => {
@@ -63,7 +64,7 @@ const ProfileManager = () => {
       console.error(err);
       toast({
         title: t('profile_manager.toast.update_failed'),
-        description: (err as any).response?.data?.error || t('profile_manager.toast.update_failed_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('profile_manager.toast.update_failed_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -73,7 +74,7 @@ const ProfileManager = () => {
 
   const handleUpdateDetails = async () => {
     try {
-      const payload = { name, language };
+      const payload = { name, language, username };
       const { data } = await api.patch(`/users/${user?.id}`, payload);
       updateUser(data);
       toast({
@@ -82,10 +83,11 @@ const ProfileManager = () => {
         duration: 3000,
         isClosable: true,
       });
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as AxiosError<{ error: string }>;
       toast({
         title: t('profile_manager.toast.error_updating_details'),
-        description: err.response?.data?.error || t('profile_manager.toast.error_updating_details_description'),
+        description: (error.response?.data as { msg?: string })?.msg || error.response?.data?.error || t('profile_manager.toast.error_updating_details_description'),
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -116,7 +118,8 @@ const ProfileManager = () => {
 
     try {
       const payload = { currentPassword, newPassword: password };
-      await api.put(`/users/${user?.id}/password`, payload);
+      const { data } = await api.put(`/users/${user?.id}/password`, payload);
+      updateUser(data.user);
       toast({
         title: t('profile_manager.toast.password_updated'),
         status: 'success',
@@ -126,9 +129,11 @@ const ProfileManager = () => {
       setPassword('');
       setConfirmPassword('');
       setCurrentPassword('');
-    } catch {
+    } catch (err) {
+      const error = err as AxiosError<{ msg?: string, error?: string }>;
       toast({
         title: t('profile_manager.toast.error_updating_password'),
+        description: error.response?.data?.msg || error.response?.data?.error || t('profile_manager.toast.error_updating_password_description'),
         status: 'error',
         duration: 3000,
         isClosable: true,

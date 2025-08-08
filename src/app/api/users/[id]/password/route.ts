@@ -3,16 +3,13 @@ import sql from '@/lib/db';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import logger from '@/lib/logger';
-
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
+import { SignJWT } from 'jose';
+import { HandlerContext } from '@/lib/auth';
 
 // Change user password
-const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) => {
-  const userId = parseInt(params.id, 10);
+const putHandler = async (req: AuthenticatedRequest, context: HandlerContext) => {
+  const { params } = context;
+  const userId = parseInt(params.id as string, 10);
   const { currentPassword, newPassword } = await req.json();
   const { id: currentUserId } = req.user;
 
@@ -49,7 +46,31 @@ const putHandler = async (req: AuthenticatedRequest, { params }: RouteParams) =>
       WHERE id = ${userId}
     `;
 
-    return NextResponse.json({ msg: 'Password updated successfully.' });
+    const { rows: [updatedUser] } = await sql`
+      SELECT id, name, username, role, language, is_active, organization_id FROM users WHERE id = ${userId}
+    `;
+
+    const token = await new SignJWT({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      role: updatedUser.role,
+      organization_id: updatedUser.organization_id,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET!));
+
+    const response = NextResponse.json({ user: updatedUser });
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60, // 1 hour
+    });
+
+    return response;
   } catch (err) {
     logger.error({ err }, 'Failed to update password');
     const error = err as Error;

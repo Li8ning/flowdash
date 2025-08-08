@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Login from '../Login';
 import { AuthProvider } from '@/context/AuthContext';
-import { LanguageProvider } from '@/context/LanguageContext';
 import { ChakraProvider } from '@chakra-ui/react';
 import theme from '@/theme/theme';
 

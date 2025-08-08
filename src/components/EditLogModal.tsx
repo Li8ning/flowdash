@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../lib/api';
+import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   Modal,
@@ -93,7 +94,7 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
     } catch (err) {
       toast({
         title: t('edit_log_modal.toast.error_updating_log'),
-        description: (err as any).response?.data?.error || t('edit_log_modal.toast.error_updating_log_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('edit_log_modal.toast.error_updating_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,

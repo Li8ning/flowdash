@@ -4,7 +4,7 @@ import { sql } from '@vercel/postgres';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-interface UserPayload {
+export interface UserPayload {
   id: number;
   username: string;
   role: string;
@@ -19,13 +19,13 @@ export interface HandlerContext {
   params: { [key: string]: string | string[] | undefined };
 }
 
-type Handler<T = HandlerContext> = (
+type Handler = (
   req: AuthenticatedRequest,
-  context: T
+  context: HandlerContext
 ) => Promise<NextResponse>;
 
-export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: string[]) => {
-  return async (req: NextRequest, context: T) => {
+export const withAuth = (handler: Handler, roles?: string[]) => {
+  return async (req: NextRequest, context: HandlerContext) => {
     const token = req.cookies.get('token')?.value;
 
     if (!token) {

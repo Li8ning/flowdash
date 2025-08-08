@@ -41,6 +41,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from '@chakra-ui/react';
+import { AxiosError } from 'axios';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
 import { useTranslation } from 'react-i18next';
@@ -87,7 +88,7 @@ const UserManager: React.FC = () => {
     } catch (err) {
       toast({
         title: t('user_manager.toast.error_fetching_users'),
-        description: (err as any).response?.data?.error || t('user_manager.toast.error_fetching_users_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_fetching_users_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -119,7 +120,7 @@ const UserManager: React.FC = () => {
     } catch (err) {
       toast({
         title: t('user_manager.toast.invitation_failed'),
-        description: (err as any).response?.data?.error || t('user_manager.toast.invitation_failed_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.invitation_failed_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -142,7 +143,7 @@ const UserManager: React.FC = () => {
     } catch (err) {
       toast({
         title: t('user_manager.toast.error_removing_user'),
-        description: (err as any).response?.data?.error || t('user_manager.toast.error_removing_user_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_removing_user_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -165,7 +166,7 @@ const UserManager: React.FC = () => {
     } catch (err) {
       toast({
         title: t('user_manager.toast.error_reactivating_user'),
-        description: (err as any).response?.data?.error || t('user_manager.toast.error_reactivating_user_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_reactivating_user_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,

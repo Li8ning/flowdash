@@ -49,6 +49,7 @@ import {
   FormControl,
   FormLabel,
 } from '@chakra-ui/react';
+import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 
 interface Product {
@@ -70,7 +71,7 @@ const ProductManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(10);
+  const [productsPerPage] = useState(50);
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { token } = useAuth();
@@ -103,13 +104,17 @@ const ProductManager = () => {
             // The search and filter below are client-side on the current page.
           },
         });
-        setProducts(response.data.data);
+        if (currentPage === 1) {
+          setProducts(response.data.data);
+        } else {
+          setProducts(prevProducts => [...prevProducts, ...response.data.data]);
+        }
         setTotalProducts(response.data.totalCount);
       } catch (err) {
         console.error('Failed to fetch products', err);
         toast({
           title: t('product_manager.toast.error_fetching_data'),
-          description: (err as any).response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
+          description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
           status: 'error',
           duration: 5000,
           isClosable: true,
@@ -138,16 +143,24 @@ const ProductManager = () => {
     }
   }, [token]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<any>>) => {
+  const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setter((prev: any) => ({ ...prev, [name]: value }));
+    setNewProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditingProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditingProduct((prev) => {
+      if (!prev) return null;
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
     try {
-      const response = await api.post('/products', newProduct);
+      await api.post('/products', newProduct);
       // After creating a product, refetch the first page to see the new product.
       setCurrentPage(1);
       // No need to manually add to state, the effect will refetch.
@@ -158,7 +171,7 @@ const ProductManager = () => {
       console.error(err);
       toast({
         title: t('product_manager.toast.error_creating_product'),
-        description: (err as any).response?.data?.error || t('product_manager.toast.error_creating_product_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_creating_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -188,7 +201,7 @@ const ProductManager = () => {
       console.error(err);
       toast({
         title: t('product_manager.toast.error_updating_product'),
-        description: (err as any).response?.data?.error || t('product_manager.toast.error_updating_product_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_updating_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -214,7 +227,7 @@ const ProductManager = () => {
       console.error('Failed to archive product:', err);
       toast({
         title: t('product_manager.toast.error_archiving_product'),
-        description: (err as any).response?.data?.error || t('product_manager.toast.error_archiving_product_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_archiving_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -314,11 +327,11 @@ const ProductManager = () => {
           <ModalCloseButton />
           <ModalBody>
             <Stack gap={3}>
-              <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={newProduct.sku} onChange={(e) => handleInputChange(e, setNewProduct)} required />
-              <Input placeholder={t('product_manager.create_modal.name')} name="name" value={newProduct.name} onChange={(e) => handleInputChange(e, setNewProduct)} required />
-              <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={(e) => handleInputChange(e, setNewProduct)} />
-              <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={(e) => handleInputChange(e, setNewProduct)} />
-              <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={(e) => handleInputChange(e, setNewProduct)} />
+              <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={newProduct.sku} onChange={handleNewProductInputChange} required />
+              <Input placeholder={t('product_manager.create_modal.name')} name="name" value={newProduct.name} onChange={handleNewProductInputChange} required />
+              <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={handleNewProductInputChange} />
+              <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={handleNewProductInputChange} />
+              <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={handleNewProductInputChange} />
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                 <CheckboxGroup
@@ -365,11 +378,11 @@ const ProductManager = () => {
             <ModalCloseButton />
             <ModalBody>
               <Stack gap={3}>
-                <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={editingProduct.sku} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
-                <Input placeholder={t('product_manager.create_modal.name')} name="name" value={editingProduct.name} onChange={(e) => handleInputChange(e, setEditingProduct)} required />
-                <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={(e) => handleInputChange(e, setEditingProduct)} />
-                <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={(e) => handleInputChange(e, setEditingProduct)} />
-                <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={(e) => handleInputChange(e, setEditingProduct)} />
+                <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={editingProduct.sku} onChange={handleEditingProductInputChange} required />
+                <Input placeholder={t('product_manager.create_modal.name')} name="name" value={editingProduct.name} onChange={handleEditingProductInputChange} required />
+                <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={handleEditingProductInputChange} />
+                <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} />
+                <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={handleEditingProductInputChange} />
                  <FormControl>
                   <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                   <CheckboxGroup
@@ -519,23 +532,14 @@ const ProductManager = () => {
       </Box>
 
       <Flex justify="center" mt={6}>
-        <Button
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          isDisabled={currentPage === 1}
-          mr={2}
-        >
-          {t('pagination.previous')}
-        </Button>
-        <Text m={2}>
-          {t('pagination.page')} {currentPage} {t('pagination.of')} {Math.ceil(totalProducts / productsPerPage)}
-        </Text>
-        <Button
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalProducts / productsPerPage)))}
-          isDisabled={currentPage === Math.ceil(totalProducts / productsPerPage)}
-          ml={2}
-        >
-          {t('pagination.next')}
-        </Button>
+        {products.length > 0 && products.length < totalProducts && (
+          <Button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            isDisabled={products.length >= totalProducts}
+          >
+            {t('pagination.load_more')}
+          </Button>
+        )}
       </Flex>
 
       <AlertDialog

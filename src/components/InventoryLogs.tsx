@@ -61,11 +61,22 @@ interface InventoryLogsProps {
   allLogs?: boolean;
 }
 
+interface LogFilters {
+  user: string;
+  product: string;
+  color: string;
+  model: string;
+  startDate: string;
+  endDate: string;
+  quality: string;
+  packaging_type: string;
+}
+
 const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [logsPerPage] = useState(20);
+  const [logsPerPage] = useState(50);
   const [editingLog, setEditingLog] = useState<InventoryLog | null>(null);
   const toast = useToast();
   const { user } = useAuth();
@@ -89,7 +100,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     };
   };
 
-  const [filters, setFilters] = useState(getInitialFilters());
+  const [filters, setFilters] = useState<LogFilters>(getInitialFilters());
   const [appliedFilters, setAppliedFilters] = useState(filters);
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -129,7 +140,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       console.error('Failed to fetch distinct filter values', err);
       toast({
         title: t('inventory.logs.toast.error_loading_filters'),
-        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_loading_filters_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_loading_filters_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -152,8 +163,13 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         offset,
       };
       const { data } = await api.get(url, { params });
-      setLogs(data.data);
-      setTotalLogs(data.totalCount);
+      const newLogs = data.data || [];
+      if (currentPage === 1) {
+        setLogs(newLogs);
+      } else {
+        setLogs((prevLogs: InventoryLog[]) => [...prevLogs, ...newLogs]);
+      }
+      setTotalLogs(data.totalCount || 0);
     } catch (err) {
       console.error(err);
       if (err instanceof AxiosError && err.response?.status === 401) {
@@ -162,7 +178,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       }
       toast({
         title: t('inventory.logs.toast.error_fetching_logs'),
-        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_fetching_logs_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_fetching_logs_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -217,7 +233,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       newEndDate = todayStr;
     }
     
-    setFilters(prevFilters => ({
+    setFilters((prevFilters: LogFilters) => ({
         ...prevFilters,
         startDate: newStartDate,
         endDate: newEndDate,
@@ -249,7 +265,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     } catch (err) {
       toast({
         title: t('inventory.logs.toast.error_deleting_log'),
-        description: (err as any).response?.data?.error || t('inventory.logs.toast.error_deleting_log_description'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_deleting_log_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -272,7 +288,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   const handleUpdate = (updatedLog: InventoryLog) => {
     setLogs(
-      logs.map((log) =>
+      logs.map((log: InventoryLog) =>
         log.id === updatedLog.id ? { ...log, ...updatedLog } : log
       )
     );
@@ -311,7 +327,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               value={filters.user}
               onChange={(e) => setFilters({ ...filters, user: e.target.value })}
             >
-              {distinctUsers.map((u) => (
+              {distinctUsers.map((u: string) => (
                 <option key={u} value={u}>
                   {u}
                 </option>
@@ -325,7 +341,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               setFilters({ ...filters, product: e.target.value })
             }
           >
-            {distinctProducts.map((p) => (
+            {distinctProducts.map((p: string) => (
               <option key={p} value={p}>
                 {p}
               </option>
@@ -336,7 +352,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             value={filters.color}
             onChange={(e) => setFilters({ ...filters, color: e.target.value })}
           >
-            {distinctColors.map((c) => (
+            {distinctColors.map((c: string) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -347,7 +363,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             value={filters.model}
             onChange={(e) => setFilters({ ...filters, model: e.target.value })}
           >
-            {distinctModels.map((m) => (
+            {distinctModels.map((m: string) => (
               <option key={m} value={m}>
                 {m}
               </option>
@@ -358,7 +374,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             value={filters.quality}
             onChange={(e) => setFilters({ ...filters, quality: e.target.value })}
           >
-            {distinctQualities.map((q) => (
+            {distinctQualities.map((q: string) => (
               <option key={q} value={q}>
                 {t(`product_manager.quality.${q.toLowerCase()}`)}
               </option>
@@ -371,7 +387,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               setFilters({ ...filters, packaging_type: e.target.value })
             }
           >
-            {distinctPackagingTypes.map((p) => (
+            {distinctPackagingTypes.map((p: string) => (
               <option key={p} value={p}>
                 {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
               </option>
@@ -406,7 +422,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         {isMobile ? (
           <Accordion allowMultiple>
             {logs.length > 0 ? (
-              logs.map((log) => (
+              logs.map((log: InventoryLog) => (
                 <AccordionItem key={log.id} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
                   <h2>
                     <AccordionButton>
@@ -520,7 +536,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               </Thead>
               <Tbody>
                 {logs.length > 0 ? (
-                  logs.map((log) => (
+                  logs.map((log: InventoryLog) => (
                     <Tr key={log.id}
                       sx={{
                           '@media (min-width: 769px)': {
@@ -586,23 +602,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       </Box>
 
       <Flex justify="center" mt={6}>
-        <Button
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          isDisabled={currentPage === 1}
-          mr={2}
-        >
-          {t('pagination.previous')}
-        </Button>
-        <Text m={2}>
-          {t('pagination.page')} {currentPage} {t('pagination.of')} {Math.ceil(totalLogs / logsPerPage)}
-        </Text>
-        <Button
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalLogs / logsPerPage)))}
-          isDisabled={currentPage === Math.ceil(totalLogs / logsPerPage) || totalLogs === 0}
-          ml={2}
-        >
-          {t('pagination.next')}
-        </Button>
+        {logs.length > 0 && logs.length < totalLogs && (
+          <Button
+            onClick={() => setCurrentPage((prev: number) => prev + 1)}
+            isDisabled={logs.length >= totalLogs}
+          >
+            {t('pagination.load_more')}
+          </Button>
+        )}
       </Flex>
 
       {editingLog && (

@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post('/auth/login', { username, password });
       await handleAuthentication(response.data);
       return response.data.user;
-    } catch (error: any) {
+    } catch (error) {
       // The component calling login will handle displaying the error
       throw error;
     }

@@ -265,5 +265,10 @@
   "product_manager.packaging_type.paper": "पेपर",
   "product_manager.packaging_type.box": "बॉक्स",
   "product_manager.packaging_type.grass": "घास",
-  "product_manager.packaging_type.open": "खुला"
+  "product_manager.packaging_type.open": "खुला",
+  "pagination.previous": "पिछला",
+  "pagination.next": "अगला",
+  "pagination.page": "पेज",
+  "pagination.of": "/",
+  "pagination.load_more": "और लोड करें"
 }

@@ -97,7 +97,7 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
     }
 
     try {
-      const response = await api.put(`/users/${user.id}`, { name, username });
+      const response = await api.patch(`/users/${user.id}`, { name, username });
       onUserUpdate(response.data);
       toast({
         title: 'User updated successfully.',

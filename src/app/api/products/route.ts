@@ -7,6 +7,14 @@ import logger from '../../../lib/logger';
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { organization_id } = req.user;
+
+    if (!organization_id) {
+      // If user has no organization, they have no products.
+      return NextResponse.json({
+        data: [],
+        totalCount: 0,
+      });
+    }
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);

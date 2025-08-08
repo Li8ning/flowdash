@@ -265,5 +265,10 @@
   "product_manager.packaging_type.paper": "પેપર",
   "product_manager.packaging_type.box": "બોક્સ",
   "product_manager.packaging_type.grass": "ઘાસ",
-  "product_manager.packaging_type.open": "ખુલ્લું"
+  "product_manager.packaging_type.open": "ખુલ્લું",
+  "pagination.previous": "પહેલાં",
+  "pagination.next": "પછી",
+  "pagination.page": "પેજ",
+  "pagination.of": "/",
+  "pagination.load_more": "વધુ લોડ કરો"
 }
