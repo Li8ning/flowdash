@@ -19,13 +19,13 @@ export interface HandlerContext {
   params: { [key: string]: string | string[] | undefined };
 }
 
-type Handler = (
+type Handler<T extends HandlerContext> = (
   req: AuthenticatedRequest,
-  context: HandlerContext
+  context: T
 ) => Promise<NextResponse>;
 
-export const withAuth = (handler: Handler, roles?: string[]) => {
-  return async (req: NextRequest, context: HandlerContext) => {
+export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: string[]) => {
+  return async (req: NextRequest, context: T) => {
     const token = req.cookies.get('token')?.value;
 
     if (!token) {
