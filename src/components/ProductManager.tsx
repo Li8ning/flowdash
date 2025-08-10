@@ -51,6 +51,8 @@ import {
 } from '@chakra-ui/react';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
+import { FiUpload } from 'react-icons/fi';
+import { ProductImportModal } from './ProductImportModal';
 
 interface Product {
   id: number;
@@ -100,6 +102,7 @@ const ProductManager = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const { isOpen: isArchiveOpen, onOpen: onArchiveOpen, onClose: onArchiveClose } = useDisclosure();
+  const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose } = useDisclosure();
   const [productToArchive, setProductToArchive] = useState<number | null>(null);
   const cancelRef = useRef(null);
 
@@ -370,9 +373,21 @@ const ProductManager = () => {
           }} colorScheme="blue" flexShrink={0}>
             {t('product_manager.add_new_product')}
           </Button>
+          <Button colorScheme="green" flexShrink={0} leftIcon={<FiUpload />} onClick={onImportOpen}>
+            {t('product_manager.import_from_csv')}
+          </Button>
         </Flex>
       </Flex>
       <Divider mb={6} />
+
+      <ProductImportModal
+        isOpen={isImportOpen}
+        onClose={onImportClose}
+        onImportSuccess={() => {
+          onImportClose();
+          fetchProducts(true);
+        }}
+      />
 
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select

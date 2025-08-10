@@ -1,10 +1,27 @@
 'use client';
 
-import Dashboard from '@/components/Dashboard';
-import WithAuth from '@/components/WithAuth';
+import { useAuth } from '@/context/AuthContext';
+import ProductionDashboard from '@/components/ProductionDashboard';
+import ProductSelector from '@/components/ProductSelector';
+import { Box, Heading, Text } from '@chakra-ui/react';
+import { useTranslation } from 'react-i18next';
 
-const DashboardPage = () => {
-  return <Dashboard />;
-};
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const { t } = useTranslation();
 
-export default WithAuth(DashboardPage);
+  if (user?.role === 'factory_admin') {
+    return <ProductionDashboard />;
+  }
+
+  if (user?.role === 'floor_staff') {
+    return <ProductSelector />;
+  }
+
+  return (
+    <Box p={8}>
+      <Heading>{t('unassigned.role.title')}</Heading>
+      <Text>{t('unassigned.role.description')}</Text>
+    </Box>
+  );
+}

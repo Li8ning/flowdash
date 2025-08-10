@@ -49,7 +49,8 @@ export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: 
       }
 
       if (roles && roles.length > 0) {
-        if (!roles.includes(userPayload.role)) {
+        // Case-insensitive role check
+        if (!userPayload.role || !roles.includes(userPayload.role.toUpperCase())) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
