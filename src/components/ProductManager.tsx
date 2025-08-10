@@ -92,6 +92,7 @@ const ProductManager = () => {
   const [filters, setFilters] = useState({ color: '' });
   const [activeFilters, setActiveFilters] = useState({ color: '' });
   const [attributes, setAttributes] = useState<GroupedAttributes>({});
+  const [lastCreatedProduct, setLastCreatedProduct] = useState<Product | null>(null);
 
 
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -214,9 +215,13 @@ const ProductManager = () => {
         productData.image_url = uploadResponse.data.url;
       }
 
-      await api.post('/products', productData);
+      const response = await api.post('/products', productData);
+      const createdProduct = response.data;
       
       fetchProducts(true); // Refetch products from page 1
+      setLastCreatedProduct(createdProduct); // Save the newly created product for the next pre-fill
+      
+      // Reset the form to a clean state
       setNewProduct({ sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
       setImageFile(null);
       setImagePreview(null);
@@ -341,7 +346,28 @@ const ProductManager = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Button onClick={onCreateOpen} colorScheme="blue" flexShrink={0}>
+          <Button onClick={() => {
+            if (lastCreatedProduct) {
+              setNewProduct({
+                name: '',
+                sku: '',
+                image_url: '',
+                available_qualities: [],
+                available_packaging_types: [],
+                model: lastCreatedProduct.model,
+                color: lastCreatedProduct.color,
+                category: lastCreatedProduct.category,
+                design: lastCreatedProduct.design,
+              });
+            } else {
+              setNewProduct({
+                sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: []
+              });
+            }
+            setImageFile(null);
+            setImagePreview(null);
+            onCreateOpen();
+          }} colorScheme="blue" flexShrink={0}>
             {t('product_manager.add_new_product')}
           </Button>
         </Flex>

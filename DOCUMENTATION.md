@@ -47,6 +47,13 @@ Product images are uploaded directly through the application, compressed, and st
 -   **Technology:** Uses `@vercel/blob` for storage and `sharp` for server-side image compression.
 -   **API:** A dedicated endpoint `POST /api/products/upload-image` handles the file upload.
 
+### Form Pre-fill for New Products
+To accelerate the process of adding multiple similar products, the "Add Product" form has an intelligent pre-fill feature.
+
+-   **Functionality:** After a new product is successfully created, the system temporarily remembers the `Category`, `Design`, `Color`, and `Model`. When the "Add New Product" button is clicked again within the same session, these fields will be automatically pre-populated.
+-   **Scope:** This is a session-only feature. The pre-fill data is cleared upon page reload or logout. Unique fields like `Name`, `SKU`, and `Image` are always left blank.
+-   **Note:** This feature replaces the previously considered "Copy Product" functionality as a more streamlined and user-friendly alternative.
+
 ## API Endpoints
 
 The following is a list of the main API endpoints and their functionalities:
