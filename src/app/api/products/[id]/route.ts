@@ -31,6 +31,8 @@ const productUpdateSchema = z.object({
   sku: z.string().min(1, "SKU cannot be empty").optional(),
   model: z.string().optional(),
   color: z.string().optional(),
+  category: z.string().optional(),
+  design: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal('')),
   available_qualities: z.array(z.string()).optional(),
   available_packaging_types: z.array(z.string()).optional(),
@@ -69,6 +71,8 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest, context: { param
         sku = ${updatedData.sku},
         model = ${updatedData.model},
         color = ${updatedData.color},
+        category = ${updatedData.category},
+        design = ${updatedData.design},
         image_url = ${updatedData.image_url},
         available_qualities = ${updatedData.available_qualities ? `{${updatedData.available_qualities.join(',')}}` : null},
         available_packaging_types = ${`{${finalPackagingTypes.join(',')}}`}

@@ -58,13 +58,22 @@ interface Product {
   sku: string;
   model: string;
   color: string;
+  category: string;
+  design: string;
   image_url: string;
   available_qualities: string[];
   available_packaging_types: string[];
 }
 
-const QUALITY_OPTIONS = ['First', 'Second', 'ROK'];
-const PACKAGING_OPTIONS = ['Paper', 'Box', 'Grass'];
+interface ProductAttribute {
+  id: number;
+  type: string;
+  value: string;
+}
+
+interface GroupedAttributes {
+  [key: string]: ProductAttribute[];
+}
 
 const ProductManager = () => {
   const { t } = useTranslation();
@@ -72,15 +81,18 @@ const ProductManager = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(50);
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const { token } = useAuth();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const { token, user } = useAuth();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ color: '', model: '' });
-  const [activeFilters, setActiveFilters] = useState({ color: '', model: '' });
-  const [distinctColors, setDistinctColors] = useState([]);
-  const [distinctModels, setDistinctModels] = useState([]);
+  const [filters, setFilters] = useState({ color: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '' });
+  const [attributes, setAttributes] = useState<GroupedAttributes>({});
+
 
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
@@ -91,64 +103,95 @@ const ProductManager = () => {
   const cancelRef = useRef(null);
 
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!token) return;
-      try {
-        const offset = (currentPage - 1) * productsPerPage;
-        const response = await api.get('/products', {
-          params: {
-            limit: productsPerPage,
-            offset,
-            // NOTE: Backend filtering is not yet implemented for products.
-            // The search and filter below are client-side on the current page.
-          },
-        });
+  const fetchProducts = async (reset = false) => {
+    if (!token) return;
+    
+    const pageToFetch = reset ? 1 : currentPage;
+    const offset = (pageToFetch - 1) * productsPerPage;
+
+    try {
+      const response = await api.get('/products', {
+        params: {
+          limit: productsPerPage,
+          offset,
+          // NOTE: Backend filtering is not yet implemented for products.
+          // The search and filter below are client-side on the current page.
+        },
+      });
+
+      if (reset) {
+        setProducts(response.data.data);
+        setCurrentPage(1);
+      } else {
         if (currentPage === 1) {
-          setProducts(response.data.data);
+            setProducts(response.data.data);
         } else {
-          setProducts(prevProducts => [...prevProducts, ...response.data.data]);
+            setProducts(prevProducts => [...prevProducts, ...response.data.data]);
         }
-        setTotalProducts(response.data.totalCount);
+      }
+      setTotalProducts(response.data.totalCount);
+    } catch (err) {
+      console.error('Failed to fetch products', err);
+      toast({
+        title: t('product_manager.toast.error_fetching_data'),
+        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, currentPage, productsPerPage, activeFilters]);
+
+  useEffect(() => {
+    const fetchAttributes = async () => {
+      if (!user?.organization_id) return;
+      try {
+        const { data } = await api.get<ProductAttribute[]>('/settings/attributes', {
+          params: { organization_id: user.organization_id },
+        });
+        const grouped = data.reduce((acc, attr) => {
+          const { type } = attr;
+          if (!acc[type]) {
+            acc[type] = [];
+          }
+          acc[type].push(attr);
+          return acc;
+        }, {} as GroupedAttributes);
+        setAttributes(grouped);
       } catch (err) {
-        console.error('Failed to fetch products', err);
+        console.error('Failed to fetch attributes', err);
         toast({
-          title: t('product_manager.toast.error_fetching_data'),
-          description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
+          title: "Error",
+          description: "Could not load product attributes.",
           status: 'error',
           duration: 5000,
           isClosable: true,
         });
       }
     };
+    fetchAttributes();
+  }, [user?.organization_id, toast]);
 
-    fetchProducts();
-  }, [token, toast, t, currentPage, productsPerPage, activeFilters]);
-
-  useEffect(() => {
-    const fetchDistinctValues = async () => {
-      try {
-        const [colorsRes, modelsRes] = await Promise.all([
-          api.get('/distinct/products/color'),
-          api.get('/distinct/products/model'),
-        ]);
-        setDistinctColors(colorsRes.data);
-        setDistinctModels(modelsRes.data);
-      } catch (err) {
-        console.error('Failed to fetch distinct values', err);
-      }
-    };
-    if (token) {
-      fetchDistinctValues();
-    }
-  }, [token]);
-
-  const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditingProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
+  };
+
+  const handleEditingProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditingProduct((prev) => {
       if (!prev) return null;
@@ -159,12 +202,24 @@ const ProductManager = () => {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    setIsUploading(true);
+
+    const productData = { ...newProduct };
+
     try {
-      await api.post('/products', newProduct);
-      // After creating a product, refetch the first page to see the new product.
-      setCurrentPage(1);
-      // No need to manually add to state, the effect will refetch.
-      setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        const uploadResponse = await api.post('/products/upload-image', formData);
+        productData.image_url = uploadResponse.data.url;
+      }
+
+      await api.post('/products', productData);
+      
+      fetchProducts(true); // Refetch products from page 1
+      setNewProduct({ sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+      setImageFile(null);
+      setImagePreview(null);
       onCreateClose();
       toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
@@ -176,6 +231,8 @@ const ProductManager = () => {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -185,16 +242,31 @@ const ProductManager = () => {
       available_qualities: product.available_qualities || [],
       available_packaging_types: product.available_packaging_types || [],
     });
+    setImageFile(null);
+    setImagePreview(product.image_url);
     onEditOpen();
   };
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !editingProduct) return;
+    setIsUploading(true);
+
+    const productData = { ...editingProduct };
+
     try {
-      const response = await api.patch(`/products/${editingProduct.id}`, editingProduct);
-      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p)); // This is fine, updates in-place
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        const uploadResponse = await api.post('/products/upload-image', formData);
+        productData.image_url = uploadResponse.data.url;
+      }
+
+      const response = await api.patch(`/products/${editingProduct.id}`, productData);
+      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p));
       setEditingProduct(null);
+      setImageFile(null);
+      setImagePreview(null);
       onEditClose();
       toast({ title: t('product_manager.toast.product_updated'), status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
@@ -206,6 +278,8 @@ const ProductManager = () => {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -213,15 +287,7 @@ const ProductManager = () => {
     if (!token) return;
     try {
       await api.patch(`/products/${productId}/archive`);
-      // Refetch the current page after archiving
-      setProducts(products.filter(p => p.id !== productId));
-      // A full refetch might be better to keep the page full.
-      const offset = (currentPage - 1) * productsPerPage;
-      const response = await api.get('/products', {
-        params: { limit: productsPerPage, offset },
-      });
-      setProducts(response.data.data);
-      setTotalProducts(response.data.totalCount);
+      fetchProducts(true); // Refetch products from page 1
       toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
     } catch (err) {
       console.error('Failed to archive product:', err);
@@ -259,9 +325,8 @@ const ProductManager = () => {
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
-    const modelMatch = activeFilters.model ? product.model === activeFilters.model : true;
 
-    return searchMatch && colorMatch && modelMatch;
+    return searchMatch && colorMatch;
   });
 
   return (
@@ -289,28 +354,17 @@ const ProductManager = () => {
           value={filters.color}
           onChange={(e) => setFilters({ ...filters, color: e.target.value })}
         >
-          {distinctColors.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-        <Select
-          placeholder={t('product_manager.filter_by_model')}
-          value={filters.model}
-          onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-        >
-          {distinctModels.map((m) => (
-            <option key={m} value={m}>
-              {m}
+          {(attributes.color || []).map((attr) => (
+            <option key={attr.id} value={attr.value}>
+              {attr.value}
             </option>
           ))}
         </Select>
         <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
         <Button
           onClick={() => {
-            setFilters({ color: '', model: '' });
-            setActiveFilters({ color: '', model: '' });
+            setFilters({ color: '' });
+            setActiveFilters({ color: '' });
             setCurrentPage(1);
           }}
           colorScheme="gray"
@@ -320,7 +374,11 @@ const ProductManager = () => {
       </SimpleGrid>
 
       {/* Create Product Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
+      <Modal isOpen={isCreateOpen} onClose={() => {
+        setImageFile(null);
+        setImagePreview(null);
+        onCreateClose();
+      }}>
         <ModalOverlay />
         <ModalContent as="form" onSubmit={handleCreateProduct}>
           <ModalHeader>{t('product_manager.create_modal.title')}</ModalHeader>
@@ -329,9 +387,34 @@ const ProductManager = () => {
             <Stack gap={3}>
               <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={newProduct.sku} onChange={handleNewProductInputChange} required />
               <Input placeholder={t('product_manager.create_modal.name')} name="name" value={newProduct.name} onChange={handleNewProductInputChange} required />
-              <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={handleNewProductInputChange} />
-              <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={handleNewProductInputChange} />
-              <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={handleNewProductInputChange} />
+              
+              <FormControl>
+                <FormLabel>{t('product_manager.create_modal.category_label')}</FormLabel>
+                <Select name="category" value={newProduct.category} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')}>
+                  {(attributes.category || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>{t('product_manager.create_modal.design_label')}</FormLabel>
+                <Select name="design" value={newProduct.design} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')}>
+                  {(attributes.design || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>{t('product_manager.create_modal.color_label')}</FormLabel>
+                <Select name="color" value={newProduct.color} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')}>
+                  {(attributes.color || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>{t('product_manager.image_upload.label')}</FormLabel>
+                <Input type="file" accept="image/*" onChange={handleImageFileChange} p={1} />
+                {imagePreview && <Image src={imagePreview} alt="Image preview" mt={2} boxSize="100px" objectFit="cover" />}
+              </FormControl>
+              
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                 <CheckboxGroup
@@ -340,12 +423,13 @@ const ProductManager = () => {
                   onChange={(values) => setNewProduct(prev => ({ ...prev, available_qualities: values as string[] }))}
                 >
                   <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                    {QUALITY_OPTIONS.map(quality => (
-                      <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
+                    {(attributes.quality || []).map(attr => (
+                      <Checkbox key={attr.id} value={attr.value}>{attr.value}</Checkbox>
                     ))}
                   </Stack>
                 </CheckboxGroup>
               </FormControl>
+
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
                 <CheckboxGroup
@@ -354,8 +438,8 @@ const ProductManager = () => {
                   onChange={(values) => setNewProduct(prev => ({ ...prev, available_packaging_types: values as string[] }))}
                 >
                   <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                    {PACKAGING_OPTIONS.map(pkg => (
-                      <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
+                    {(attributes.packaging_type || []).map(attr => (
+                      <Checkbox key={attr.id} value={attr.value}>{attr.value}</Checkbox>
                     ))}
                   </Stack>
                 </CheckboxGroup>
@@ -363,7 +447,7 @@ const ProductManager = () => {
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} type="submit">{t('product_manager.create_modal.create_button')}</Button>
+            <Button colorScheme="green" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.create_modal.create_button')}</Button>
             <Button variant="ghost" onClick={onCreateClose}>{t('product_manager.create_modal.cancel_button')}</Button>
           </ModalFooter>
         </ModalContent>
@@ -371,7 +455,11 @@ const ProductManager = () => {
 
       {/* Edit Product Modal */}
       {editingProduct && (
-        <Modal isOpen={isEditOpen} onClose={onEditClose}>
+        <Modal isOpen={isEditOpen} onClose={() => {
+          setImageFile(null);
+          setImagePreview(null);
+          onEditClose();
+        }}>
           <ModalOverlay />
           <ModalContent as="form" onSubmit={handleUpdateProduct}>
             <ModalHeader>{t('product_manager.edit_modal.title')}</ModalHeader>
@@ -380,33 +468,59 @@ const ProductManager = () => {
               <Stack gap={3}>
                 <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={editingProduct.sku} onChange={handleEditingProductInputChange} required />
                 <Input placeholder={t('product_manager.create_modal.name')} name="name" value={editingProduct.name} onChange={handleEditingProductInputChange} required />
-                <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={handleEditingProductInputChange} />
-                <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} />
-                <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={handleEditingProductInputChange} />
-                 <FormControl>
+                
+                <FormControl>
+                  <FormLabel>{t('product_manager.create_modal.category_label')}</FormLabel>
+                  <Select name="category" value={editingProduct.category} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')}>
+                    {(attributes.category || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>{t('product_manager.create_modal.design_label')}</FormLabel>
+                  <Select name="design" value={editingProduct.design} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')}>
+                    {(attributes.design || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>{t('product_manager.create_modal.color_label')}</FormLabel>
+                  <Select name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')}>
+                    {(attributes.color || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>{t('product_manager.image_upload.label')}</FormLabel>
+                  <Input type="file" accept="image/*" onChange={handleImageFileChange} p={1} />
+                  {imagePreview && <Image src={imagePreview} alt="Image preview" mt={2} boxSize="100px" objectFit="cover" />}
+                </FormControl>
+                
+                <FormControl>
                   <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                   <CheckboxGroup
                     colorScheme="green"
                     value={editingProduct.available_qualities}
-                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_qualities: values as string[] }) : null)}
+                    onChange={(values) => setEditingProduct(prev => prev ? { ...prev, available_qualities: values as string[] } : null)}
                   >
                     <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                      {QUALITY_OPTIONS.map(quality => (
-                        <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
+                      {(attributes.quality || []).map(attr => (
+                        <Checkbox key={attr.id} value={attr.value}>{attr.value}</Checkbox>
                       ))}
                     </Stack>
                   </CheckboxGroup>
                 </FormControl>
+
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
                   <CheckboxGroup
                     colorScheme="green"
                     value={editingProduct.available_packaging_types}
-                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_packaging_types: values as string[] }) : null)}
+                    onChange={(values) => setEditingProduct(prev => prev ? { ...prev, available_packaging_types: values as string[] } : null)}
                   >
                     <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                      {PACKAGING_OPTIONS.map(pkg => (
-                        <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
+                      {(attributes.packaging_type || []).map(attr => (
+                        <Checkbox key={attr.id} value={attr.value}>{attr.value}</Checkbox>
                       ))}
                     </Stack>
                   </CheckboxGroup>
@@ -414,7 +528,7 @@ const ProductManager = () => {
               </Stack>
             </ModalBody>
             <ModalFooter>
-              <Button colorScheme="green" mr={3} type="submit">{t('product_manager.edit_modal.save_button')}</Button>
+              <Button colorScheme="green" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.edit_modal.save_button')}</Button>
               <Button variant="ghost" onClick={onEditClose}>{t('product_manager.edit_modal.cancel_button')}</Button>
             </ModalFooter>
           </ModalContent>
@@ -453,8 +567,8 @@ const ProductManager = () => {
                         <Text>{product.sku}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('product_manager.mobile.model')}</Text>
-                        <Text>{product.model}</Text>
+                        <Text fontWeight="bold">{t('product_manager.mobile.design')}</Text>
+                        <Text>{product.design}</Text>
                       </Flex>
                       <Flex justify="space-between">
                         <Text fontWeight="bold">{t('product_manager.mobile.color')}</Text>
@@ -482,7 +596,7 @@ const ProductManager = () => {
                   <Th>{t('product_manager.table.image')}</Th>
                   <Th>{t('product_manager.table.name')}</Th>
                   <Th>{t('product_manager.table.sku')}</Th>
-                  <Th>{t('product_manager.table.model')}</Th>
+                  <Th>{t('product_manager.table.design')}</Th>
                   <Th>{t('product_manager.table.color')}</Th>
                   <Th>{t('product_manager.table.actions')}</Th>
                 </Tr>
@@ -515,7 +629,7 @@ const ProductManager = () => {
                     <Td>
                       <Text noOfLines={1}>{product.sku}</Text>
                     </Td>
-                    <Td><Text noOfLines={1}>{product.model}</Text></Td>
+                    <Td><Text noOfLines={1}>{product.design}</Text></Td>
                     <Td><Text noOfLines={1}>{product.color}</Text></Td>
                     <Td>
                       <Flex wrap="wrap" gap={2}>

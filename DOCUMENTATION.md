@@ -33,6 +33,20 @@ The application's security model for password handling is as follows:
 1.  **Data in Transit:** All data transmitted between the client and server, including passwords, is protected by HTTPS (TLS/SSL).
 2.  **Data at Rest:** Passwords are hashed on the server using `bcryptjs` before being stored in the database.
 
+## Product Management
+
+### Product Attributes
+The application now supports centralized management of product attributes. Admins can define a set of allowed values for attributes like `Category`, `Design` (formerly Series), `Color`, `Quality`, and `Packaging Type`. This ensures consistency and simplifies product creation.
+
+-   **Database:** A new `product_attributes` table stores these values. The `products` table has been updated with `category` and `design` columns.
+-   **UI:** The "Add/Edit Product" modals now use dropdowns populated with these attributes, replacing free-text inputs.
+
+### Image Uploads
+Product images are uploaded directly through the application, compressed, and stored using Vercel Blob storage.
+
+-   **Technology:** Uses `@vercel/blob` for storage and `sharp` for server-side image compression.
+-   **API:** A dedicated endpoint `POST /api/products/upload-image` handles the file upload.
+
 ## API Endpoints
 
 The following is a list of the main API endpoints and their functionalities:
@@ -49,6 +63,7 @@ The following is a list of the main API endpoints and their functionalities:
 - **`GET /api/products`**: Returns a list of products.
 - **`POST /api/products`**: Creates a new product.
 - **`PATCH /api/products/{id}`**: Updates a product.
+- **`POST /api/products/upload-image`**: Uploads a product image and returns the URL.
 - **`GET /api/inventory/logs`**: Returns a list of inventory logs.
 - **`POST /api/inventory/logs`**: Creates a new inventory log.
 - **`GET /api/inventory/summary/dashboard`**: Returns a summary of the inventory for the dashboard.
@@ -68,6 +83,8 @@ The following is a list of the main API endpoints and their functionalities:
 - **`jose`**: A library for JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE), etc.
 - **`bcryptjs`**: A library to help you hash passwords.
 - **`pg`**: Non-blocking PostgreSQL client for Node.js.
+- **`@vercel/blob`**: A service for storing files in the cloud.
+- **`sharp`**: A high-performance Node.js image processing library.
 - **`pino`**: A very low overhead Node.js logger.
 - **`pino-pretty`**: A Pino log formatter.
 - **`axios`**: A promise-based HTTP client for the browser and Node.js.
@@ -107,6 +124,7 @@ To get a local copy up and running, follow these simple steps.
     ```
     POSTGRES_URL=...
     JWT_SECRET=...
+    BLOB_READ_WRITE_TOKEN=...
     ```
 4.  Run the development server
     ```sh

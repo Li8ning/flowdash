@@ -54,6 +54,8 @@ const productSchema = z.object({
   image_url: z.string().url().optional().or(z.literal('')),
   available_qualities: z.array(z.string()).optional(),
   available_packaging_types: z.array(z.string()).optional(),
+  category: z.string().optional(),
+  design: z.string().optional(),
 });
 
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
@@ -68,7 +70,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Invalid input', issues: validation.error.issues }, { status: 400 });
     }
 
-    const { name, sku, model, color, image_url, available_qualities } = validation.data;
+    const { name, sku, model, color, image_url, available_qualities, category, design } = validation.data;
     let { available_packaging_types } = validation.data;
 
     const { rows: existingProducts } = await client.query(
@@ -88,10 +90,10 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     }
 
     const { rows } = await client.query(
-      `INSERT INTO products (name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO products (name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types, category, design)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types]
+      [name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types, category, design]
     );
     
     await client.query('COMMIT');

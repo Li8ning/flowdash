@@ -19,6 +19,7 @@
     "@sentry/nextjs": "^10.2.0",
     "@types/js-cookie": "^3.0.6",
     "@types/pino": "^7.0.4",
+    "@vercel/blob": "^1.1.1",
     "@vercel/postgres": "^0.10.0",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
@@ -42,6 +43,7 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^14.1.2",
     "recharts": "^3.1.0",
+    "sharp": "^0.34.3",
     "zod": "^4.0.15"
   },
   "devDependencies": {
