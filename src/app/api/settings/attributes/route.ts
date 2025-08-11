@@ -5,7 +5,7 @@ import { z } from 'zod';
 import logger from '@/lib/logger';
 
 const attributeSchema = z.object({
-  type: z.enum(['category', 'series', 'color', 'quality', 'packaging_type']),
+  type: z.enum(['category', 'design', 'color', 'quality', 'packaging_type']),
   value: z.string().min(1, "Value cannot be empty"),
 });
 

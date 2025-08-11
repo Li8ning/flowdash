@@ -190,6 +190,7 @@ const LogEntryForm = () => {
             value={filters.color}
             onChange={(e) => setFilters({ ...filters, color: e.target.value })}
             size="sm"
+            focusBorderColor="blue.500"
           >
             {distinctColors.map((c) => (
               <option key={c} value={c}>
@@ -202,6 +203,7 @@ const LogEntryForm = () => {
             value={filters.model}
             onChange={(e) => setFilters({ ...filters, model: e.target.value })}
             size="sm"
+            focusBorderColor="blue.500"
           >
             {distinctModels.map((m) => (
               <option key={m} value={m}>
@@ -234,7 +236,7 @@ const LogEntryForm = () => {
               borderColor="brand.lightBorder"
               onClick={() => handleProductSelect(product)}
               transition="all 0.2s"
-              _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'teal.500' }}
+              _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'blue.500' }}
             >
               <VStack spacing={3}>
                 <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="cover" borderRadius="lg" />
@@ -299,6 +301,7 @@ const LogEntryForm = () => {
                       onChange={(e) => handleLogEntryChange(entry.id, 'quality', e.target.value)}
                       isRequired
                       flex={1}
+                      focusBorderColor="blue.500"
                     >
                       {selectedProduct.available_qualities?.map(q => (
                         <option key={q} value={q}>{t(`product_manager.quality.${q.toLowerCase()}`)}</option>
@@ -310,6 +313,7 @@ const LogEntryForm = () => {
                       onChange={(e) => handleLogEntryChange(entry.id, 'packagingType', e.target.value)}
                       isRequired
                       flex={1}
+                      focusBorderColor="blue.500"
                     >
                       {selectedProduct.available_packaging_types?.map(p => (
                         <option key={p} value={p}>{t(`product_manager.packaging_type.${p.toLowerCase()}`)}</option>

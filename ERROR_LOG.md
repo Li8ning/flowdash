@@ -121,3 +121,45 @@ This file logs all errors encountered during development and debugging, along wi
     1.  Refactored the data fetching logic into a standalone `fetchProducts` function.
     2.  This function is now called directly after a product is created or archived, with a parameter to force a reset to the first page (`fetchProducts(true)`).
     3.  This ensures the product list is always requeried from the server, providing a fresh and accurate view.
+---
+
+## Session: 2025-08-11
+
+### 11. Content Security Policy (CSP) Error for Vercel Blob Images
+
+-   **Error:** Browser console showed errors indicating that images from `*.public.blob.vercel-storage.com` were being blocked due to the Content Security Policy.
+-   **Cause:** The `next.config.mjs` file was missing the correct hostname for Vercel Blob storage in its `images.remotePatterns` configuration.
+-   **Location:** `next.config.mjs`
+-   **Resolution:** Added a new pattern `{ protocol: 'https', hostname: 'n05yfrwzk19unv0g.public.blob.vercel-storage.com' }` to the `remotePatterns` array to explicitly allow images from this source.
+
+### 12. Bulk Image Upload fails on existing files
+
+-   **Error:** The bulk image uploader would stop processing if it encountered a file that already existed in the blob storage, throwing a generic error.
+-   **Cause:** The error handling logic in the `POST /api/products/bulk-upload-images` endpoint was catching a generic `Error` object. It was not specifically identifying the `BlobNotFoundError` thrown by the `@vercel/blob` library when using the `put(..., { addRandomSuffix: false })` option.
+-   **Location:** `src/app/api/products/bulk-upload-images/route.ts`
+-   **Resolution:**
+    1.  Imported the `BlobNotFoundError` type from `@vercel/blob`.
+    2.  Updated the `catch` block to check if the error is an `instanceof BlobNotFoundError`.
+    3.  If it is, the error is handled gracefully by adding an `{ fileName, error: 'File with this name already exists.' }` object to the results array.
+    4.  If it's a different error, it is re-thrown to be handled by the outer error boundary. This makes the uploader more resilient and provides clearer feedback to the user.
+
+### 13. Obsolete 'model' column not removed from import API
+
+-   **Error:** An unsaved file was reported, and investigation revealed that the `model` column, which was supposed to be deprecated, was still present in the backend CSV import logic.
+-   **Cause:** A previous `apply_diff` operation to remove the column was incomplete or had failed.
+-   **Location:** `src/app/api/products/import/route.ts`
+-   **Resolution:** Re-ran the `apply_diff` operation to remove the `model` field from the Zod validation schema, the `INSERT` statement, and the values array in the API route.
+
+### 14. Unused import in ProductImportModal
+
+-   **Error:** ESLint reported an error: `'Link' is defined but never used.`
+-   **Cause:** The `Link` component from Chakra UI was imported but was no longer being used in the component.
+-   **Location:** `src/components/ProductImportModal.tsx`
+-   **Resolution:** Removed the unused `Link` from the import statement at the top of the file.
+
+### 15. Blank page after logout
+
+-   **Error:** After clicking the logout button, the user was redirected to `/login` which appeared as a blank page.
+-   **Cause:** The `logout` function in the `AuthContext` was programmatically redirecting to `/login`. However, the application's routing is set up so that the login page is at the root (`/`). The `/login` route does not exist, causing Next.js to render a 404 page, which appeared blank.
+-   **Location:** `src/context/AuthContext.tsx`
+-   **Resolution:** Modified the `logout` function within `AuthContext.tsx` to change the redirect from `router.push('/login')` to `router.push('/')`. This correctly sends the user to the actual login page after their session is terminated.

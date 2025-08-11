@@ -17,8 +17,8 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     const buffer = await file.arrayBuffer();
     const processedImageBuffer = await sharp(buffer)
       .resize(500, 500, {
-        fit: 'cover', // Crop to cover both dimensions
-        position: 'entropy', // Smart crop focus
+        fit: 'inside', // Resize to fit within 500x500, no cropping
+        withoutEnlargement: true, // Don't enlarge smaller images
       })
       .webp({ quality: 80 }) // Convert to WebP for best compression/quality
       .toBuffer();

@@ -97,13 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setToken(null);
       // Redirect to login page to clear all state and prevent stale data issues
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Logout failed', error);
       // Even if API call fails, attempt to clear client-side state
       setUser(null);
       setToken(null);
-      router.push('/login');
+      router.push('/');
     }
   };
 

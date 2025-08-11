@@ -309,7 +309,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             {allLogs && (
               <>
                 <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_pdf')}</Button>
-                <Button colorScheme="green" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_excel')}</Button>
+                <Button colorScheme="blue" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_excel')}</Button>
               </>
             )}
             <Button colorScheme="blue" onClick={handleFilterClick}>{t('inventory.logs.filter')}</Button>
@@ -326,6 +326,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
               placeholder={t('inventory.logs.filter_by_user')}
               value={filters.user}
               onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+              focusBorderColor="blue.500"
             >
               {distinctUsers.map((u: string) => (
                 <option key={u} value={u}>
@@ -339,8 +340,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             value={filters.product}
             onChange={(e) =>
               setFilters({ ...filters, product: e.target.value })
-            }
-          >
+           }
+           focusBorderColor="blue.500"
+         >
             {distinctProducts.map((p: string) => (
               <option key={p} value={p}>
                 {p}
@@ -351,6 +353,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             placeholder={t('inventory.logs.filter_by_color')}
             value={filters.color}
             onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+            focusBorderColor="blue.500"
           >
             {distinctColors.map((c: string) => (
               <option key={c} value={c}>
@@ -362,6 +365,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             placeholder={t('inventory.logs.filter_by_model')}
             value={filters.model}
             onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+            focusBorderColor="blue.500"
           >
             {distinctModels.map((m: string) => (
               <option key={m} value={m}>
@@ -373,6 +377,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             placeholder={t('inventory.logs.filter_by_quality')}
             value={filters.quality}
             onChange={(e) => setFilters({ ...filters, quality: e.target.value })}
+            focusBorderColor="blue.500"
           >
             {distinctQualities.map((q: string) => (
               <option key={q} value={q}>
@@ -385,15 +390,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             value={filters.packaging_type}
             onChange={(e) =>
               setFilters({ ...filters, packaging_type: e.target.value })
-            }
-          >
+           }
+           focusBorderColor="blue.500"
+         >
             {distinctPackagingTypes.map((p: string) => (
               <option key={p} value={p}>
                 {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
               </option>
             ))}
           </Select>
-          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} focusBorderColor="blue.500">
             <option value="today">{t('inventory.logs.date_range.today')}</option>
             <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
             <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
@@ -519,7 +525,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           </Accordion>
         ) : (
           <TableContainer>
-            <Table variant="simple" colorScheme="teal">
+            <Table variant="simple" colorScheme="blue">
               <Thead bg="brand.background">
                 <Tr>
                   <Th>{t('inventory.logs.table.image')}</Th>

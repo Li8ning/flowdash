@@ -24,11 +24,13 @@ import {
   WrapItem,
   CircularProgress,
   Flex,
+  IconButton,
 } from '@chakra-ui/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
+import { FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 
 interface ProductAttribute {
   id: number;
@@ -38,7 +40,7 @@ interface ProductAttribute {
 
 const attributeTypes = [
   'category',
-  'series',
+  'design',
   'color',
   'quality',
   'packaging_type',
@@ -52,6 +54,8 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
   const [newValue, setNewValue] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAttributeId, setEditingAttributeId] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState('');
 
   const fetchAttributes = useCallback(async () => {
     setIsLoading(true);
@@ -138,6 +142,50 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
     }
   };
 
+  const handleUpdateAttribute = async (id: number) => {
+    if (!editingValue.trim()) {
+      toast({
+        title: t('attributes.toast.value_required_title'),
+        description: t('attributes.toast.value_required_desc'),
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    try {
+      const { data } = await api.patch(`/settings/attributes/${id}`, { value: editingValue });
+      setAttributes((prev) => prev.map((attr) => (attr.id === id ? data : attr)));
+      setEditingAttributeId(null);
+      setEditingValue('');
+      toast({
+        title: t('attributes.toast.update_success_title'),
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      const error = err as AxiosError<{ error: string }>;
+      toast({
+        title: t('attributes.toast.update_error_title'),
+        description: error.response?.data?.error || t('attributes.toast.update_error_desc'),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleEditClick = (attribute: ProductAttribute) => {
+    setEditingAttributeId(attribute.id);
+    setEditingValue(attribute.value);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAttributeId(null);
+    setEditingValue('');
+  };
+
   return (
     <Box>
       <Stack as="form" onSubmit={handleAddAttribute} spacing={4} mb={6}>
@@ -169,10 +217,50 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
           {attributes.length > 0 ? (
             attributes.map((attribute) => (
               <WrapItem key={attribute.id}>
-                <Tag size="lg" variant="solid" colorScheme="teal" borderRadius="full">
-                  <TagLabel>{attribute.value}</TagLabel>
-                  <TagCloseButton onClick={() => handleDeleteAttribute(attribute.id)} />
-                </Tag>
+                {editingAttributeId === attribute.id ? (
+                  <HStack as="form" onSubmit={(e) => { e.preventDefault(); handleUpdateAttribute(attribute.id); }}>
+                    <Input
+                      size="sm"
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      autoFocus
+                    />
+                    <IconButton
+                      aria-label={t('attributes.save_button')}
+                      icon={<FaSave />}
+                      size="sm"
+                      colorScheme="green"
+                      type="submit"
+                    />
+                    <IconButton
+                      aria-label={t('attributes.cancel_button')}
+                      icon={<FaTimes />}
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCancelEdit}
+                    />
+                  </HStack>
+                ) : (
+                  <Tag size="lg" variant="solid" colorScheme="blue" borderRadius="full">
+                    <TagLabel>{attribute.value}</TagLabel>
+                    <IconButton
+                      aria-label={t('attributes.edit_button')}
+                      icon={<FaEdit />}
+                      size="xs"
+                      variant="ghost"
+                      isRound
+                      onClick={() => handleEditClick(attribute)}
+                      ml={2}
+                      mr={-1}
+                      color="white"
+                      _hover={{ color: 'blue.500', backgroundColor: 'white' }}
+                    />
+                    <TagCloseButton
+                      onClick={() => handleDeleteAttribute(attribute.id)}
+                      sx={{ color: 'white', '&:hover': { color: 'blue.500', backgroundColor: 'white' } }}
+                    />
+                  </Tag>
+                )}
               </WrapItem>
             ))
           ) : (
@@ -192,7 +280,7 @@ const ProductAttributesManager = () => {
       <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>
         {t('attributes.title')}
       </Heading>
-      <Tabs isLazy variant="soft-rounded" colorScheme="green">
+      <Tabs isLazy variant="soft-rounded" colorScheme="blue">
         <Box overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           <TabList minW="max-content">
             {attributeTypes.map((type) => (

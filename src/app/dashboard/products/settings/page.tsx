@@ -1,7 +1,7 @@
 'use client';
 
-import { Text } from '@chakra-ui/react';
+import ProductAttributesManager from '@/components/ProductAttributesManager';
 
 export default function ProductSettingsPage() {
-  return <Text>Product Settings Page - Coming Soon</Text>;
+  return <ProductAttributesManager />;
 }

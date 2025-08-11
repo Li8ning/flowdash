@@ -18,7 +18,6 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
-import ProductAttributesManager from './ProductAttributesManager';
 
 const ProfileManager = () => {
   const { user, updateUser, organizationName, setOrganizationName } = useAuth();
@@ -200,8 +199,6 @@ const ProfileManager = () => {
           </Stack>
         </Box>
       )}
-
-      {user?.role === 'factory_admin' && <ProductAttributesManager />}
 
       <Box p={6} borderWidth="1px" borderRadius="lg" shadow="md">
         <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>{t('profile_manager.change_password.title')}</Heading>

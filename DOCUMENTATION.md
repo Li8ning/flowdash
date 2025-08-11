@@ -6,6 +6,7 @@ This document provides a comprehensive overview of the project, its architecture
 
 - [Project Overview](#project-overview)
 - [Architecture](#architecture)
+- [UI/UX](#uiux)
 - [API Endpoints](#api-endpoints)
 - [Dependencies](#dependencies)
 - [Getting Started](#getting-started)
@@ -23,6 +24,22 @@ The application is built using the Next.js framework for both the frontend and b
 - **Backend:** The backend is built with Next.js API routes.
 - **Database:** The application uses a PostgreSQL database, connected via the `@vercel/postgres` library.
 - **Authentication:** Authentication is handled using JSON Web Tokens (JWT), with the `jose` library for token signing and verification. The token is stored in an `httpOnly` cookie. Logout is handled by a dedicated API endpoint that instructs the browser to expire the cookie, ensuring a secure session termination.
+
+## UI/UX
+
+### Vertical Sidebar Navigation
+The application's user interface was significantly refactored to replace an older, tab-based navigation system with a modern, scalable vertical sidebar.
+
+- **Components:** This involved creating new, dedicated layout components: `src/components/layout/Sidebar.tsx` and `src/components/layout/Header.tsx`.
+- **Routing:** The main dashboard layout (`src/app/dashboard/layout.tsx`) was updated to use this new structure. This enables a more intuitive, file-based routing system that provides "pretty" URLs for different sections (e.g., `/dashboard/products`, `/dashboard/inventory`).
+
+### Internationalization (i18n)
+The application supports multiple languages (English, Hindi, Gujarati) to provide a better user experience for a diverse user base.
+
+- **Technology:** Uses `i18next` and `react-i18next` for managing translations.
+- **Translation Files:** All UI strings are stored in JSON files located at `public/locales/{language}/common.json`.
+- **Language Simplification:** Based on user feedback, the Hindi and Gujarati translations have been reviewed and updated to use simpler, more common vocabulary instead of formal or technical terms. This improves usability and comprehension for all users.
+- **Dynamic Sidebar:** The main navigation sidebar was refactored to make all links translatable, allowing them to change dynamically based on the user's selected language.
 
 ## Security
 
@@ -44,15 +61,41 @@ The application now supports centralized management of product attributes. Admin
 ### Image Uploads
 Product images are uploaded directly through the application, compressed, and stored using Vercel Blob storage.
 
--   **Technology:** Uses `@vercel/blob` for storage and `sharp` for server-side image compression.
+-   **Technology:** Uses `@vercel/blob` for storage and `sharp` for server-side image compression and resizing.
 -   **API:** A dedicated endpoint `POST /api/products/upload-image` handles the file upload.
+-   **Image Resizing:** The image processing logic was updated to resize images using `fit: 'inside'` instead of `fit: 'cover'`. This ensures the entire image fits within the 500x500 pixel dimensions without being cropped, preserving its aspect ratio.
 
 ### Form Pre-fill for New Products
 To accelerate the process of adding multiple similar products, the "Add Product" form has an intelligent pre-fill feature.
 
--   **Functionality:** After a new product is successfully created, the system temporarily remembers the `Category`, `Design`, `Color`, and `Model`. When the "Add New Product" button is clicked again within the same session, these fields will be automatically pre-populated.
+-   **Functionality:** After a new product is successfully created, the system temporarily remembers the `Category`, `Design`, and `Color`. When the "Add New Product" button is clicked again within the same session, these fields will be automatically pre-populated.
 -   **Scope:** This is a session-only feature. The pre-fill data is cleared upon page reload or logout. Unique fields like `Name`, `SKU`, and `Image` are always left blank.
 -   **Note:** This feature replaces the previously considered "Copy Product" functionality as a more streamlined and user-friendly alternative.
+
+### Bulk Product Import via CSV
+A standalone page allows admins to import multiple products at once by uploading a CSV file, with detailed feedback on the operation.
+
+-   **Location:** `/dashboard/products/bulk-import`
+-   **API:** The `POST /api/products/import` endpoint handles the CSV file processing.
+-   **Technology:** Uses `papaparse` for robust CSV parsing and `zod` for row-level validation.
+-   **Intelligent Import Logic:**
+    -   **Dynamic Attribute Creation:** If the CSV contains a value for `category`, `design`, `color`, `quality`, or `packaging` that does not exist, the system automatically creates the new attribute before importing the product.
+    -   **Graceful SKU Handling:** If a product SKU in the CSV already exists in the database, the system silently **skips** that row and continues processing the rest of the file, preventing the entire import from failing.
+-   **UI and Reporting:**
+    -   The new page provides a user-friendly drag-and-drop interface for uploading the CSV file.
+    -   After processing, the API returns a detailed JSON report.
+    -   The UI displays this report in a tabbed view, showing:
+        -   A list of successfully imported products.
+        -   A list of skipped products (with existing SKUs).
+        -   A list of rows that contained validation errors.
+    -   This replaces the previous, less-detailed modal-based implementation.
+
+### Bulk Image Uploader
+A utility page is available for uploading multiple product images simultaneously.
+
+-   **Location:** `/dashboard/products/bulk-image-upload`
+-   **Functionality:** Users can drag-and-drop multiple images. The uploader processes them in parallel via the `POST /api/products/bulk-upload-images` endpoint.
+-   **Output:** After uploading, the page displays a table of results showing the original filename and its new Vercel Blob URL. From here, users can download a complete, pre-filled `product_import_template.csv`. This CSV uses the filenames as SKUs and populates the `image_url` column with the new URLs, ready for the bulk product import.
 
 ## API Endpoints
 
@@ -70,7 +113,9 @@ The following is a list of the main API endpoints and their functionalities:
 - **`GET /api/products`**: Returns a list of products.
 - **`POST /api/products`**: Creates a new product.
 - **`PATCH /api/products/{id}`**: Updates a product.
-- **`POST /api/products/upload-image`**: Uploads a product image and returns the URL.
+- **`POST /api/products/import`**: Imports products from a CSV file.
+- **`POST /api/products/upload-image`**: Uploads a single product image and returns the URL.
+- **`POST /api/products/bulk-upload-images`**: Uploads multiple product images and returns their URLs.
 - **`GET /api/inventory/logs`**: Returns a list of inventory logs.
 - **`POST /api/inventory/logs`**: Creates a new inventory log.
 - **`GET /api/inventory/summary/dashboard`**: Returns a summary of the inventory for the dashboard.
@@ -92,6 +137,7 @@ The following is a list of the main API endpoints and their functionalities:
 - **`pg`**: Non-blocking PostgreSQL client for Node.js.
 - **`@vercel/blob`**: A service for storing files in the cloud.
 - **`sharp`**: A high-performance Node.js image processing library.
+- **`papaparse`**: A powerful, in-browser CSV parser.
 - **`pino`**: A very low overhead Node.js logger.
 - **`pino-pretty`**: A Pino log formatter.
 - **`axios`**: A promise-based HTTP client for the browser and Node.js.

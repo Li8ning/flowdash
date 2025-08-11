@@ -52,7 +52,7 @@ import {
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { FiUpload } from 'react-icons/fi';
-import { ProductImportModal } from './ProductImportModal';
+import Link from 'next/link';
 
 interface Product {
   id: number;
@@ -102,7 +102,6 @@ const ProductManager = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const { isOpen: isArchiveOpen, onOpen: onArchiveOpen, onClose: onArchiveClose } = useDisclosure();
-  const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose } = useDisclosure();
   const [productToArchive, setProductToArchive] = useState<number | null>(null);
   const cancelRef = useRef(null);
 
@@ -373,21 +372,20 @@ const ProductManager = () => {
           }} colorScheme="blue" flexShrink={0}>
             {t('product_manager.add_new_product')}
           </Button>
-          <Button colorScheme="green" flexShrink={0} leftIcon={<FiUpload />} onClick={onImportOpen}>
-            {t('product_manager.import_from_csv')}
-          </Button>
+          <Link href="/dashboard/products/bulk-import" passHref>
+            <Button colorScheme="green" flexShrink={0} leftIcon={<FiUpload />}>
+              {t('product_manager.import_from_csv')}
+            </Button>
+          </Link>
+          <Link href="/dashboard/products/bulk-image-upload" passHref>
+            <Button colorScheme="purple" flexShrink={0} leftIcon={<FiUpload />}>
+              {t('product_manager.bulk_image_upload')}
+            </Button>
+          </Link>
         </Flex>
       </Flex>
       <Divider mb={6} />
 
-      <ProductImportModal
-        isOpen={isImportOpen}
-        onClose={onImportClose}
-        onImportSuccess={() => {
-          onImportClose();
-          fetchProducts(true);
-        }}
-      />
 
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select
@@ -431,21 +429,21 @@ const ProductManager = () => {
               
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.category_label')}</FormLabel>
-                <Select name="category" value={newProduct.category} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')}>
+                <Select name="category" value={newProduct.category} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')} focusBorderColor="blue.500">
                   {(attributes.category || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                 </Select>
               </FormControl>
 
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.design_label')}</FormLabel>
-                <Select name="design" value={newProduct.design} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')}>
+                <Select name="design" value={newProduct.design} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')} focusBorderColor="blue.500">
                   {(attributes.design || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                 </Select>
               </FormControl>
 
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.color_label')}</FormLabel>
-                <Select name="color" value={newProduct.color} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')}>
+                <Select name="color" value={newProduct.color} onChange={handleNewProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')} focusBorderColor="blue.500">
                   {(attributes.color || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                 </Select>
               </FormControl>
@@ -459,7 +457,7 @@ const ProductManager = () => {
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                 <CheckboxGroup
-                  colorScheme="green"
+                  colorScheme="blue"
                   value={newProduct.available_qualities}
                   onChange={(values) => setNewProduct(prev => ({ ...prev, available_qualities: values as string[] }))}
                 >
@@ -474,7 +472,7 @@ const ProductManager = () => {
               <FormControl>
                 <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
                 <CheckboxGroup
-                  colorScheme="green"
+                  colorScheme="blue"
                   value={newProduct.available_packaging_types}
                   onChange={(values) => setNewProduct(prev => ({ ...prev, available_packaging_types: values as string[] }))}
                 >
@@ -488,7 +486,7 @@ const ProductManager = () => {
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.create_modal.create_button')}</Button>
+            <Button colorScheme="blue" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.create_modal.create_button')}</Button>
             <Button variant="ghost" onClick={onCreateClose}>{t('product_manager.create_modal.cancel_button')}</Button>
           </ModalFooter>
         </ModalContent>
@@ -512,21 +510,21 @@ const ProductManager = () => {
                 
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.category_label')}</FormLabel>
-                  <Select name="category" value={editingProduct.category} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')}>
+                  <Select name="category" value={editingProduct.category} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_category_placeholder')} focusBorderColor="blue.500">
                     {(attributes.category || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                   </Select>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.design_label')}</FormLabel>
-                  <Select name="design" value={editingProduct.design} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')}>
+                  <Select name="design" value={editingProduct.design} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_design_placeholder')} focusBorderColor="blue.500">
                     {(attributes.design || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                   </Select>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.color_label')}</FormLabel>
-                  <Select name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')}>
+                  <Select name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} placeholder={t('product_manager.create_modal.select_color_placeholder')} focusBorderColor="blue.500">
                     {(attributes.color || []).map(attr => <option key={attr.id} value={attr.value}>{attr.value}</option>)}
                   </Select>
                 </FormControl>
@@ -540,7 +538,7 @@ const ProductManager = () => {
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
                   <CheckboxGroup
-                    colorScheme="green"
+                    colorScheme="blue"
                     value={editingProduct.available_qualities}
                     onChange={(values) => setEditingProduct(prev => prev ? { ...prev, available_qualities: values as string[] } : null)}
                   >
@@ -555,7 +553,7 @@ const ProductManager = () => {
                 <FormControl>
                   <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
                   <CheckboxGroup
-                    colorScheme="green"
+                    colorScheme="blue"
                     value={editingProduct.available_packaging_types}
                     onChange={(values) => setEditingProduct(prev => prev ? { ...prev, available_packaging_types: values as string[] } : null)}
                   >
@@ -569,7 +567,7 @@ const ProductManager = () => {
               </Stack>
             </ModalBody>
             <ModalFooter>
-              <Button colorScheme="green" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.edit_modal.save_button')}</Button>
+              <Button colorScheme="blue" mr={3} type="submit" isLoading={isUploading}>{t('product_manager.edit_modal.save_button')}</Button>
               <Button variant="ghost" onClick={onEditClose}>{t('product_manager.edit_modal.cancel_button')}</Button>
             </ModalFooter>
           </ModalContent>
@@ -631,7 +629,7 @@ const ProductManager = () => {
           </Accordion>
         ) : (
           <TableContainer>
-            <Table variant="simple" colorScheme="teal">
+            <Table variant="simple" colorScheme="blue">
               <Thead bg="brand.background">
                 <Tr>
                   <Th>{t('product_manager.table.image')}</Th>
