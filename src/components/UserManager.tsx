@@ -213,7 +213,9 @@ const UserManager: React.FC = () => {
       )}
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
         <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>{t('user_manager.title')}</Heading>
-        <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
+        {currentUser?.role === 'factory_admin' && (
+          <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
+        )}
       </Flex>
       <Divider mb={6} />
 
@@ -329,7 +331,7 @@ const UserManager: React.FC = () => {
                 <Th>{t('user_manager.table.username')}</Th>
                 <Th>{t('user_manager.table.role')}</Th>
                 <Th>{t('user_manager.table.status')}</Th>
-                <Th>{t('user_manager.table.actions')}</Th>
+                {currentUser?.role === 'factory_admin' && <Th>{t('user_manager.table.actions')}</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -352,34 +354,36 @@ const UserManager: React.FC = () => {
                       {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
                     </Text>
                   </Td>
-                  <Td data-label={t('user_manager.table.actions')}>
-                    <Flex gap={2}>
-                      <IconButton
-                        aria-label={t('user_manager.actions.edit')}
-                        icon={<EditIcon />}
-                        colorScheme="blue"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      />
-                      {user.is_active !== false ? (
+                  {currentUser?.role === 'factory_admin' && (
+                    <Td data-label={t('user_manager.table.actions')}>
+                      <Flex gap={2}>
                         <IconButton
-                          aria-label={t('user_manager.actions.deactivate')}
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
+                          aria-label={t('user_manager.actions.edit')}
+                          icon={<EditIcon />}
+                          colorScheme="blue"
                           size="sm"
-                          onClick={() => openAlert('remove', user.id)}
+                          onClick={() => handleEditUser(user)}
                         />
-                      ) : (
-                        <IconButton
-                          aria-label={t('user_manager.actions.reactivate')}
-                          icon={<RepeatIcon />}
-                          colorScheme="green"
-                          size="sm"
-                          onClick={() => openAlert('reactivate', user.id)}
-                        />
-                      )}
-                    </Flex>
-                  </Td>
+                        {user.is_active !== false ? (
+                          <IconButton
+                            aria-label={t('user_manager.actions.deactivate')}
+                            icon={<DeleteIcon />}
+                            colorScheme="red"
+                            size="sm"
+                            onClick={() => openAlert('remove', user.id)}
+                          />
+                        ) : (
+                          <IconButton
+                            aria-label={t('user_manager.actions.reactivate')}
+                            icon={<RepeatIcon />}
+                            colorScheme="green"
+                            size="sm"
+                            onClick={() => openAlert('reactivate', user.id)}
+                          />
+                        )}
+                      </Flex>
+                    </Td>
+                  )}
                 </Tr>
               ))}
             </Tbody>

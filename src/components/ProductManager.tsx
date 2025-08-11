@@ -338,15 +338,16 @@ const ProductManager = () => {
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>
+      <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} mb={6} direction={{ base: 'column', md: 'row' }}>
+        <Heading as="h2" size={{ base: 'md', md: 'lg' }} mb={{ base: 4, md: 0 }}>
           {t('product_manager.title')}
         </Heading>
-        <Flex direction={{ base: 'column', sm: 'row' }} gap={2}>
+        <SimpleGrid columns={{ base: 1, lg: 2, xl: 4 }} spacing={2} alignItems="center">
           <Input
             placeholder={t('product_manager.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            gridColumn={{ base: 'span 1', lg: 'span 2', xl: 'span 1' }}
           />
           <Button onClick={() => {
             if (lastCreatedProduct) {
@@ -369,20 +370,20 @@ const ProductManager = () => {
             setImageFile(null);
             setImagePreview(null);
             onCreateOpen();
-          }} colorScheme="blue" flexShrink={0}>
+          }} colorScheme="blue">
             {t('product_manager.add_new_product')}
           </Button>
-          <Link href="/dashboard/products/bulk-import" passHref>
-            <Button colorScheme="green" flexShrink={0} leftIcon={<FiUpload />}>
+          <Link href="/dashboard/products/bulk-import" style={{ width: '100%' }}>
+            <Button colorScheme="green" leftIcon={<FiUpload />} w="full">
               {t('product_manager.import_from_csv')}
             </Button>
           </Link>
-          <Link href="/dashboard/products/bulk-image-upload" passHref>
-            <Button colorScheme="purple" flexShrink={0} leftIcon={<FiUpload />}>
+          <Link href="/dashboard/products/bulk-image-upload" style={{ width: '100%' }}>
+            <Button colorScheme="purple" leftIcon={<FiUpload />} w="full">
               {t('product_manager.bulk_image_upload')}
             </Button>
           </Link>
-        </Flex>
+        </SimpleGrid>
       </Flex>
       <Divider mb={6} />
 

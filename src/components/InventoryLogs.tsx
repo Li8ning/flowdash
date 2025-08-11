@@ -24,7 +24,7 @@ import {
   Divider,
   TableContainer,
   Input,
-  HStack,
+  Stack,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -298,29 +298,37 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }}>{t('inventory.logs.title')}</Heading>
-        <Flex
-          direction={{ base: 'column', md: 'row' }}
-          align={{ base: 'stretch', md: 'center' }}
-          gap={{ base: 2, md: 4 }}
+      <Flex
+        justify="space-between"
+        align={{ base: 'stretch', md: 'center' }}
+        mb={6}
+        direction={{ base: 'column', md: 'row' }}
+        gap={4}
+      >
+        <Heading as="h2" size={{ base: 'md', md: 'lg' }}>
+          {t('inventory.logs.title')}
+        </Heading>
+        <Stack
+          direction={{ base: 'column', sm: 'row' }}
+          spacing={2}
+          align="stretch"
           width={{ base: '100%', md: 'auto' }}
         >
-            {allLogs && (
-              <>
-                <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_pdf')}</Button>
-                <Button colorScheme="blue" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_excel')}</Button>
-              </>
-            )}
-            <Button colorScheme="blue" onClick={handleFilterClick}>{t('inventory.logs.filter')}</Button>
-            <Button onClick={handleClearFilters} colorScheme="gray">
-              {t('inventory.logs.clear_filters')}
-            </Button>
-        </Flex>
+          {allLogs && (
+            <>
+              <Button onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled} colorScheme="blue">
+                {t('inventory.logs.export_pdf')}
+              </Button>
+              <Button onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled} colorScheme="blue">
+                {t('inventory.logs.export_excel')}
+              </Button>
+            </>
+          )}
+        </Stack>
       </Flex>
       <Divider mb={6} />
       <Box>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: allLogs ? 7 : 6 }} spacing={4} mb={4}>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: allLogs ? 4 : 3, xl: allLogs ? 7 : 6 }} spacing={4} mb={4}>
           {allLogs && (
             <Select
               placeholder={t('inventory.logs.filter_by_user')}
@@ -406,23 +414,31 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             <option value="custom">{t('inventory.logs.date_range.custom')}</option>
           </Select>
         </SimpleGrid>
-        
-        {dateRange === 'custom' && (
-          <HStack spacing={4} mb={6}>
-            <Input
-              type="date"
-              placeholder={t('inventory.logs.start_date')}
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            />
-            <Input
-              type="date"
-              placeholder={t('inventory.logs.end_date')}
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            />
-          </HStack>
-        )}
+
+        <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} mb={6}>
+            {dateRange === 'custom' && (
+                <>
+                    <Input
+                        type="date"
+                        placeholder={t('inventory.logs.start_date')}
+                        value={filters.startDate}
+                        onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                    />
+                    <Input
+                        type="date"
+                        placeholder={t('inventory.logs.end_date')}
+                        value={filters.endDate}
+                        onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                    />
+                </>
+            )}
+            <Button onClick={handleFilterClick} colorScheme="blue" flexShrink={0}>
+                {t('inventory.logs.filter')}
+            </Button>
+            <Button onClick={handleClearFilters} colorScheme="gray" flexShrink={0}>
+                {t('inventory.logs.clear_filters')}
+            </Button>
+        </Stack>
       </Box>
       <Box>
         {isMobile ? (

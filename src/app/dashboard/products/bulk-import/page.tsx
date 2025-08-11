@@ -198,14 +198,14 @@ const BulkProductImporter = () => {
 
     return (
         <VStack spacing={6} align="stretch">
-            <HStack justify="space-between">
-                <Heading as="h2" size="lg">{t('bulk_import_page.results.title')}</Heading>
-                <Button onClick={() => router.push('/dashboard/products')} colorScheme="green" rightIcon={<FiArrowRight />}>
+            <HStack justify="space-between" direction={{ base: 'column', sm: 'row' }} align={{ base: 'stretch', sm: 'center' }} w="100%">
+                <Heading as="h2" size={{ base: 'md', md: 'lg' }}>{t('bulk_import_page.results.title')}</Heading>
+                <Button onClick={() => router.push('/dashboard/products')} colorScheme="green" rightIcon={<FiArrowRight />} flexShrink={0}>
                     {t('bulk_import_page.results.go_to_products')}
                 </Button>
             </HStack>
 
-            <HStack spacing={4}>
+            <HStack spacing={4} wrap="wrap">
                 <Tag colorScheme="green" size="lg"><Icon as={FiCheckCircle} mr={2} />{t('bulk_import_page.results.imported', { count: importedCount })}</Tag>
                 <Tag colorScheme="orange" size="lg"><Icon as={FiAlertTriangle} mr={2} />{t('bulk_import_page.results.skipped', { count: skippedCount })}</Tag>
                 <Tag colorScheme="red" size="lg"><Icon as={FiXCircle} mr={2} />{t('bulk_import_page.results.errors', { count: errorCount })}</Tag>
@@ -263,10 +263,10 @@ const BulkProductImporter = () => {
   };
 
   return (
-    <Container maxW="container.lg" py={8}>
+    <Container maxW="container.lg" py={{ base: 4, md: 8 }}>
       <VStack spacing={6} align="stretch">
         <Box>
-          <Heading as="h1" size="xl">
+          <Heading as="h1" size={{ base: 'lg', md: 'xl' }}>
             {t('bulk_import_page.title')}
           </Heading>
           <Text mt={2}>

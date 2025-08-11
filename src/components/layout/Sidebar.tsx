@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Box, VStack, Text, Link as ChakraLink, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon } from '@chakra-ui/react';
+import { Box, VStack, Text, Link as ChakraLink, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon, BoxProps, Flex, IconButton } from '@chakra-ui/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { IconType } from 'react-icons';
+import { FiX } from 'react-icons/fi';
 
 export interface NavItem {
   href: string;
@@ -20,11 +21,12 @@ export interface NavGroup {
 
 export type NavigationLink = NavItem | NavGroup;
 
-interface SidebarProps {
+interface SidebarProps extends BoxProps {
   navLinks: NavigationLink[];
+  onClose?: () => void;
 }
 
-const Sidebar = ({ navLinks }: SidebarProps) => {
+const Sidebar = ({ navLinks, onClose, ...rest }: SidebarProps) => {
   const pathname = usePathname();
 
   const renderLink = (item: NavItem) => {
@@ -35,6 +37,7 @@ const Sidebar = ({ navLinks }: SidebarProps) => {
         as={Link}
         href={item.href}
         key={item.label}
+        onClick={onClose}
         display="flex"
         alignItems="center"
         py={2}
@@ -64,19 +67,26 @@ const Sidebar = ({ navLinks }: SidebarProps) => {
   return (
     <Box
       as="nav"
-      pos="fixed"
-      top="0"
-      left="0"
-      zIndex="sticky"
       h="full"
-      w="64"
       bg="brand.surface"
       borderRightWidth="1px"
       borderColor="brand.lightBorder"
       overflowY="auto"
+      {...rest}
     >
       <VStack p={5} align="stretch" spacing={4}>
-        <Text fontSize="2xl" fontWeight="bold" mb={5} textAlign="center">FlowDash</Text>
+        <Flex justify="space-between" align="center" mb={5}>
+          <Text fontSize="2xl" fontWeight="bold">FlowDash</Text>
+          {onClose && (
+            <IconButton
+              aria-label="Close menu"
+              icon={<FiX />}
+              size="sm"
+              onClick={onClose}
+              display={{ base: 'flex', lg: 'none' }}
+            />
+          )}
+        </Flex>
         <VStack align="stretch" spacing={1}>
           {navLinks.map((link) => {
             if ('children' in link) {

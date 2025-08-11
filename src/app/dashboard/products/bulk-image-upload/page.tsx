@@ -253,9 +253,9 @@ const BulkImageUploader = () => {
 
   const renderResults = () => (
     <VStack spacing={6} align="stretch">
-        <HStack justify="space-between">
-            <Heading as="h2" size="lg">{t('bulk_image_uploader.results.title')}</Heading>
-            <Button onClick={resetUploader}>{t('bulk_image_uploader.results.upload_more')}</Button>
+        <HStack justify="space-between" direction={{ base: 'column', sm: 'row' }} align={{ base: 'stretch', sm: 'center' }} w="100%">
+            <Heading as="h2" size={{ base: 'md', md: 'lg' }}>{t('bulk_image_uploader.results.title')}</Heading>
+            <Button onClick={resetUploader} flexShrink={0}>{t('bulk_image_uploader.results.upload_more')}</Button>
         </HStack>
       
       {uploadResults.filter(r => r.url).length > 0 && (
@@ -306,10 +306,10 @@ const BulkImageUploader = () => {
   );
 
   return (
-    <Container maxW="container.lg" py={8}>
+    <Container maxW="container.lg" py={{ base: 4, md: 8 }}>
       <VStack spacing={6} align="stretch">
         <Box>
-          <Heading as="h1" size="xl">
+          <Heading as="h1" size={{ base: 'lg', md: 'xl' }}>
             {t('bulk_image_uploader.title')}
           </Heading>
           <Text mt={2}>

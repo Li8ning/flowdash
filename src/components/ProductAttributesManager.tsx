@@ -193,7 +193,7 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
           <FormLabel htmlFor={`${attributeType}-value`}>
             {t('attributes.add_new_label', { type: t(`attributes.types.${attributeType}`) })}
           </FormLabel>
-          <HStack>
+          <Stack direction={{ base: 'column', sm: 'row' }} spacing={2}>
             <Input
               id={`${attributeType}-value`}
               value={newValue}
@@ -203,7 +203,7 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
             <Button type="submit" colorScheme="blue" isLoading={isSubmitting}>
               {t('attributes.add_button')}
             </Button>
-          </HStack>
+          </Stack>
         </FormControl>
       </Stack>
 
@@ -276,8 +276,8 @@ const ProductAttributesManager = () => {
   const { t } = useTranslation();
 
   return (
-    <Box p={6} borderWidth="1px" borderRadius="lg" shadow="md" mt={8}>
-      <Heading size={{ base: 'sm', md: 'lg' }} mb={6}>
+    <Box p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="lg" shadow="md" mt={8}>
+      <Heading size={{ base: 'md', md: 'lg' }} mb={6}>
         {t('attributes.title')}
       </Heading>
       <Tabs isLazy variant="soft-rounded" colorScheme="blue">
