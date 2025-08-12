@@ -45,7 +45,7 @@ export default function Register() {
         organizationName,
         name,
       });
-      await handleAuthentication(response.data);
+      await handleAuthentication(response.data, true);
       toast({
         title: t('register.toast.success_title'),
         description: t('register.toast.success_description'),
