@@ -26,10 +26,17 @@ type Handler<T extends HandlerContext> = (
 
 export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: string[]) => {
   return async (req: NextRequest, context: T) => {
-    const token = req.cookies.get('token')?.value;
+    let token: string | undefined;
+    const authHeader = req.headers.get('authorization');
+
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else {
+      token = req.cookies.get('token')?.value;
+    }
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
     }
 
     try {

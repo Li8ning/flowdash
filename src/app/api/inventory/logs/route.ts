@@ -9,7 +9,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const user = searchParams.get('user');
     const product = searchParams.get('product');
     const color = searchParams.get('color');
-    const model = searchParams.get('model');
+    const design = searchParams.get('design');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const quality = searchParams.get('quality');
@@ -33,9 +33,9 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       conditions.push(`p.color = $${paramIndex++}`);
       params.push(color);
     }
-    if (model) {
-      conditions.push(`p.model = $${paramIndex++}`);
-      params.push(model);
+    if (design) {
+      conditions.push(`p.design = $${paramIndex++}`);
+      params.push(design);
     }
     if (quality) {
       conditions.push(`l.quality = $${paramIndex++}`);
@@ -57,7 +57,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     const whereClause = conditions.join(' AND ');
 
     const logsQuery = `
-      SELECT l.id, l.product_id, p.name as product_name, p.color, p.model, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
+      SELECT l.id, l.product_id, p.name as product_name, p.color, p.design, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       JOIN users u ON l.user_id = u.id

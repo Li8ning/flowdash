@@ -33,7 +33,6 @@ interface Product {
   id: number;
   name: string;
   sku: string;
-  model: string; // This might be deprecated, but keeping for now to avoid breaking changes if API hasn't updated
   design: string;
   category: string;
   color: string;

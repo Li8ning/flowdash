@@ -48,7 +48,7 @@ interface InventoryLog {
   product_id: number;
   product_name: string;
   color: string;
-  model: string;
+  design: string;
   produced: number;
   created_at: string;
   username?: string;
@@ -65,7 +65,7 @@ interface LogFilters {
   user: string;
   product: string;
   color: string;
-  model: string;
+  design: string;
   startDate: string;
   endDate: string;
   quality: string;
@@ -92,7 +92,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       user: '',
       product: '',
       color: '',
-      model: '',
+      design: '',
       startDate: today,
       endDate: today,
       quality: '',
@@ -107,7 +107,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [distinctUsers, setDistinctUsers] = useState<string[]>([]);
   const [distinctProducts, setDistinctProducts] = useState<string[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
-  const [distinctModels, setDistinctModels] = useState<string[]>([]);
+  const [distinctDesigns, setDistinctDesigns] = useState<string[]>([]);
   const [distinctQualities, setDistinctQualities] = useState<string[]>([]);
   const [distinctPackagingTypes, setDistinctPackagingTypes] = useState<string[]>([]);
 
@@ -116,7 +116,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       const endpoints = [
         api.get('/distinct/inventory/product_name'),
         api.get('/distinct/products/color'),
-        api.get('/distinct/products/model'),
+        api.get('/distinct/products/design'),
         api.get('/distinct/inventory/quality'),
         api.get('/distinct/inventory/packaging_type'),
       ];
@@ -125,11 +125,11 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         endpoints.push(api.get('/distinct/inventory/users'));
       }
 
-      const [productsRes, colorsRes, modelsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
+      const [productsRes, colorsRes, designsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
       
       setDistinctProducts(productsRes.data);
       setDistinctColors(colorsRes.data);
-      setDistinctModels(modelsRes.data);
+      setDistinctDesigns(designsRes.data);
       setDistinctQualities(qualitiesRes.data);
       setDistinctPackagingTypes(packagingTypesRes.data);
 
@@ -370,14 +370,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             ))}
           </Select>
           <Select
-            placeholder={t('inventory.logs.filter_by_model')}
-            value={filters.model}
-            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+            placeholder={t('inventory.logs.filter_by_design')}
+            value={filters.design}
+            onChange={(e) => setFilters({ ...filters, design: e.target.value })}
             focusBorderColor="blue.500"
           >
-            {distinctModels.map((m: string) => (
-              <option key={m} value={m}>
-                {m}
+            {distinctDesigns.map((d: string) => (
+              <option key={d} value={d}>
+                {d}
               </option>
             ))}
           </Select>
@@ -451,7 +451,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       <Box flex="1" textAlign="left">
                         <Flex align="center" w="100%">
                           <Image
-                            src={log.image_url || 'https://via.placeholder.com/50'}
+                            src={log.image_url || 'https://placehold.co/50'}
                             alt={log.product_name}
                             boxSize="50px"
                             objectFit="cover"
@@ -484,8 +484,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                         <Text>{log.color}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('inventory.logs.table.model')}:</Text>
-                        <Text>{log.model}</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.design')}:</Text>
+                        <Text>{log.design}</Text>
                       </Flex>
                       <Flex justify="space-between">
                         <Text fontWeight="bold">{t('inventory.logs.table.quality')}:</Text>
@@ -547,7 +547,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                   <Th>{t('inventory.logs.table.image')}</Th>
                   <Th>{t('inventory.logs.table.product_name')}</Th>
                   <Th>{t('inventory.logs.table.color')}</Th>
-                  <Th>{t('inventory.logs.table.model')}</Th>
+                  <Th>{t('inventory.logs.table.design')}</Th>
                   {allLogs && <Th>{t('inventory.logs.table.user')}</Th>}
                   <Th>{t('inventory.logs.table.quality')}</Th>
                   <Th>{t('inventory.logs.table.packaging_type')}</Th>
@@ -571,7 +571,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                     >
                       <Td>
                         <Image
-                          src={log.image_url || 'https://via.placeholder.com/50'}
+                          src={log.image_url || 'https://placehold.co/50'}
                           alt={log.product_name}
                           boxSize="50px"
                           objectFit="cover"
@@ -580,7 +580,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       </Td>
                       <Td>{log.product_name}</Td>
                       <Td>{log.color}</Td>
-                      <Td>{log.model}</Td>
+                      <Td>{log.design}</Td>
                       {allLogs && <Td>{log.username}</Td>}
                       <Td>{log.quality ? t(`product_manager.quality.${log.quality.toLowerCase()}`) : ''}</Td>
                       <Td>{log.packaging_type ? t(`product_manager.packaging_type.${log.packaging_type.toLowerCase()}`) : ''}</Td>

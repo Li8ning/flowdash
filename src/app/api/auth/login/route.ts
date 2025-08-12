@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const secret = new TextEncoder().encode(JWT_SECRET);
 
   try {
-    const { username, password } = await request.json();
+    const { username, password, rememberMe } = await request.json();
 
     const { rows: userResult } = await sql`SELECT * FROM users WHERE username = ${username}`;
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     const token = await new SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('1h')
+      .setExpirationTime(rememberMe ? '30d' : '1d')
       .sign(secret);
 
     const userResponse = {

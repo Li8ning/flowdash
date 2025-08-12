@@ -29,7 +29,6 @@ export const GET = withAuth(async (req: AuthenticatedRequest, context: { params:
 const productUpdateSchema = z.object({
   name: z.string().min(1, "Name cannot be empty").optional(),
   sku: z.string().min(1, "SKU cannot be empty").optional(),
-  model: z.string().optional(),
   color: z.string().optional(),
   category: z.string().optional(),
   design: z.string().optional(),
@@ -69,7 +68,6 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest, context: { param
       SET
         name = ${updatedData.name},
         sku = ${updatedData.sku},
-        model = ${updatedData.model},
         color = ${updatedData.color},
         category = ${updatedData.category},
         design = ${updatedData.design},

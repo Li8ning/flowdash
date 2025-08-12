@@ -29,7 +29,7 @@ interface InventoryLog {
   product_id: number;
   product_name: string;
   color: string;
-  model: string;
+  design: string;
   produced: number;
   created_at: string;
   quality: string;

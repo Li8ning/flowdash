@@ -12,7 +12,7 @@ const getHandler = async (req: AuthenticatedRequest) => {
 
   try {
     let query = `
-      SELECT p.name as product_name, p.model, p.color, SUM(l.produced) as total_production
+      SELECT p.name as product_name, p.design, p.color, SUM(l.produced) as total_production
       FROM inventory_logs l
       JOIN products p ON l.product_id = p.id
       WHERE p.organization_id = $1 AND l.produced > 0
@@ -29,7 +29,7 @@ const getHandler = async (req: AuthenticatedRequest) => {
       params.push(endDate);
     }
 
-    query += ` GROUP BY p.name, p.model, p.color ORDER BY p.name, p.model, p.color`;
+    query += ` GROUP BY p.name, p.design, p.color ORDER BY p.name, p.design, p.color`;
 
     const { rows } = await sql.query(query, params);
 

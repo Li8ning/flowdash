@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '../../../lib/auth';
-import sql, { db } from '../../../lib/db';
+import { db } from '../../../lib/db';
 import { z } from 'zod';
 import logger from '../../../lib/logger';
 
@@ -16,21 +16,45 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       });
     }
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const color = searchParams.get('color');
+    const category = searchParams.get('category');
+    const design = searchParams.get('design');
 
-    const productsPromise = sql`
-      SELECT *
-      FROM products
-      WHERE organization_id = ${organization_id}
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `;
+    const whereClauses = ['organization_id = $1'];
+    const queryParams: (string | number)[] = [organization_id];
+    let paramIndex = 2;
+
+    if (color) {
+      whereClauses.push(`color = $${paramIndex++}`);
+      queryParams.push(color);
+    }
+    if (category) {
+      whereClauses.push(`category = $${paramIndex++}`);
+      queryParams.push(category);
+    }
+    if (design) {
+      whereClauses.push(`design = $${paramIndex++}`);
+      queryParams.push(design);
+    }
+
+    const whereString = whereClauses.join(' AND ');
+
+    const productsPromise = db.query(
+      `SELECT *
+       FROM products
+       WHERE ${whereString}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++}
+       OFFSET $${paramIndex++}`,
+      [...queryParams, limit, offset]
+    );
     
-    const countPromise = sql`
-      SELECT COUNT(*) FROM products WHERE organization_id = ${organization_id}
-    `;
+    const countPromise = db.query(
+      `SELECT COUNT(*) FROM products WHERE ${whereString}`,
+      queryParams
+    );
 
     const [productsResult, countResult] = await Promise.all([productsPromise, countPromise]);
 
@@ -49,7 +73,6 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sku: z.string().min(1, "SKU is required"),
-  model: z.string().optional(),
   color: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal('')),
   available_qualities: z.array(z.string()).optional(),
@@ -70,7 +93,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Invalid input', issues: validation.error.issues }, { status: 400 });
     }
 
-    const { name, sku, model, color, image_url, available_qualities, category, design } = validation.data;
+    const { name, sku, color, image_url, available_qualities, category, design } = validation.data;
     let { available_packaging_types } = validation.data;
 
     const { rows: existingProducts } = await client.query(
@@ -90,10 +113,10 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     }
 
     const { rows } = await client.query(
-      `INSERT INTO products (name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types, category, design)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO products (name, sku, color, image_url, organization_id, available_qualities, available_packaging_types, category, design)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types, category, design]
+      [name, sku, color, image_url, organization_id, available_qualities, available_packaging_types, category, design]
     );
     
     await client.query('COMMIT');

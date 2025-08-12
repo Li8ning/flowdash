@@ -58,7 +58,6 @@ interface Product {
   id: number;
   name: string;
   sku: string;
-  model: string;
   color: string;
   category: string;
   design: string;
@@ -83,7 +82,7 @@ const ProductManager = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(50);
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -91,8 +90,8 @@ const ProductManager = () => {
   const { token, user } = useAuth();
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ color: '' });
-  const [activeFilters, setActiveFilters] = useState({ color: '' });
+  const [filters, setFilters] = useState({ color: '', category: '', design: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '', category: '', design: '' });
   const [attributes, setAttributes] = useState<GroupedAttributes>({});
   const [lastCreatedProduct, setLastCreatedProduct] = useState<Product | null>(null);
 
@@ -117,8 +116,7 @@ const ProductManager = () => {
         params: {
           limit: productsPerPage,
           offset,
-          // NOTE: Backend filtering is not yet implemented for products.
-          // The search and filter below are client-side on the current page.
+          ...activeFilters,
         },
       });
 
@@ -224,7 +222,7 @@ const ProductManager = () => {
       setLastCreatedProduct(createdProduct); // Save the newly created product for the next pre-fill
       
       // Reset the form to a clean state
-      setNewProduct({ sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+      setNewProduct({ sku: '', name: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
       setImageFile(null);
       setImagePreview(null);
       onCreateClose();
@@ -326,15 +324,10 @@ const ProductManager = () => {
     setActiveFilters(filters);
   };
 
-  const filteredProducts = products.filter((product) => {
-    const searchMatch =
+  const filteredProducts = products.filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
-
-    return searchMatch && colorMatch;
-  });
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
@@ -357,14 +350,13 @@ const ProductManager = () => {
                 image_url: '',
                 available_qualities: [],
                 available_packaging_types: [],
-                model: lastCreatedProduct.model,
                 color: lastCreatedProduct.color,
                 category: lastCreatedProduct.category,
                 design: lastCreatedProduct.design,
               });
             } else {
               setNewProduct({
-                sku: '', name: '', model: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: []
+                sku: '', name: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: []
               });
             }
             setImageFile(null);
@@ -390,6 +382,28 @@ const ProductManager = () => {
 
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select
+          placeholder={t('product_manager.filter_by_category')}
+          value={filters.category}
+          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+        >
+          {(attributes.category || []).map((attr) => (
+            <option key={attr.id} value={attr.value}>
+              {attr.value}
+            </option>
+          ))}
+        </Select>
+        <Select
+          placeholder={t('product_manager.filter_by_design')}
+          value={filters.design}
+          onChange={(e) => setFilters({ ...filters, design: e.target.value })}
+        >
+          {(attributes.design || []).map((attr) => (
+            <option key={attr.id} value={attr.value}>
+              {attr.value}
+            </option>
+          ))}
+        </Select>
+        <Select
           placeholder={t('product_manager.filter_by_color')}
           value={filters.color}
           onChange={(e) => setFilters({ ...filters, color: e.target.value })}
@@ -403,8 +417,8 @@ const ProductManager = () => {
         <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
         <Button
           onClick={() => {
-            setFilters({ color: '' });
-            setActiveFilters({ color: '' });
+            setFilters({ color: '', category: '', design: '' });
+            setActiveFilters({ color: '', category: '', design: '' });
             setCurrentPage(1);
           }}
           colorScheme="gray"
@@ -592,7 +606,7 @@ const ProductManager = () => {
                             objectFit="cover"
                             borderRadius="md"
                             mr={4}
-                            fallbackSrc="https://via.placeholder.com/50"
+                            fallbackSrc="https://placehold.co/50"
                           />
                           <Text fontWeight="bold">{product.name}</Text>
                         </Flex>
@@ -660,7 +674,7 @@ const ProductManager = () => {
                         boxSize="50px"
                         objectFit="cover"
                         borderRadius="md"
-                        fallbackSrc="https://via.placeholder.com/50"
+                        fallbackSrc="https://placehold.co/50"
                       />
                     </Td>
                     <Td>

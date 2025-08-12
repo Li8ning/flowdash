@@ -47,7 +47,7 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteC
       `;
       
       const { rows: [result] } = await sql`
-        SELECT l.id, p.name as product_name, p.color, p.model, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
+        SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
         FROM inventory_logs l
         JOIN products p ON l.product_id = p.id
         WHERE l.id = ${logId}

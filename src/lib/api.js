@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import { startApiLoading, stopApiLoading } from '../context/LoadingContext';
 
 const api = axios.create({
@@ -12,6 +11,10 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     startApiLoading();
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -39,7 +42,8 @@ api.interceptors.response.use(
 
         // Avoid redirect loops if already on the login page
         if (window.location.pathname !== '/') {
-          Cookies.remove('token');
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
           window.location.href = '/';
         }
       }
@@ -48,7 +52,5 @@ api.interceptors.response.use(
   }
 );
 
-
-// The browser will automatically send the cookie, so we don't need an interceptor to add the token.
 
 export default api;

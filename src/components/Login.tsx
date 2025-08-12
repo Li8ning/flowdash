@@ -13,6 +13,7 @@ import {
   useToast,
   Select,
   HStack,
+  Checkbox,
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { AxiosError } from 'axios';
@@ -26,13 +27,14 @@ const Login = () => {
   const { language, changeLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
       toast({
         title: t('login.success.title'),
         description: t('login.success.description'),
@@ -100,6 +102,11 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+        </FormControl>
+        <FormControl>
+          <Checkbox isChecked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>
+            {t('login.remember_me')}
+          </Checkbox>
         </FormControl>
         <Button type="submit" colorScheme="blue" width="full">
           {t('login.button')}
