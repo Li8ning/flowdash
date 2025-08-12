@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -8,6 +8,7 @@ import {
   Stack,
   useToast,
   Heading,
+  SimpleGrid,
   Text,
   VStack,
   Modal,
@@ -21,10 +22,8 @@ import {
   Image,
   HStack,
   IconButton,
-  Select as ChakraSelect,
-  Flex,
+  Select,
 } from '@chakra-ui/react';
-import Select, { StylesConfig } from 'react-select';
 import { AddIcon, DeleteIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '../lib/api';
 import { AxiosError } from 'axios';
@@ -48,17 +47,16 @@ interface LogEntry {
   packagingType: string;
 }
 
-interface ProductOption {
-  value: number;
-  label: string;
-  product: Product;
-}
-
 const LogEntryForm = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ color: '', model: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '', model: '' });
+  const [distinctColors, setDistinctColors] = useState([]);
+  const [distinctModels, setDistinctModels] = useState([]);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { t } = useTranslation();
@@ -66,8 +64,14 @@ const LogEntryForm = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data } = await api.get('/products', { params: { limit: 1000 } }); // Fetch all products
-        setProducts(data.data || []);
+        const [productsRes, colorsRes, modelsRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/distinct/products/color'),
+          api.get('/distinct/products/model'),
+        ]);
+        setProducts(productsRes.data.data || []);
+        setDistinctColors(colorsRes.data);
+        setDistinctModels(modelsRes.data);
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast({
@@ -82,16 +86,7 @@ const LogEntryForm = () => {
     fetchProducts();
   }, [toast, t]);
 
-  const productOptions = useMemo((): ProductOption[] =>
-    products.map(p => ({
-      value: p.id,
-      label: `${p.name} (${p.sku})`,
-      product: p,
-    })), [products]);
-
-  const handleProductSelect = (option: ProductOption | null) => {
-    if (!option) return;
-    const product = option.product;
+  const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setLogEntries([{ id: Date.now(), quantity: '', quality: '', packagingType: '' }]);
     onOpen();
@@ -164,42 +159,94 @@ const LogEntryForm = () => {
     }
   };
 
-  const formatOptionLabel = ({ label, product }: ProductOption) => (
-    <Flex align="center">
-      <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize="40px" objectFit="cover" borderRadius="md" mr={3} />
-      <Box>
-        <Text fontWeight="bold">{product.name}</Text>
-        <Text fontSize="sm" color="gray.500">{product.sku}</Text>
-      </Box>
-    </Flex>
-  );
-
-  const customStyles: StylesConfig<ProductOption, false> = {
-    control: (provided) => ({
-      ...provided,
-      minHeight: '48px',
-      borderRadius: '0.375rem',
-    }),
-    menu: (provided) => ({
-      ...provided,
-      zIndex: 2,
-    }),
+  const handleFilter = () => {
+    setActiveFilters(filters);
   };
+
+  const filteredProducts = products.filter((product) => {
+    const searchMatch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
+    const modelMatch = activeFilters.model ? product.model === activeFilters.model : true;
+
+    return searchMatch && colorMatch && modelMatch;
+  });
 
   return (
     <Box p={{ base: 2, md: 4 }} bg="brand.surface">
-      <Stack spacing={6} maxW="xl" mx="auto">
+      <Stack spacing={6}>
         <Heading as="h2" size="lg" textAlign="center">{t('product_selector.title')}</Heading>
-        <Select<ProductOption>
-          options={productOptions}
-          onChange={handleProductSelect}
+        <Input
           placeholder={t('product_selector.search_placeholder')}
-          isClearable
-          isSearchable
-          formatOptionLabel={formatOptionLabel}
-          styles={customStyles}
-          noOptionsMessage={() => t('product_selector.no_products_found')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          size="lg"
         />
+       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2} mb={4}>
+          <Select
+            placeholder={t('product_selector.filter_by_color')}
+            value={filters.color}
+            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+            size="sm"
+            focusBorderColor="blue.500"
+          >
+            {distinctColors.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+          <Select
+            placeholder={t('product_selector.filter_by_model')}
+            value={filters.model}
+            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+            size="sm"
+            focusBorderColor="blue.500"
+          >
+            {distinctModels.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
+          <Button
+            onClick={() => {
+              setFilters({ color: '', model: '' });
+              setActiveFilters({ color: '', model: '' });
+            }}
+            colorScheme="gray"
+            size="sm"
+          >
+            {t('product_selector.clear_filters')}
+          </Button>
+        </SimpleGrid>
+       <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing={{ base: 6, md: 5 }}>
+          {filteredProducts.map((product) => (
+            <Box
+              key={product.id}
+              p={4}
+              borderWidth="1px"
+              borderRadius="lg"
+              cursor="pointer"
+              textAlign="center"
+              bg="brand.background"
+              borderColor="brand.lightBorder"
+              onClick={() => handleProductSelect(product)}
+              transition="all 0.2s"
+              _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'blue.500' }}
+            >
+              <VStack spacing={3}>
+                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="cover" borderRadius="lg" />
+                <Text fontWeight="bold" fontSize={{ base: 'xl', md: 'lg' }} noOfLines={2}>{product.name}</Text>
+                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.600">{product.model}</Text>
+                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.500">{product.color}</Text>
+              </VStack>
+            </Box>
+          ))}
+        </SimpleGrid>
       </Stack>
 
       {selectedProduct && (
@@ -248,7 +295,7 @@ const LogEntryForm = () => {
                         }}
                       />
                     </HStack>
-                    <ChakraSelect
+                    <Select
                       placeholder={t('product_selector.quantity_modal.select_quality')}
                       value={entry.quality}
                       onChange={(e) => handleLogEntryChange(entry.id, 'quality', e.target.value)}
@@ -259,8 +306,8 @@ const LogEntryForm = () => {
                       {selectedProduct.available_qualities?.map(q => (
                         <option key={q} value={q}>{t(`product_manager.quality.${q.toLowerCase()}`)}</option>
                       ))}
-                    </ChakraSelect>
-                    <ChakraSelect
+                    </Select>
+                    <Select
                       placeholder={t('product_selector.quantity_modal.select_packaging')}
                       value={entry.packagingType}
                       onChange={(e) => handleLogEntryChange(entry.id, 'packagingType', e.target.value)}
@@ -271,7 +318,7 @@ const LogEntryForm = () => {
                       {selectedProduct.available_packaging_types?.map(p => (
                         <option key={p} value={p}>{t(`product_manager.packaging_type.${p.toLowerCase()}`)}</option>
                       ))}
-                    </ChakraSelect>
+                    </Select>
                     <IconButton
                       aria-label="Remove Log Entry"
                       icon={<DeleteIcon />}
