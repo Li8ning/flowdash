@@ -163,3 +163,13 @@ This file logs all errors encountered during development and debugging, along wi
 -   **Cause:** The `logout` function in the `AuthContext` was programmatically redirecting to `/login`. However, the application's routing is set up so that the login page is at the root (`/`). The `/login` route does not exist, causing Next.js to render a 404 page, which appeared blank.
 -   **Location:** `src/context/AuthContext.tsx`
 -   **Resolution:** Modified the `logout` function within `AuthContext.tsx` to change the redirect from `router.push('/login')` to `router.push('/')`. This correctly sends the user to the actual login page after their session is terminated.
+---
+
+## Session: 2025-08-12
+
+### 16. 500 Server Error on Vercel Preview Deployment
+
+-   **Error:** `NeonDbError: relation "product_attributes" does not exist`. This error occurred only on Vercel preview deployments, not locally.
+-   **Cause:** The Neon database integration with Vercel creates a new, empty database branch for each Git feature branch. The `features/system-improvements` branch was connected to a new database that did not have the schema (i.e., the tables) that existed in the `main` branch's database.
+-   **Location:** Vercel/Neon Infrastructure.
+-   **Resolution:** The user resolved the issue by using the "Reset from Parent" option in the Neon dashboard for the feature branch. This action copied the entire schema and data from the `main` database branch to the feature database branch, ensuring the necessary tables existed. The debugging code added to the API route was subsequently reverted.

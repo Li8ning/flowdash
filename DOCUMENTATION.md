@@ -187,3 +187,12 @@ To get a local copy up and running, follow these simple steps.
 ## Deployment
 
 The application is deployed on Vercel. The deployment is automatically triggered on every push to the `main` branch.
+### Vercel and Neon Database Branching
+
+A critical aspect of the deployment process involves understanding how Neon's database branching works with Vercel's preview deployments.
+
+-   **Automatic Branching:** When you push a new Git branch and Vercel creates a preview deployment, the Neon integration automatically creates a new, separate database branch for it.
+-   **Schema and Data:** This new database branch is **empty** by default. It does not automatically inherit the schema or data from your `main` production database.
+-   **Resolving "Table Not Found" Errors:** If a preview deployment fails with an error like `relation "..." does not exist`, it means the necessary database tables have not been created on the feature branch's database. To fix this, you have two main options:
+    1.  **Run Migrations:** Manually run your SQL migration scripts against the feature branch's database connection string to create the schema.
+    2.  **Reset from Parent (Recommended):** In the Neon project dashboard, find your new feature branch, and use the "Reset from Parent" option. This will overwrite the feature branch's database with a complete copy of the schema and data from its parent (usually your `main` branch), immediately bringing it in sync.
