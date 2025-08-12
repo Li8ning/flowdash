@@ -14,7 +14,8 @@ const ALLOWED_ENTITIES: Record<string, string> = {
 const ALLOWED_FIELDS: Record<string, string> = {
   // products
   color: 'color',
-  model: 'model',
+  design: 'design',
+  category: 'category',
   // inventory_logs
   quality: 'quality',
   packaging_type: 'packaging_type',

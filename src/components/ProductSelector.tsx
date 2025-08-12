@@ -33,7 +33,9 @@ interface Product {
   id: number;
   name: string;
   sku: string;
-  model: string;
+  model: string; // This might be deprecated, but keeping for now to avoid breaking changes if API hasn't updated
+  design: string;
+  category: string;
   color: string;
   image_url: string;
   available_qualities: string[];
@@ -53,10 +55,11 @@ const LogEntryForm = () => {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ color: '', model: '' });
-  const [activeFilters, setActiveFilters] = useState({ color: '', model: '' });
+  const [filters, setFilters] = useState({ color: '', design: '', category: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '', design: '', category: '' });
   const [distinctColors, setDistinctColors] = useState([]);
-  const [distinctModels, setDistinctModels] = useState([]);
+  const [distinctDesigns, setDistinctDesigns] = useState([]);
+  const [distinctCategories, setDistinctCategories] = useState([]);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { t } = useTranslation();
@@ -64,14 +67,16 @@ const LogEntryForm = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const [productsRes, colorsRes, modelsRes] = await Promise.all([
+        const [productsRes, colorsRes, designsRes, categoriesRes] = await Promise.all([
           api.get('/products'),
           api.get('/distinct/products/color'),
-          api.get('/distinct/products/model'),
+          api.get('/distinct/products/design'),
+          api.get('/distinct/products/category'),
         ]);
         setProducts(productsRes.data.data || []);
         setDistinctColors(colorsRes.data);
-        setDistinctModels(modelsRes.data);
+        setDistinctDesigns(designsRes.data);
+        setDistinctCategories(categoriesRes.data);
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast({
@@ -169,9 +174,10 @@ const LogEntryForm = () => {
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
-    const modelMatch = activeFilters.model ? product.model === activeFilters.model : true;
+    const designMatch = activeFilters.design ? product.design === activeFilters.design : true;
+    const categoryMatch = activeFilters.category ? product.category === activeFilters.category : true;
 
-    return searchMatch && colorMatch && modelMatch;
+    return searchMatch && colorMatch && designMatch && categoryMatch;
   });
 
   return (
@@ -184,7 +190,33 @@ const LogEntryForm = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           size="lg"
         />
-       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2} mb={4}>
+       <SimpleGrid columns={{ base: 2, md: 5 }} spacing={2} mb={4}>
+          <Select
+            placeholder={t('product_selector.filter_by_category')}
+            value={filters.category}
+            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            size="sm"
+            focusBorderColor="blue.500"
+          >
+            {distinctCategories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+          <Select
+            placeholder={t('product_selector.filter_by_design')}
+            value={filters.design}
+            onChange={(e) => setFilters({ ...filters, design: e.target.value })}
+            size="sm"
+            focusBorderColor="blue.500"
+          >
+            {distinctDesigns.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </Select>
           <Select
             placeholder={t('product_selector.filter_by_color')}
             value={filters.color}
@@ -198,24 +230,11 @@ const LogEntryForm = () => {
               </option>
             ))}
           </Select>
-          <Select
-            placeholder={t('product_selector.filter_by_model')}
-            value={filters.model}
-            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-            size="sm"
-            focusBorderColor="blue.500"
-          >
-            {distinctModels.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </Select>
           <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
           <Button
             onClick={() => {
-              setFilters({ color: '', model: '' });
-              setActiveFilters({ color: '', model: '' });
+              setFilters({ color: '', design: '', category: '' });
+              setActiveFilters({ color: '', design: '', category: '' });
             }}
             colorScheme="gray"
             size="sm"
@@ -241,7 +260,7 @@ const LogEntryForm = () => {
               <VStack spacing={3}>
                 <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="cover" borderRadius="lg" />
                 <Text fontWeight="bold" fontSize={{ base: 'xl', md: 'lg' }} noOfLines={2}>{product.name}</Text>
-                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.600">{product.model}</Text>
+                <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.600">{product.design}</Text>
                 <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.500">{product.color}</Text>
               </VStack>
             </Box>
@@ -259,7 +278,7 @@ const LogEntryForm = () => {
               <VStack>
                 <Image src={selectedProduct.image_url || '/file.svg'} alt={selectedProduct.name} boxSize="100px" objectFit="cover" borderRadius="lg" />
                 <Heading size="md">{selectedProduct.name}</Heading>
-                <Text color="gray.500">{selectedProduct.model} - {selectedProduct.color}</Text>
+                <Text color="gray.500">{selectedProduct.design} - {selectedProduct.color}</Text>
               </VStack>
               <VStack spacing={4} mt={6}>
                 {logEntries.map((entry) => (

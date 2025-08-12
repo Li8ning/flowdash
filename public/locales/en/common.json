@@ -84,6 +84,8 @@
   "product_selector.search_placeholder": "Search by name, model, or color...",
   "product_selector.filter_by_color": "Filter by Color",
   "product_selector.filter_by_model": "Filter by Model",
+  "product_selector.filter_by_design": "Filter by Design",
+  "product_selector.filter_by_category": "Filter by Category",
   "product_selector.filter": "Filter",
   "product_selector.clear_filters": "Clear Filters",
   "product_selector.quantity_modal.title": "Enter Quantity for",

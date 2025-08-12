@@ -80,6 +80,8 @@
   "product_selector.search_placeholder": "नाम, मॉडल या रंग से खोजें...",
   "product_selector.filter_by_color": "रंग से फ़िल्टर करें",
   "product_selector.filter_by_model": "मॉडल से फ़िल्टर करें",
+  "product_selector.filter_by_design": "डिज़ाइन से फ़िल्टर करें",
+  "product_selector.filter_by_category": "श्रेणी से फ़िल्टर करें",
   "product_selector.filter": "फ़िल्टर",
   "product_selector.clear_filters": "फ़िल्टर हटाएँ",
   "product_selector.quantity_modal.title": "के लिए गिनती डालें",
