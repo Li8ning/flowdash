@@ -1,87 +1,114 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
-import { withAuth, AuthenticatedRequest } from '@/lib/auth';
-import logger from '@/lib/logger';
+import { verifyAuth } from '@/lib/auth-utils';
+import { z } from 'zod';
+import { handleError, ForbiddenError, BadRequestError, NotFoundError, ConflictError } from '@/lib/errors';
 
-import { HandlerContext } from '@/lib/auth';
+const updateUserSchema = z.object({
+  name: z.string().min(1, "Name cannot be empty.").optional(),
+  username: z.string().min(3, "Username must be at least 3 characters.").optional(),
+  language: z.string().optional(),
+  role: z.enum(['super_admin', 'admin', 'floor_staff']).optional(),
+}).strict();
 
-const patchHandler = async (req: AuthenticatedRequest, context: HandlerContext) => {
-  const { name, language, username } = await req.json();
-  const userId = parseInt(context.params.id as string, 10);
-  const { id: currentUserId, role } = req.user;
+interface HandlerContext {
+  params: { id: string };
+}
 
-  if (currentUserId !== userId && role !== 'factory_admin') {
-    return NextResponse.json({ msg: 'You are not authorized to perform this action.' }, { status: 403 });
+export const PATCH = handleError(async (req: NextRequest, { params }: HandlerContext) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  const body = await req.json();
+  const validationResult = updateUserSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    throw new BadRequestError('Invalid input', validationResult.error.flatten());
   }
 
-  if (!name && !language && !username) {
-    return NextResponse.json({ msg: 'No update information provided.' }, { status: 400 });
+  const { name, language, username, role: newRole } = validationResult.data;
+  const userId = parseInt(params.id, 10);
+  const { id: currentUserId, role: currentUserRole, organization_id } = authResult.user;
+
+  const isSelf = (currentUserId as number) === userId;
+  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+
+  if (!isSelf && !isAdmin) {
+    throw new ForbiddenError();
   }
 
-  try {
-    const { rows: [userRecord] } = await sql`
-      SELECT * FROM users WHERE id = ${userId}
-    `;
-
-    if (!userRecord) {
-      return NextResponse.json({ msg: 'User not found.' }, { status: 404 });
+  if (newRole) {
+    if (!isAdmin) {
+      throw new ForbiddenError('You are not authorized to change roles.');
     }
-
-    if (username && username !== userRecord.username) {
-      const { rows: [existingUser] } = await sql`
-        SELECT id FROM users WHERE LOWER(username) = LOWER(${username})
-      `;
-      if (existingUser) {
-        return NextResponse.json({ msg: 'Username is already taken.' }, { status: 409 });
-      }
+    if (newRole === 'super_admin' && currentUserRole !== 'super_admin') {
+      throw new ForbiddenError('Only super_admins can assign super_admin role.');
     }
+  }
 
-    const newName = name || userRecord.name;
-    const newLanguage = language || userRecord.language;
-    const newUsername = username || userRecord.username;
+  const { rows: [userRecord] } = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!userRecord) {
+    throw new NotFoundError('User not found.');
+  }
 
-    const { rows: [updatedUser] } = await sql`
-      UPDATE users
-      SET name = ${newName}, language = ${newLanguage}, username = ${newUsername}
-      WHERE id = ${userId}
-      RETURNING id, name, username, role, language, is_active, organization_id
+  if (username && username.toLowerCase() !== userRecord.username.toLowerCase()) {
+    const { rows: [existingUser] } = await sql`
+      SELECT id FROM users WHERE LOWER(username) = LOWER(${username}) AND id != ${userId}
     `;
-
-    return NextResponse.json(updatedUser);
-  } catch (err) {
-    logger.error({ err }, 'Failed to update user');
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
-
-export const PATCH = withAuth(patchHandler);
-
-const deleteHandler = async (req: AuthenticatedRequest, context: HandlerContext) => {
-  const userId = parseInt(context.params.id as string, 10);
-  const { id: currentUserId, role } = req.user;
-
-  if (role !== 'factory_admin') {
-    return NextResponse.json({ msg: 'You are not authorized to perform this action.' }, { status: 403 });
+    if (existingUser) {
+      throw new ConflictError('Username is already taken.');
+    }
   }
 
-  if (currentUserId === userId) {
-    return NextResponse.json({ msg: 'You cannot delete your own account.' }, { status: 400 });
-  }
-
-  try {
-    await sql`
-      UPDATE users
-      SET is_active = false
-      WHERE id = ${userId}
+  if (isSelf && newRole && newRole !== currentUserRole && (currentUserRole === 'super_admin' || currentUserRole === 'admin')) {
+    const { rowCount } = await sql`
+      SELECT 1 FROM users
+      WHERE organization_id = ${organization_id as number} AND role = ${currentUserRole as string} AND id != ${currentUserId as number}
     `;
-
-    return NextResponse.json({ msg: 'User deactivated successfully.' });
-  } catch (err) {
-    logger.error({ err }, 'Failed to deactivate user');
-    const error = err as Error;
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (rowCount === 0) {
+      throw new ForbiddenError(`Cannot demote the last ${currentUserRole}.`);
+    }
   }
-};
 
-export const DELETE = withAuth(deleteHandler);
+  const newName = name || userRecord.name;
+  const newLanguage = language || userRecord.language;
+  const newUsername = username || userRecord.username;
+  const finalRole = newRole || userRecord.role;
+
+  const { rows: [updatedUser] } = await sql`
+    UPDATE users
+    SET name = ${newName}, language = ${newLanguage}, username = ${newUsername}, role = ${finalRole}
+    WHERE id = ${userId}
+    RETURNING id, name, username, role, language, is_active, organization_id
+  `;
+
+  return NextResponse.json(updatedUser);
+});
+
+export const DELETE = handleError(async (req: NextRequest, { params }: HandlerContext) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  const userId = parseInt(params.id, 10);
+  const { id: currentUserId, role: currentUserRole } = authResult.user;
+
+  if (!['admin', 'super_admin'].includes(currentUserRole as string)) {
+    throw new ForbiddenError();
+  }
+
+  if ((currentUserId as number) === userId) {
+    throw new BadRequestError('You cannot delete your own account.');
+  }
+
+  const { rowCount } = await sql`
+    UPDATE users SET is_active = false WHERE id = ${userId}
+  `;
+
+  if (rowCount === 0) {
+    throw new NotFoundError('User not found.');
+  }
+
+  return NextResponse.json({ message: 'User deactivated successfully.' });
+});

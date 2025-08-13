@@ -17,22 +17,14 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import api from '../lib/api';
-import { AxiosError } from 'axios';
-
-interface User {
-  id: number;
-  name: string;
-  username: string;
-  role: string;
-  is_active: boolean | null;
-}
+import api from '@/lib/api';
+import { User } from '@/types';
 
 interface UserProfileFormProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
-  onUserUpdate: (user: User) => void;
+  onUserUpdate: (user: Partial<User>) => void;
 }
 
 const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFormProps) => {
@@ -85,7 +77,7 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
     };
   }, [username, user.username, user.id]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!isUsernameAvailable) {
       toast({
         title: 'Username is not available.',
@@ -95,28 +87,7 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
       });
       return;
     }
-
-    try {
-      const response = await api.patch(`/users/${user.id}`, { name, username });
-      onUserUpdate(response.data);
-      toast({
-        title: 'User updated successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      const axiosError = error as AxiosError<{ error: string }>;
-      toast({
-        title: 'Error updating user.',
-        description: axiosError.response?.data?.error || 'An unexpected error occurred.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    onUserUpdate({ id: user.id, name, username });
   };
 
   return (

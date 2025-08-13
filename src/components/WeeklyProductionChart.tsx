@@ -15,7 +15,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import api from '../lib/api';
+import api from '@/lib/api';
 
 ChartJS.register(
   CategoryScale,

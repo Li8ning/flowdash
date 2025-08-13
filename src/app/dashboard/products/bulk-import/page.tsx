@@ -35,7 +35,8 @@ import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { FiUpload, FiFile, FiCheckCircle, FiAlertTriangle, FiXCircle, FiArrowRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
-
+import { useAuth } from '@/context/AuthContext';
+ 
 interface ImportResult {
   totalRows: number;
   importedCount: number;
@@ -48,6 +49,7 @@ interface ImportResult {
 
 const BulkProductImporter = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const toast = useToast();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -261,6 +263,19 @@ const BulkProductImporter = () => {
         </VStack>
     );
   };
+
+  if (user?.role === 'floor_staff') {
+    return (
+      <Box textAlign="center" py={10} px={6}>
+        <Heading as="h2" size="xl" mt={6} mb={2}>
+          {t('access_denied.title')}
+        </Heading>
+        <Text color={'gray.500'}>
+          {t('access_denied.description')}
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Container maxW="container.lg" py={{ base: 4, md: 8 }}>

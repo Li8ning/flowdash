@@ -168,7 +168,7 @@ const ProfileManager = () => {
         </Stack>
       </Box>
 
-      {user?.role === 'factory_admin' && (
+      {(user?.role === 'super_admin' || user?.role === 'admin') && (
         <Box
           as="form"
           onSubmit={handleUpdateOrganization}

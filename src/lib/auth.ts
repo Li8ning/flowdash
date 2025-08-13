@@ -1,8 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
 import { sql } from '@vercel/postgres';
+import { User } from '@/types';
+import { cookies, headers } from 'next/headers';
+import { UnauthorizedError } from './errors';
+import fs from 'fs/promises';
+import path from 'path';
+import { createPrivateKey, createPublicKey, KeyObject } from 'crypto';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+let privateKey: CryptoKey | KeyObject;
+let publicKey: CryptoKey | KeyObject;
+
+async function loadKeys() {
+  if (privateKey && publicKey) {
+    return;
+  }
+  try {
+    const privateKeyPath = path.resolve(process.cwd(), 'private-key.pem');
+    const publicKeyPath = path.resolve(process.cwd(), 'public-key.pem');
+
+    const [privateKeyData, publicKeyData] = await Promise.all([
+      fs.readFile(privateKeyPath, 'utf-8'),
+      fs.readFile(publicKeyPath, 'utf-8'),
+    ]);
+
+    privateKey = createPrivateKey(privateKeyData);
+    publicKey = createPublicKey(publicKeyData);
+  } catch (error) {
+    console.error('Error loading cryptographic keys:', error);
+    throw new Error('Could not load cryptographic keys. The application cannot start securely.');
+  }
+}
+
+loadKeys();
+
+export async function getSession(): Promise<User> {
+  let token: string | undefined;
+  const authHeader = headers().get('authorization');
+
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else {
+    token = cookies().get('token')?.value;
+  }
+
+  if (!token) {
+    throw new UnauthorizedError('No token provided');
+  }
+
+  try {
+    await loadKeys();
+    const { payload } = await jwtVerify(token, publicKey, {
+      algorithms: ['RS256'],
+    });
+    const userPayload = payload as unknown as User;
+
+    const { rows } = await sql`SELECT is_active FROM users WHERE id = ${userPayload.id}`;
+    const user = rows[0];
+
+    if (!user || !user.is_active) {
+      throw new UnauthorizedError('User is inactive');
+    }
+
+    return userPayload;
+  } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
+    console.error('JWT Verification Error:', err);
+    throw new UnauthorizedError('Invalid token');
+  }
+}
+
+export async function createSession(payload: Omit<User, 'is_active' | 'name' | 'language'>, rememberMe: boolean = false) {
+  await loadKeys();
+  
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'RS256' })
+    .setExpirationTime(rememberMe ? '30d' : '1d')
+    .sign(privateKey);
+}
 
 export interface UserPayload {
   id: number;
@@ -19,28 +94,24 @@ export interface HandlerContext {
   params: { [key: string]: string | string[] | undefined };
 }
 
-type Handler<T extends HandlerContext> = (
+type Handler = (
   req: AuthenticatedRequest,
-  context: T
+  context: HandlerContext
 ) => Promise<NextResponse>;
 
-export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: string[]) => {
-  return async (req: NextRequest, context: T) => {
-    let token: string | undefined;
-    const authHeader = req.headers.get('authorization');
-
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else {
-      token = req.cookies.get('token')?.value;
-    }
+export const withAuth = (handler: Handler, roles?: string[]) => {
+  return async (req: NextRequest, context: HandlerContext) => {
+    const token = req.cookies.get('token')?.value;
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      await loadKeys();
+      const { payload } = await jwtVerify(token, publicKey, {
+        algorithms: ['RS256'],
+      });
 
       const userPayload = payload as unknown as UserPayload;
 
@@ -56,8 +127,7 @@ export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: 
       }
 
       if (roles && roles.length > 0) {
-        // Case-insensitive role check
-        if (!userPayload.role || !roles.map(r => r.toLowerCase()).includes(userPayload.role.toLowerCase())) {
+        if (!roles.includes(userPayload.role)) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
@@ -68,8 +138,10 @@ export const withAuth = <T extends HandlerContext>(handler: Handler<T>, roles?: 
       // We pass the request and the original context (which now has resolved params)
       // to the actual route handler.
       return handler(authenticatedReq, context);
-    } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    } catch (err) {
+        if (err instanceof UnauthorizedError) throw err;
+        console.error('JWT Verification Error:', err);
+        throw new UnauthorizedError('Invalid token');
     }
   };
 };

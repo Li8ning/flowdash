@@ -1,127 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
-import sql from '../../../../../lib/db';
-import logger from '../../../../../lib/logger';
-import { UserPayload } from '../../../../../lib/auth';
+import { NextResponse } from 'next/server';
+import { withAuth, AuthenticatedRequest, HandlerContext } from '@/lib/auth';
+import { sql } from '@vercel/postgres';
+import logger from '@/lib/logger';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
-
-const ALLOWED_ENTITIES: Record<string, string> = {
-  products: 'products',
-  inventory: 'inventory_logs',
+// Define a strict allowlist for entities and their queryable fields.
+// This is the primary defense against SQL injection for identifiers.
+const validationConfig = {
+  products: {
+    tableName: 'products',
+    allowedFields: ['name', 'color', 'design', 'category'],
+  },
+  inventory: {
+    tableName: 'inventory_logs',
+    allowedFields: ['product_name', 'quality', 'packaging_type', 'users'],
+  },
 };
 
-const ALLOWED_FIELDS: Record<string, string> = {
-  // products
-  color: 'color',
-  design: 'design',
-  category: 'category',
-  // inventory_logs
-  quality: 'quality',
-  packaging_type: 'packaging_type',
-  // users (special case)
-  users: 'users',
-  // products (special case)
-  product_name: 'products'
-};
+type ValidEntity = keyof typeof validationConfig;
 
-type Row = { [key: string]: string };
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { entity: string; field: string } }
+async function getDistinctValues(
+  req: AuthenticatedRequest,
+  { params }: HandlerContext
 ) {
-  const { entity, field } = params;
+  const { entity, field } = params as { entity: string; field: string };
+  const user = req.user;
+  const { organization_id } = user;
 
-  const token = req.cookies.get('token')?.value;
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // 1. Validate the entity against our strict allowlist keys
+  if (!(entity in validationConfig)) {
+    logger.warn({ entity, field }, 'Invalid entity requested');
+    return NextResponse.json({ error: 'Invalid entity' }, { status: 400 });
+  }
+  const validEntity = entity as ValidEntity;
+  const config = validationConfig[validEntity];
+
+  // 2. Validate the field against the allowed fields for that entity
+  if (!config.allowedFields.includes(field)) {
+    logger.warn({ entity, field }, 'Invalid field requested for entity');
+    return NextResponse.json({ error: 'Invalid field' }, { status: 400 });
   }
 
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    const user = payload as unknown as UserPayload;
+    let rows: { value: string }[];
 
-    const dbUserResult = await sql`SELECT is_active FROM users WHERE id = ${user.id}`;
-    const dbUser = dbUserResult.rows[0];
-
-    if (!dbUser || dbUser.is_active === false) {
-      const response = NextResponse.json({ error: 'Unauthorized: User is inactive' }, { status: 401 });
-      response.cookies.delete('token');
-      return response;
-    }
-
-    const { organization_id } = user;
-    const tableName = ALLOWED_ENTITIES[entity];
-    const columnName = ALLOWED_FIELDS[field];
-
-    if (!tableName || !columnName) {
-      return NextResponse.json({ error: 'Invalid entity or field' }, { status: 400 });
-    }
-
-    let rows: Row[];
-
-    if (field === 'users') {
-      const result = await sql`
-        SELECT DISTINCT u.name
-        FROM users u
-        JOIN inventory_logs l ON u.id = l.user_id
-        JOIN products p ON l.product_id = p.id
-        WHERE p.organization_id = ${organization_id} AND u.name IS NOT NULL AND u.name != ''
-        ORDER BY u.name
-      `;
-      rows = result.rows as Row[];
-      return NextResponse.json(rows.map((row) => row.name));
-    }
-    
-    if (field === 'product_name') {
+    // Handle the special case for fetching user names from inventory logs
+    if (validEntity === 'inventory' && field === 'users') {
         const result = await sql`
-          SELECT DISTINCT p.name
-          FROM products p
-          JOIN inventory_logs l ON p.id = l.product_id
-          WHERE p.organization_id = ${organization_id} AND p.name IS NOT NULL AND p.name != ''
-          ORDER BY p.name
+            SELECT DISTINCT u.username as value
+            FROM users u
+            INNER JOIN inventory_logs l ON u.id = l.user_id
+            INNER JOIN products p ON l.product_id = p.id
+            WHERE p.organization_id = ${organization_id}
+              AND u.username IS NOT NULL AND u.username != ''
+            ORDER BY u.username;
         `;
-        rows = result.rows as Row[];
-        return NextResponse.json(rows.map((row) => row.name));
+        rows = result.rows as { value: string }[];
+    } else if (validEntity === 'inventory' && field === 'product_name') {
+        const result = await sql`
+            SELECT DISTINCT p.name as value
+            FROM products p
+            INNER JOIN inventory_logs l ON p.id = l.product_id
+            WHERE p.organization_id = ${organization_id}
+              AND p.name IS NOT NULL AND p.name != ''
+            ORDER BY p.name;
+        `;
+        rows = result.rows as { value: string }[];
+    } else if (validEntity === 'inventory') {
+        const columnName = field;
+        const result = await sql.query(
+            `
+                SELECT DISTINCT l."${columnName}" as value
+                FROM inventory_logs l
+                INNER JOIN products p ON l.product_id = p.id
+                WHERE p.organization_id = $1
+                  AND l."${columnName}" IS NOT NULL
+                  AND CAST(l."${columnName}" AS TEXT) != ''
+                ORDER BY value;
+            `,
+            [organization_id]
+        );
+        rows = result.rows as { value: string }[];
+    }
+    else {
+        // Since @vercel/postgres does not support sql.identifier, we build the query string
+        // manually. This is safe ONLY BECAUSE we have strictly validated both the
+        // table name and column name against a hardcoded allowlist.
+        const tableName = config.tableName;
+        const columnName = field;
+
+        const result = await sql.query(
+            `
+                SELECT DISTINCT "${columnName}" as value
+                FROM "${tableName}"
+                WHERE organization_id = $1
+                  AND "${columnName}" IS NOT NULL
+                  AND CAST("${columnName}" AS TEXT) != ''
+                ORDER BY value;
+            `,
+            [organization_id]
+        );
+        rows = result.rows as { value: string }[];
     }
 
-    // Standard query for other fields
-    let query;
-    const queryParams = [organization_id];
-
-    if (tableName === 'inventory_logs') {
-      query = `
-        SELECT DISTINCT t."${columnName}"
-        FROM inventory_logs t
-        JOIN products p ON t.product_id = p.id
-        WHERE p.organization_id = $1
-          AND t."${columnName}" IS NOT NULL
-          AND CAST(t."${columnName}" AS TEXT) != ''
-        ORDER BY t."${columnName}"
-      `;
-    } else {
-      query = `
-        SELECT DISTINCT "${columnName}"
-        FROM ${tableName}
-        WHERE organization_id = $1
-          AND "${columnName}" IS NOT NULL
-          AND CAST("${columnName}" AS TEXT) != ''
-        ORDER BY "${columnName}"
-      `;
-    }
-
-    const result = await sql.query(query, queryParams);
-    rows = result.rows as Row[];
-
-    return NextResponse.json(rows.map((row) => row[columnName]));
+    // Return a simple array of strings
+    return NextResponse.json(rows.map((row) => row.value));
 
   } catch (err: unknown) {
-    if ((err as Error).name === 'JWTExpired' || (err as Error).name === 'JWSInvalid') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     logger.error({ err, entity, field }, `Failed to fetch distinct ${field} for ${entity}`);
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
 }
+
+export const GET = withAuth(getDistinctValues);

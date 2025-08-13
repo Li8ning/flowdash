@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
+import api from '@/lib/api';
 import {
   Box,
   Button,
@@ -40,25 +40,20 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Spinner,
 } from '@chakra-ui/react';
-import { AxiosError } from 'axios';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
 import { useTranslation } from 'react-i18next';
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
-  is_active: boolean | null;
-}
+import { useDebounce } from '@/hooks/useDebounce';
+import { useCrud } from '@/hooks/useCrud';
+import { User, Role } from '@/types';
 
 const UserManager: React.FC = () => {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
   const toast = useToast();
-  const [users, setUsers] = useState<User[]>([]);
+  
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
@@ -68,87 +63,49 @@ const UserManager: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const [alertAction, setAlertAction] = useState<{ type: 'remove' | 'reactivate'; userId: number } | null>(null);
   const cancelRef = useRef(null);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({
-        status: statusFilter,
-        search: searchQuery,
-      });
-      const { data } = await api.get(`/users?${params.toString()}`);
-      if (Array.isArray(data)) {
-        setUsers(data);
-      } else {
-        console.error("API did not return an array for users:", data);
-        setUsers([]);
-      }
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_fetching_users'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_fetching_users_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  }, [toast, statusFilter, searchQuery, t]);
+  const {
+    data: users,
+    loading: isLoading,
+    fetchData,
+    createItem,
+    deleteItem,
+    updateItem,
+  } = useCrud<User>({
+    endpoint: '/users',
+  });
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const filters = {
+      status: statusFilter,
+      search: debouncedSearchQuery,
+    };
+    fetchData(undefined, filters);
+  }, [fetchData, statusFilter, debouncedSearchQuery]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/users', { username: newUsername, name: newName, password: newPassword, role: newRole });
-      toast({
-        title: t('user_manager.toast.user_invited'),
-        description: t('user_manager.toast.user_invited_description', { username: newUsername }),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
+      if (currentUser?.organization_id) {
+        await createItem({
+          username: newUsername,
+          name: newName,
+          role: newRole as Role,
+          password: newPassword,
+          organization_id: currentUser.organization_id,
+          is_active: true,
+        });
+      }
       setNewUsername('');
       setNewName('');
       setNewPassword('');
       onClose();
-      fetchUsers();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.invitation_failed'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.invitation_failed_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  };
-
-  const handleRemoveUser = async (userId: number) => {
-    try {
-      await api.delete(`/users/${userId}`);
-      toast({
-        title: t('user_manager.toast.user_removed'),
-        description: t('user_manager.toast.user_removed_description'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      fetchUsers();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_removing_user'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_removing_user_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
+    } catch {
+      // Error is handled by the hook
     }
   };
 
@@ -157,16 +114,14 @@ const UserManager: React.FC = () => {
       await api.put(`/users/${userId}/reactivate`);
       toast({
         title: t('user_manager.toast.user_reactivated'),
-        description: t('user_manager.toast.user_reactivated_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
-      fetchUsers();
+      fetchData();
     } catch (err) {
       toast({
         title: t('user_manager.toast.error_reactivating_user'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_reactivating_user_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -183,7 +138,7 @@ const UserManager: React.FC = () => {
   const confirmAction = () => {
     if (!alertAction) return;
     if (alertAction.type === 'remove') {
-      handleRemoveUser(alertAction.userId);
+      deleteItem(alertAction.userId);
     } else if (alertAction.type === 'reactivate') {
       handleReactivateUser(alertAction.userId);
     }
@@ -195,16 +150,23 @@ const UserManager: React.FC = () => {
     onEditOpen();
   };
 
-  const handleUserUpdate = (updatedUser: User) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+  const handleUserUpdate = (updatedUser: Partial<User>) => {
+    if (updatedUser.id) {
+      updateItem(updatedUser.id, updatedUser);
+    }
+    onEditClose();
   };
 
-  const filteredUsers = users.filter(user => user.id !== currentUser?.id);
-
-  return (
-    <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      {selectedUser && (
-        <UserProfileForm
+  const filteredUsers = users.filter(user => {
+    if (user.id === currentUser?.id) return false; // Exclude self
+    if (currentUser?.role === 'admin' && user.role === 'super_admin') return false; // Admins cannot see super_admins
+    return true;
+  });
+ 
+   return (
+     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
+       {selectedUser && (
+         <UserProfileForm
           isOpen={isEditOpen}
           onClose={onEditClose}
           user={selectedUser}
@@ -213,7 +175,7 @@ const UserManager: React.FC = () => {
       )}
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
         <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>{t('user_manager.title')}</Heading>
-        {currentUser?.role === 'factory_admin' && (
+        {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
           <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
         )}
       </Flex>
@@ -277,14 +239,14 @@ const UserManager: React.FC = () => {
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                 >
-                  <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>
-                  <option value="factory_admin">{t('user_manager.invite_modal.role.factory_admin')}</option>
+                  {currentUser?.role === 'super_admin' && <option value="admin">{t('user_manager.invite_modal.role.admin')}</option>}
+                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>}
                 </Select>
               </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button type="submit" colorScheme="green" mr={3}>
+            <Button type="submit" colorScheme="green" mr={3} isLoading={isLoading}>
               {t('user_manager.invite_modal.invite_button')}
             </Button>
             <Button variant="ghost" onClick={onClose}>{t('user_manager.invite_modal.cancel_button')}</Button>
@@ -293,6 +255,11 @@ const UserManager: React.FC = () => {
       </Modal>
 
       <Box overflowX="auto">
+        {isLoading ? (
+          <Flex justify="center" align="center" h="200px">
+            <Spinner size="xl" />
+          </Flex>
+        ) : (
         <TableContainer>
           <Table variant="simple" colorScheme="teal" sx={{
             '@media (max-width: 768px)': {
@@ -331,7 +298,7 @@ const UserManager: React.FC = () => {
                 <Th>{t('user_manager.table.username')}</Th>
                 <Th>{t('user_manager.table.role')}</Th>
                 <Th>{t('user_manager.table.status')}</Th>
-                {currentUser?.role === 'factory_admin' && <Th>{t('user_manager.table.actions')}</Th>}
+                {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <Th>{t('user_manager.table.actions')}</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -354,7 +321,7 @@ const UserManager: React.FC = () => {
                       {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
                     </Text>
                   </Td>
-                  {currentUser?.role === 'factory_admin' && (
+                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
                     <Td data-label={t('user_manager.table.actions')}>
                       <Flex gap={2}>
                         <IconButton
@@ -389,6 +356,7 @@ const UserManager: React.FC = () => {
             </Tbody>
           </Table>
         </TableContainer>
+        )}
       </Box>
 
       <AlertDialog

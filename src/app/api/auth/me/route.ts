@@ -1,20 +1,32 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '../../../../lib/auth';
-import sql from '../../../../lib/db';
-import logger from '../../../../lib/logger';
+import { NextResponse, NextRequest } from 'next/server';
+import { verifyAuth } from '@/lib/auth-utils';
+import sql from '@/lib/db';
 
-export const GET = withAuth(async (req: AuthenticatedRequest) => {
+export async function GET(request: NextRequest) {
+  const authResult = await verifyAuth(request);
+
+  if (authResult.error) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+
+  if (!authResult.user) {
+    return NextResponse.json({ error: 'User not found in token' }, { status: 404 });
+  }
+
   try {
-    const { id } = req.user;
-    const { rows } = await sql`SELECT id, username, name, role, organization_id, is_active, language FROM users WHERE id = ${id}`;
+    const { rows } = await sql`
+      SELECT id, username, name, role, organization_id, is_active, language
+      FROM users
+      WHERE id = ${authResult.user.id as number}
+    `;
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
 
     return NextResponse.json(rows[0]);
-  } catch (err) {
-    logger.error({ err }, 'Failed to fetch user');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+  } catch (dbError) {
+    console.error('Database error in /api/auth/me:', dbError);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-});
+}

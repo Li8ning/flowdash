@@ -32,6 +32,7 @@
   "inventory.logs.clear_filters": "फ़िल्टर हटाएँ",
   "inventory.logs.filter_by_user": "यूज़र से फ़िल्टर करें",
   "inventory.logs.filter_by_product": "प्रोडक्ट से फ़िल्टर करें",
+  "inventory.logs.search_by_product": "प्रोडक्ट के नाम से खोजें...",
   "inventory.logs.filter_by_color": "रंग से फ़िल्टर करें",
   "inventory.logs.filter_by_design": "डिज़ाइन से फ़िल्टर करें",
   "inventory.logs.date_range.today": "आज",
@@ -178,7 +179,8 @@
   "user_manager.invite_modal.password_placeholder": "टेम्पररी पासवर्ड डालें",
   "user_manager.invite_modal.role": "रोल",
   "user_manager.invite_modal.role.floor_staff": "फ्लोर स्टाफ",
-  "user_manager.invite_modal.role.factory_admin": "फैक्टरी एडमिन",
+  "user_manager.invite_modal.role.super_admin": "सुपर एडमिन",
+  "user_manager.invite_modal.role.admin": "एडमिन",
   "user_manager.invite_modal.invite_button": "यूज़र जोड़ें",
   "user_manager.invite_modal.cancel_button": "कैंसिल",
   "user_manager.table.name": "नाम",
@@ -366,5 +368,7 @@
     "profile": "प्रोफ़ाइल",
     "entry": "एंट्री",
     "my_logs": "मेरे लॉग्स"
-  }
+  },
+  "access_denied.title": "एक्सेस नहीं है",
+  "access_denied.description": "आपको यह पेज देखने की अनुमति नहीं है।"
 }

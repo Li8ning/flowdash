@@ -1,7 +1,3 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import ExcelJS from 'exceljs';
-
 interface Log {
   id: number;
   product_name: string;
@@ -13,7 +9,10 @@ interface Log {
 }
 
 
-export const exportToPdf = (logs: Log[], allLogs: boolean) => {
+export const exportToPdf = async (logs: Log[], allLogs: boolean) => {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+  
   const doc = new jsPDF();
   const tableColumn = allLogs
     ? ["Product Name", "Color", "Design", "User", "Quantity Change", "Date"]
@@ -50,6 +49,8 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
 };
 
 export const exportToExcel = async (logs: Log[], allLogs: boolean) => {
+  const { default: ExcelJS } = await import('exceljs');
+  
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Inventory Logs');
 

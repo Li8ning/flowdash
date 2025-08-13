@@ -32,6 +32,7 @@
   "inventory.logs.clear_filters": "Clear Filters",
   "inventory.logs.filter_by_user": "Filter by User",
   "inventory.logs.filter_by_product": "Filter by Product",
+  "inventory.logs.search_by_product": "Search by product name...",
   "inventory.logs.filter_by_color": "Filter by Color",
   "inventory.logs.filter_by_design": "Filter by Design",
   "inventory.logs.filter_by_quality": "Filter by Quality",
@@ -187,7 +188,8 @@
   "user_manager.invite_modal.password_placeholder": "Enter temporary password",
   "user_manager.invite_modal.role": "Role",
   "user_manager.invite_modal.role.floor_staff": "Floor Staff",
-  "user_manager.invite_modal.role.factory_admin": "Factory Admin",
+  "user_manager.invite_modal.role.super_admin": "Super Admin",
+  "user_manager.invite_modal.role.admin": "Admin",
   "user_manager.invite_modal.invite_button": "Invite User",
   "user_manager.invite_modal.cancel_button": "Cancel",
   "user_manager.table.name": "Name",
@@ -370,5 +372,7 @@
     "profile": "Profile",
     "entry": "Entry",
     "my_logs": "My Logs"
-  }
+  },
+  "access_denied.title": "Access Denied",
+  "access_denied.description": "You do not have permission to view this page."
 }

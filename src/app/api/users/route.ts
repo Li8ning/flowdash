@@ -1,73 +1,101 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
-import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import { verifyAuth } from '@/lib/auth-utils';
 import bcrypt from 'bcryptjs';
-import logger from '@/lib/logger';
+import { z } from 'zod';
+import { handleError, ForbiddenError, BadRequestError, ConflictError } from '@/lib/errors';
+
+const UserRole = z.enum(['admin', 'floor_staff']);
+
+const createUserSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters long."),
+  name: z.string().min(1, "Name is required."),
+  password: z.string().min(8, "Password must be at least 8 characters long."),
+  role: UserRole,
+});
 
 // Get all users in the admin's organization
-const getHandler = async (req: AuthenticatedRequest) => {
-  try {
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status'); // 'active', 'inactive', or 'all'
-    const search = searchParams.get('search');
-    const { organization_id } = req.user;
-
-    let query = `SELECT id, username, name, role, is_active FROM users WHERE organization_id = $1`;
-    const params: (string | number)[] = [organization_id];
-    let paramIndex = 2;
-
-    if (status === 'inactive') {
-      query += ` AND is_active = false`;
-    } else if (status !== 'all') {
-      query += ` AND (is_active = true OR is_active IS NULL)`;
-    }
-
-    if (search) {
-      query += ` AND (username ILIKE $${paramIndex++} OR name ILIKE $${paramIndex++})`;
-      params.push(`%${search}%`);
-      params.push(`%${search}%`);
-    }
-
-    const { rows: users } = await sql.query(query, params);
-
-    return NextResponse.json(users);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'An unknown error occurred';
-    logger.error({ err }, 'Failed to fetch users');
-    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
+export const GET = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
-};
+  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+    throw new ForbiddenError();
+  }
 
-// Invite a new "Floor Staff" user
-const postHandler = async (req: AuthenticatedRequest) => {
+  const { searchParams } = new URL(req.url);
+  const status = searchParams.get('status'); // 'active', 'inactive', or 'all'
+  const search = searchParams.get('search');
+  const { organization_id, role: requesterRole } = authResult.user;
+
+  let query = `SELECT id, username, name, role, is_active FROM users WHERE organization_id = $1`;
+  const params: (string | number)[] = [organization_id as number];
+  let paramIndex = 2;
+
+  if (requesterRole === 'admin') {
+    query += ` AND role != 'super_admin'`;
+  }
+
+  if (status === 'inactive') {
+    query += ` AND is_active = false`;
+  } else if (status !== 'all') {
+    query += ` AND (is_active = true OR is_active IS NULL)`;
+  }
+
+  if (search) {
+    query += ` AND (username ILIKE $${paramIndex++} OR name ILIKE $${paramIndex++})`;
+    params.push(`%${search}%`);
+    params.push(`%${search}%`);
+  }
+
+  const { rows: users } = await sql.query(query, params);
+
+  return NextResponse.json(users);
+});
+
+// Invite a new user
+export const POST = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+    throw new ForbiddenError();
+  }
+
+  const body = await req.json();
+  const validationResult = createUserSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    throw new BadRequestError('Invalid input', validationResult.error.flatten());
+  }
+  
+  const { username, password, role, name } = validationResult.data;
+  const { organization_id, role: creatorRole } = authResult.user;
+
+  // Enforce role creation hierarchy
+  if (creatorRole === 'admin' && role !== 'floor_staff') {
+    throw new ForbiddenError('Admins can only create Floor Staff.');
+  }
+  if (creatorRole === 'floor_staff') {
+    throw new ForbiddenError('Floor Staff cannot create users.');
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const password_hash = await bcrypt.hash(password, salt);
+
   try {
-    const { username, password, role, name } = await req.json();
-    const { organization_id } = req.user; // Admin's organization
-
-    if (!username || !password || !role) {
-      return NextResponse.json({ error: 'Username, password, and role are required' }, { status: 400 });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
     const { rows: [newUser] } = await sql`
-      INSERT INTO users (username, name, password_hash, role, organization_id)
-      VALUES (${username}, ${name}, ${password_hash}, ${role}, ${organization_id})
+      INSERT INTO users (username, name, password_hash, role, organization_id, is_active)
+      VALUES (${username}, ${name}, ${password_hash}, ${role}, ${organization_id as number}, true)
       RETURNING id, username, role, name, is_active
     `;
-
     return NextResponse.json(newUser, { status: 201 });
   } catch (err: unknown) {
-    logger.error({ err }, 'Failed to create user');
-    // Handle unique constraint violation for username
-    if (err instanceof Error && err.message.includes('duplicate key value violates unique constraint "users_username_key"')) {
-        return NextResponse.json({ error: 'Username is already taken.' }, { status: 409 });
+    if ((err as { code?: string })?.code === '23505' && (err as Error).message.includes('users_username_key')) {
+      throw new ConflictError('Username is already taken.');
     }
-    const message = err instanceof Error ? err.message : 'An unknown error occurred';
-    return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
+    throw err;
   }
-};
-
-export const GET = withAuth(getHandler, ['factory_admin']);
-export const POST = withAuth(postHandler, ['factory_admin']);
+});

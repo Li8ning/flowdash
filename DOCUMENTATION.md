@@ -35,7 +35,7 @@ FlowDash is a web-based inventory management system designed for small to medium
 ### 1.1. Features
 
 *   **User Authentication:** Secure registration and login with session and persistent login options.
-*   **Role-Based Access Control (RBAC):** Differentiated permissions for `factory_admin` (full access) and `floor_staff` (limited to their own logs).
+*   **Role-Based Access Control (RBAC):** A three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
 *   **Product Management:** Admins can create, view, update, and manage products, including attributes and images.
 *   **Bulk Operations:** Admins can import products via CSV and upload multiple images at once.
 *   **Inventory Logging:** Floor staff can log the quantity of products they have produced.
@@ -126,7 +126,7 @@ Stores user accounts. Each user belongs to an organization.
 | `username` | `varchar(255)` | NOT NULL, UNIQUE (with organization_id) | The user's login name. |
 | `name` | `varchar(255)` | | The user's full name. |
 | `password_hash` | `varchar(255)` | NOT NULL | The user's hashed password. |
-| `role` | `varchar(50)` | NOT NULL, CHECK (`factory_admin` or `floor_staff`) | The user's role, which determines their permissions. |
+| `role` | `varchar(50)` | NOT NULL, CHECK (`super_admin`, `admin`, or `floor_staff`) | The user's role, which determines their permissions. |
 | `is_active` | `boolean` | DEFAULT true | Whether the user account is active or disabled. |
 | `language` | `varchar(10)` | DEFAULT 'en' | The user's preferred language for the UI. |
 | `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the record was created. |
@@ -185,14 +185,14 @@ Records production entries made by `floor_staff` users.
 
 This section provides an overview of the main React components found in `src/components`.
 
-### 4.1. Core Application &amp; Providers
+### 4.1. Core Application & Providers
 
 *   **`Providers.tsx`**: A crucial component that wraps the entire application. It sets up all the necessary context providers (`ChakraProvider`, `AuthProvider`, `LanguageProvider`, `LoadingProvider`) so that they are available to all child components.
 *   **`AppInitializer.tsx`**: This component is responsible for initializing the application state when it first loads. It checks for an existing user session and fetches initial data.
 *   **`GlobalSpinner.tsx`**: Listens to the `LoadingContext` and displays a full-screen loading spinner whenever a global loading state is active (e.g., during page transitions or major data fetches).
 *   **`WithAuth.tsx`**: A Higher-Order Component (HOC) that wraps pages or components requiring authentication. It checks if a user is logged in; if not, it redirects them to the login page.
 
-### 4.2. Authentication &amp; User Management
+### 4.2. Authentication & User Management
 
 *   **`Login.tsx`**: Renders the login form, handles user input, and calls the authentication API. Includes the "Keep me signed in" functionality.
 *   **`Register.tsx`**: Renders the registration form for new organizations and factory admins.
@@ -200,15 +200,24 @@ This section provides an overview of the main React components found in `src/com
 *   **`ProfileManager.tsx`**: Allows the currently logged-in user to update their own profile information, such as their name and password.
 *   **`UserProfileForm.tsx`**: A reusable form component used by both `UserManager` and `ProfileManager` for editing user details.
 
-### 4.3. Product &amp; Inventory Management
+#### 4.2.1. Role Creation Hierarchy
+
+The application enforces a strict hierarchy for user creation to maintain security and organizational structure.
+
+*   **`super_admin`**: Can only be created through the public registration form (`/register`). They cannot be created from within the application by another user. A `super_admin` can create `admin` and `floor_staff` users.
+*   **`admin`**: Can only be created by a `super_admin`. An `admin` can only create `floor_staff` users.
+*   **`floor_staff`**: Can be created by either a `super_admin` or an `admin`. They have no user creation privileges.
+
+This logic is enforced in the backend API (`/api/users`) and reflected in the frontend UI (`UserManager.tsx`).
+### 4.3. Product & Inventory Management
 
 *   **`ProductManager.tsx`**: The main interface for admins to manage the product catalog. It includes features for viewing, searching, filtering, adding, editing, and archiving products.
 *   **`ProductAttributesManager.tsx`**: A component for managing the centralized product attributes (Category, Design, Color, etc.). Found on the product settings page.
 *   **`ProductSelector.tsx`**: A reusable dropdown component that allows users to search for and select a product. Used in the inventory logging flow.
-*   **`InventoryLogs.tsx`**: The primary interface for `floor_staff` to log their production. It also allows admins to view all logs.
+*   **`InventoryLogs.tsx`**: The primary interface for `floor_staff` to log their production. It also allows admins to view all logs, with comprehensive filtering options. It features a debounced search bar for product names, along with dropdown filters for user, color, design, quality, packaging type, and date range.
 *   **`EditLogModal.tsx`**: A modal dialog that allows users to edit their existing inventory log entries.
 
-### 4.4. Dashboards &amp; Reporting
+### 4.4. Dashboards & Reporting
 
 *   **`ProductionDashboard.tsx`**: The main dashboard page that displays key performance indicators (KPIs) and summaries of production data.
 *   **`WeeklyProductionChart.tsx`**: A bar chart component that visualizes the production totals for the last seven days.
@@ -274,7 +283,7 @@ The backend is exposed via a set of RESTful API endpoints. All endpoints under `
 *   `GET /api/users`
     *   Retrieves a list of all users within the admin's organization.
 *   `POST /api/users`
-    *   Creates a new `floor_staff` user.
+    *   Creates a new user (`admin` or `floor_staff`). The available roles to create depend on the role of the user making the request.
 *   `PATCH /api/users/{id}`
     *   Updates a user's details (e.g., name, role).
 *   `DELETE /api/users/{id}`
@@ -331,6 +340,16 @@ The backend is exposed via a set of RESTful API endpoints. All endpoints under `
     *   Retrieves aggregated data for the main dashboard KPIs.
 *   `GET /api/inventory/summary/weekly-production`
     *   Retrieves data for the weekly production chart.
+---
+## 7. Security Remediations
+
+This section details the security vulnerabilities that have been identified and addressed in the application.
+
+### 7.1. SQL Injection in `GET /api/distinct/{entity}/{field}` (Fixed)
+
+*   **Vulnerability:** The original implementation of this dynamic endpoint was vulnerable to SQL injection. The `entity` and `field` parameters from the URL were directly interpolated into the SQL query string without proper sanitization. An attacker could manipulate these parameters to execute arbitrary SQL commands.
+
+*   **Fix:** The endpoint was rewritten to use a whitelisting approach. A predefined `allowedTables` object now maps safe, developer-approved entity names to their actual table names and permissible fields. Any request for an entity or field not on this whitelist is rejected with a `403 Forbidden` error. This ensures that only pre-approved, safe queries can be executed, completely mitigating the injection risk.
 *   `GET /api/reports/production`
     *   Generates and returns a production report based on specified filters.
 

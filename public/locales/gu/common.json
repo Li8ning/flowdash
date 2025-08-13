@@ -32,6 +32,7 @@
   "inventory.logs.clear_filters": "ફિલ્ટર કાઢો",
   "inventory.logs.filter_by_user": "યુઝરથી ફિલ્ટર કરો",
   "inventory.logs.filter_by_product": "પ્રોડક્ટથી ફિલ્ટર કરો",
+  "inventory.logs.search_by_product": "પ્રોડક્ટના નામથી શોધો...",
   "inventory.logs.filter_by_color": "રંગથી ફિલ્ટર કરો",
   "inventory.logs.filter_by_design": "ડિઝાઇનથી ફિલ્ટર કરો",
   "inventory.logs.date_range.today": "આજે",
@@ -178,7 +179,8 @@
   "user_manager.invite_modal.password_placeholder": "કામચલાઉ પાસવર્ડ નાખો",
   "user_manager.invite_modal.role": "રોલ",
   "user_manager.invite_modal.role.floor_staff": "ફ્લોર સ્ટાફ",
-  "user_manager.invite_modal.role.factory_admin": "ફેક્ટરી એડમિન",
+  "user_manager.invite_modal.role.super_admin": "સુપર એડમિન",
+  "user_manager.invite_modal.role.admin": "એડમિન",
   "user_manager.invite_modal.invite_button": "યુઝર ઉમેરો",
   "user_manager.invite_modal.cancel_button": "કેન્સલ",
   "user_manager.table.name": "નામ",
@@ -366,5 +368,7 @@
     "profile": "પ્રોફાઇલ",
     "entry": "એન્ટ્રી",
     "my_logs": "મારા લોગ્સ"
-  }
+  },
+  "access_denied.title": "એક્સેસ નથી",
+  "access_denied.description": "તમને આ પેજ જોવાની પરવાનગી નથી."
 }

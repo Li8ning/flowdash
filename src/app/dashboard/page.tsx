@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  if (user?.role === 'factory_admin') {
+  if (user?.role === 'super_admin' || user?.role === 'admin') {
     return <ProductionDashboard />;
   }
 

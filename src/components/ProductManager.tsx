@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
+import api from '@/lib/api';
+import { Product, ProductAttribute, GroupedAttributes } from '@/types';
 import {
   Box,
   Button,
@@ -48,109 +49,59 @@ import {
   CheckboxGroup,
   FormControl,
   FormLabel,
+  Spinner,
 } from '@chakra-ui/react';
-import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { FiUpload } from 'react-icons/fi';
 import Link from 'next/link';
-
-interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  color: string;
-  category: string;
-  design: string;
-  image_url: string;
-  available_qualities: string[];
-  available_packaging_types: string[];
-}
-
-interface ProductAttribute {
-  id: number;
-  type: string;
-  value: string;
-}
-
-interface GroupedAttributes {
-  [key: string]: ProductAttribute[];
-}
+import { useCrud } from '@/hooks/useCrud';
 
 const ProductManager = () => {
   const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const { user } = useAuth();
+  const toast = useToast();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(50);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ color: '', category: '', design: '' });
+  const [activeFilters, setActiveFilters] = useState({ color: '', category: '', design: '' });
+  
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const { token, user } = useAuth();
-  const toast = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ color: '', category: '', design: '' });
-  const [activeFilters, setActiveFilters] = useState({ color: '', category: '', design: '' });
   const [attributes, setAttributes] = useState<GroupedAttributes>({});
   const [lastCreatedProduct, setLastCreatedProduct] = useState<Product | null>(null);
 
-
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
-  const isMobile = useBreakpointValue({ base: true, md: false });
-
   const { isOpen: isArchiveOpen, onOpen: onArchiveOpen, onClose: onArchiveClose } = useDisclosure();
   const [productToArchive, setProductToArchive] = useState<number | null>(null);
   const cancelRef = useRef(null);
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
-
-  const fetchProducts = async (reset = false) => {
-    if (!token) return;
-    
-    const pageToFetch = reset ? 1 : currentPage;
-    const offset = (pageToFetch - 1) * productsPerPage;
-
-    try {
-      const response = await api.get('/products', {
-        params: {
-          limit: productsPerPage,
-          offset,
-          ...activeFilters,
-        },
-      });
-
-      if (reset) {
-        setProducts(response.data.data);
-        setCurrentPage(1);
-      } else {
-        if (currentPage === 1) {
-            setProducts(response.data.data);
-        } else {
-            setProducts(prevProducts => [...prevProducts, ...response.data.data]);
-        }
-      }
-      setTotalProducts(response.data.totalCount);
-    } catch (err) {
-      console.error('Failed to fetch products', err);
-      toast({
-        title: t('product_manager.toast.error_fetching_data'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
+  const {
+    data: products,
+    total: totalProducts,
+    loading: isLoading,
+    fetchData,
+    createItem,
+    updateItem,
+  } = useCrud<Product>({
+    endpoint: '/products',
+  });
 
   useEffect(() => {
-    fetchProducts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, currentPage, productsPerPage, activeFilters]);
+    if (user?.role !== 'floor_staff') {
+      fetchData(currentPage, activeFilters, productsPerPage);
+    }
+  }, [user?.role, fetchData, currentPage, activeFilters, productsPerPage, toast]);
 
   useEffect(() => {
     const fetchAttributes = async () => {
-      if (!user?.organization_id) return;
+      if (!user?.organization_id || user?.role === 'floor_staff') return;
       try {
         const { data } = await api.get<ProductAttribute[]>('/settings/attributes', {
           params: { organization_id: user.organization_id },
@@ -176,7 +127,7 @@ const ProductManager = () => {
       }
     };
     fetchAttributes();
-  }, [user?.organization_id, toast]);
+  }, [user?.organization_id, user?.role, toast, t]);
 
   const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -202,7 +153,6 @@ const ProductManager = () => {
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
     setIsUploading(true);
 
     const productData = { ...newProduct };
@@ -215,27 +165,17 @@ const ProductManager = () => {
         productData.image_url = uploadResponse.data.url;
       }
 
-      const response = await api.post('/products', productData);
-      const createdProduct = response.data;
+      const createdProduct = await createItem(productData);
+      if (createdProduct) {
+        setLastCreatedProduct(createdProduct);
+      }
       
-      fetchProducts(true); // Refetch products from page 1
-      setLastCreatedProduct(createdProduct); // Save the newly created product for the next pre-fill
-      
-      // Reset the form to a clean state
       setNewProduct({ sku: '', name: '', color: '', category: '', design: '', image_url: '', available_qualities: [], available_packaging_types: [] });
       setImageFile(null);
       setImagePreview(null);
       onCreateClose();
-      toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: t('product_manager.toast.error_creating_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_creating_product_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    } catch {
+      // Error is handled by the hook
     } finally {
       setIsUploading(false);
     }
@@ -254,7 +194,7 @@ const ProductManager = () => {
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !editingProduct) return;
+    if (!editingProduct) return;
     setIsUploading(true);
 
     const productData = { ...editingProduct };
@@ -267,38 +207,28 @@ const ProductManager = () => {
         productData.image_url = uploadResponse.data.url;
       }
 
-      const response = await api.patch(`/products/${editingProduct.id}`, productData);
-      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p));
+      await updateItem(editingProduct.id, productData);
       setEditingProduct(null);
       setImageFile(null);
       setImagePreview(null);
       onEditClose();
-      toast({ title: t('product_manager.toast.product_updated'), status: 'success', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: t('product_manager.toast.error_updating_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_updating_product_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    } catch {
+      // Error is handled by the hook
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleArchiveProduct = async (productId: number) => {
-    if (!token) return;
     try {
       await api.patch(`/products/${productId}/archive`);
-      fetchProducts(true); // Refetch products from page 1
+      fetchData(1, activeFilters, productsPerPage); // Refetch from page 1
+      setCurrentPage(1);
       toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
     } catch (err) {
       console.error('Failed to archive product:', err);
       toast({
         title: t('product_manager.toast.error_archiving_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_archiving_product_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -318,16 +248,35 @@ const ProductManager = () => {
     onArchiveClose();
   };
 
-
   const handleFilter = () => {
-    setCurrentPage(1); // Reset to first page on new filter
+    setCurrentPage(1);
     setActiveFilters(filters);
+  };
+  
+  const handleClearFilters = () => {
+    setFilters({ color: '', category: '', design: '' });
+    setActiveFilters({ color: '', category: '', design: '' });
+    setSearchQuery('');
+    setCurrentPage(1);
   };
 
   const filteredProducts = products.filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.sku.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (user?.role === 'floor_staff') {
+    return (
+      <Box textAlign="center" py={10} px={6}>
+        <Heading as="h2" size="xl" mt={6} mb={2}>
+          {t('access_denied.title')}
+        </Heading>
+        <Text color={'gray.500'}>
+          {t('access_denied.description')}
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
@@ -379,7 +328,6 @@ const ProductManager = () => {
       </Flex>
       <Divider mb={6} />
 
-
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
         <Select
           placeholder={t('product_manager.filter_by_category')}
@@ -415,14 +363,7 @@ const ProductManager = () => {
           ))}
         </Select>
         <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
-        <Button
-          onClick={() => {
-            setFilters({ color: '', category: '', design: '' });
-            setActiveFilters({ color: '', category: '', design: '' });
-            setCurrentPage(1);
-          }}
-          colorScheme="gray"
-        >
+        <Button onClick={handleClearFilters} colorScheme="gray">
           {t('product_manager.clear_filters')}
         </Button>
       </SimpleGrid>
@@ -590,7 +531,11 @@ const ProductManager = () => {
       )}
 
       <Box>
-        {isMobile ? (
+        {isLoading ? (
+          <Flex justify="center" align="center" h="200px">
+            <Spinner size="xl" />
+          </Flex>
+        ) : isMobile ? (
           <Accordion allowMultiple>
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product) => (
@@ -628,6 +573,10 @@ const ProductManager = () => {
                         <Text fontWeight="bold">{t('product_manager.mobile.color')}</Text>
                         <Text>{product.color}</Text>
                       </Flex>
+                      <Flex justify="space-between">
+                        <Text fontWeight="bold">{t('product_manager.table.quantity')}</Text>
+                        <Text>{product.quantity_on_hand ?? 0}</Text>
+                      </Flex>
                       <Flex mt={4} wrap="wrap" gap={2}>
                         <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
                         <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
@@ -652,6 +601,7 @@ const ProductManager = () => {
                   <Th>{t('product_manager.table.sku')}</Th>
                   <Th>{t('product_manager.table.design')}</Th>
                   <Th>{t('product_manager.table.color')}</Th>
+                  <Th isNumeric>{t('product_manager.table.quantity')}</Th>
                   <Th>{t('product_manager.table.actions')}</Th>
                 </Tr>
               </Thead>
@@ -685,6 +635,7 @@ const ProductManager = () => {
                     </Td>
                     <Td><Text noOfLines={1}>{product.design}</Text></Td>
                     <Td><Text noOfLines={1}>{product.color}</Text></Td>
+                    <Td isNumeric><Text noOfLines={1}>{product.quantity_on_hand ?? 0}</Text></Td>
                     <Td>
                       <Flex wrap="wrap" gap={2}>
                         <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
@@ -700,14 +651,23 @@ const ProductManager = () => {
       </Box>
 
       <Flex justify="center" mt={6}>
-        {products.length > 0 && products.length < totalProducts && (
-          <Button
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            isDisabled={products.length >= totalProducts}
-          >
-            {t('pagination.load_more')}
-          </Button>
-        )}
+        <Button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          isDisabled={currentPage === 1}
+          mr={2}
+        >
+          {t('pagination.previous')}
+        </Button>
+        <Text display="flex" alignItems="center">
+          {t('pagination.page', { currentPage, totalPages: Math.ceil(totalProducts / productsPerPage) || 1 })}
+        </Text>
+        <Button
+          onClick={() => setCurrentPage(p => p + 1)}
+          isDisabled={currentPage * productsPerPage >= totalProducts}
+          ml={2}
+        >
+          {t('pagination.next')}
+        </Button>
       </Flex>
 
       <AlertDialog

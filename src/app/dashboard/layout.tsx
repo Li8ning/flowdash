@@ -7,13 +7,14 @@ import { FiGrid, FiList, FiUsers, FiUser, FiBox, FiSettings, FiClipboard, FiLogI
 
 import MainLayout from '@/components/layout/MainLayout';
 import { NavigationLink } from '@/components/layout/Sidebar';
+import GlobalSpinner from '@/components/GlobalSpinner';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { t } = useTranslation();
 
   const adminNavLinks: NavigationLink[] = [
@@ -39,7 +40,13 @@ export default function DashboardLayout({
     { href: '/dashboard/profile', label: t('sidebar.profile'), icon: FiUser },
   ];
 
-  if (user?.role === 'factory_admin') {
+  // The middleware handles the redirect, but we still need to handle the loading state
+  // and what to show while the user object is being fetched on the client.
+  if (loading) {
+    return <GlobalSpinner />;
+  }
+
+  if (user?.role === 'super_admin' || user?.role === 'admin') {
     return (
       <MainLayout navLinks={adminNavLinks}>
         {children}
@@ -55,6 +62,8 @@ export default function DashboardLayout({
     );
   }
 
+  // This case handles users who are logged in but have no assigned role.
+  // The middleware won't redirect them, so we need to show a message.
   return (
     <Box p={8}>
       <Heading>{t('unassigned.role.title')}</Heading>

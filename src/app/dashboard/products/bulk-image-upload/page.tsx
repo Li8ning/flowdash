@@ -305,6 +305,19 @@ const BulkImageUploader = () => {
     </VStack>
   );
 
+  if (user?.role === 'floor_staff') {
+    return (
+      <Box textAlign="center" py={10} px={6}>
+        <Heading as="h2" size="xl" mt={6} mb={2}>
+          {t('access_denied.title')}
+        </Heading>
+        <Text color={'gray.500'}>
+          {t('access_denied.description')}
+        </Text>
+      </Box>
+    );
+  }
+
   return (
     <Container maxW="container.lg" py={{ base: 4, md: 8 }}>
       <VStack spacing={6} align="stretch">

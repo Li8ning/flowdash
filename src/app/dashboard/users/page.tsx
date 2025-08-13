@@ -9,11 +9,15 @@ export default function UsersPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
 
-  if (user?.role !== 'factory_admin') {
+  if (user?.role !== 'super_admin' && user?.role !== 'admin') {
     return (
-      <Box p={8}>
-        <Heading as="h2" size="lg" mb={4}>{t('access_denied.title')}</Heading>
-        <Text>{t('access_denied.description')}</Text>
+      <Box textAlign="center" py={10} px={6} mt={20}>
+        <Heading as="h2" size="xl" mt={6} mb={2}>
+          {t('access_denied.title')}
+        </Heading>
+        <Text color={'gray.500'}>
+          {t('access_denied.description')}
+        </Text>
       </Box>
     );
   }

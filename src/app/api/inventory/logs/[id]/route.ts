@@ -1,105 +1,98 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '../../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '../../../../../lib/auth-utils';
 import sql from '../../../../../lib/db';
-import logger from '../../../../../lib/logger';
+import { z } from 'zod';
+import { handleError, NotFoundError, ForbiddenError, BadRequestError } from '../../../../../lib/errors';
 
 interface RouteContext {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
+const updateLogSchema = z.object({
+  produced: z.number().int().min(1),
+  quality: z.string().min(1),
+  packaging_type: z.string().min(1),
+});
+
 // PUT handler to update a log entry
-export const PUT = withAuth(async (req: AuthenticatedRequest, { params }: RouteContext) => {
-  try {
-    const { id: logId } = params;
-    const { id: userId, role } = req.user;
-    const { produced, quality, packaging_type } = await req.json();
-
-    if (produced === undefined || isNaN(Number(produced))) {
-      return NextResponse.json({ error: 'Invalid quantity provided' }, { status: 400 });
-    }
-    if (!quality || !packaging_type) {
-      return NextResponse.json({ error: 'Quality and packaging type are required' }, { status: 400 });
-    }
-
-    const { rows: [log] } = await sql`
-      SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
-    `;
-
-    if (!log) {
-      return NextResponse.json({ error: 'Log not found' }, { status: 404 });
-    }
-
-    const isOwner = log.user_id === userId;
-    const logTime = new Date(log.created_at).getTime();
-    const currentTime = new Date().getTime();
-    const isWithin24Hours = (currentTime - logTime) < 24 * 60 * 60 * 1000;
-
-    if (role === 'factory_admin' || (isOwner && isWithin24Hours)) {
-      await sql`
-        UPDATE inventory_logs
-        SET
-          produced = ${produced},
-          quality = ${quality},
-          packaging_type = ${packaging_type}
-        WHERE id = ${logId}
-      `;
-      
-      const { rows: [result] } = await sql`
-        SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
-        FROM inventory_logs l
-        JOIN products p ON l.product_id = p.id
-        WHERE l.id = ${logId}
-      `;
-
-      return NextResponse.json(result);
-    }
-
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
-  } catch (err) {
-    logger.error({ err }, 'Failed to update inventory log');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+export const PUT = handleError(async (req: NextRequest, { params }: RouteContext) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
+  const { id: logId } = params;
+  const { id: userId, role } = authResult.user;
+  
+  const body = await req.json();
+  const validation = updateLogSchema.safeParse(body);
+  if (!validation.success) {
+    throw new BadRequestError('Invalid input', validation.error.flatten());
+  }
+  const { produced, quality, packaging_type } = validation.data;
+
+  const { rows: [log] } = await sql`
+    SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
+  `;
+
+  if (!log) {
+    throw new NotFoundError('Log not found');
+  }
+
+  const isOwner = log.user_id === userId;
+  const isWithin24Hours = (Date.now() - new Date(log.created_at).getTime()) < 24 * 60 * 60 * 1000;
+
+  if (!['super_admin', 'admin'].includes(role as string) && !(isOwner && isWithin24Hours)) {
+    throw new ForbiddenError('You do not have permission to update this log.');
+  }
+
+  await sql`
+    UPDATE inventory_logs
+    SET produced = ${produced}, quality = ${quality}, packaging_type = ${packaging_type}
+    WHERE id = ${logId}
+  `;
+  
+  const { rows: [result] } = await sql`
+    SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
+    FROM inventory_logs l
+    JOIN products p ON l.product_id = p.id
+    WHERE l.id = ${logId}
+  `;
+
+  return NextResponse.json(result);
 });
 
 // DELETE handler to remove a log entry
-export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: RouteContext) => {
-  try {
-    const { id: logId } = params;
-    const { id: userId, role } = req.user;
-
-    const { rows: [log] } = await sql`
-      SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
-    `;
-
-    if (!log) {
-      return NextResponse.json({ error: 'Log not found' }, { status: 404 });
-    }
-
-    const isOwner = log.user_id === userId;
-    const logTime = new Date(log.created_at).getTime();
-    const currentTime = new Date().getTime();
-    const isWithin24Hours = (currentTime - logTime) < 24 * 60 * 60 * 1000;
-
-    if (role === 'factory_admin' || (role === 'floor_staff' && isOwner && isWithin24Hours)) {
-      const { rows: result } = await sql`
-        DELETE FROM inventory_logs WHERE id = ${logId} RETURNING id
-      `;
-
-      if (result.length === 0) {
-        // This case should ideally not be reached if the log was found before
-        return NextResponse.json({ error: 'Log not found during deletion' }, { status: 404 });
-      }
-
-      return NextResponse.json({ message: 'Log deleted successfully' });
-    }
-    
-    return NextResponse.json({ error: 'You do not have permission to delete this log.' }, { status: 403 });
-
-  } catch (err) {
-    logger.error({ err }, 'Failed to delete inventory log');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+export const DELETE = handleError(async (req: NextRequest, { params }: RouteContext) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
+  const { id: logId } = params;
+  const { id: userId, role } = authResult.user;
+
+  const { rows: [log] } = await sql`
+    SELECT user_id, created_at FROM inventory_logs WHERE id = ${logId}
+  `;
+
+  if (!log) {
+    throw new NotFoundError('Log not found');
+  }
+
+  const isOwner = log.user_id === userId;
+  const isWithin24Hours = (Date.now() - new Date(log.created_at).getTime()) < 24 * 60 * 60 * 1000;
+
+  if (!['super_admin', 'admin'].includes(role as string) && !(role === 'floor_staff' && isOwner && isWithin24Hours)) {
+    throw new ForbiddenError('You do not have permission to delete this log.');
+  }
+
+  const { rowCount } = await sql`
+    DELETE FROM inventory_logs WHERE id = ${logId}
+  `;
+
+  if (rowCount === 0) {
+    // This case should ideally not be reached if the log was found before
+    throw new NotFoundError('Log not found during deletion');
+  }
+
+  return NextResponse.json({ message: 'Log deleted successfully' });
 });

@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth-utils';
 import { db } from '@/lib/db';
 import Papa from 'papaparse';
 import { z } from 'zod';
+import { VercelPoolClient } from '@vercel/postgres';
+import { handleError, BadRequestError, ForbiddenError } from '@/lib/errors';
 
-// Define the schema for a single product row in the CSV
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sku: z.string().min(1, "SKU is required"),
@@ -16,159 +17,169 @@ const productSchema = z.object({
   image_url: z.string().url("Image URL must be a valid URL").optional().or(z.literal('')),
 });
 
-export const POST = withAuth(async (req: AuthenticatedRequest) => {
-  const { organization_id } = req.user;
+type ProductCsvRow = z.infer<typeof productSchema>;
 
-  try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-
-    if (!file) {
-      return new NextResponse('No file uploaded', { status: 400 });
-    }
-
-    const fileContent = await file.text();
-
-    return new Promise((resolve, reject) => {
-      Papa.parse(fileContent, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          try {
-            const allRows = results.data as z.infer<typeof productSchema>[];
-            const errorRows: { row: number; errors: string[] }[] = [];
-            const productsToCreate: z.infer<typeof productSchema>[] = [];
-
-            // 1. Fetch existing product SKUs for validation
-            const existingProductsResult = await db.query(
-              `SELECT sku FROM products WHERE organization_id = $1`,
-              [organization_id]
-            );
-            const existingProductSkus = new Set(existingProductsResult.rows.map(p => p.sku));
-            const skusInFile = new Set<string>();
-
-            // 2. Validate all rows and categorize them
-            allRows.forEach((row, index) => {
-              const rowIndex = index + 2; // CSV rows are 1-based, plus header
-              const parsed = productSchema.safeParse(row);
-
-              if (!parsed.success) {
-                errorRows.push({
-                  row: rowIndex,
-                  errors: Object.values(parsed.error.flatten().fieldErrors).flat(),
-                });
-                return;
-              }
-              
-              if (skusInFile.has(parsed.data.sku)) {
-                errorRows.push({
-                  row: rowIndex,
-                  errors: [`Duplicate SKU '${parsed.data.sku}' in this CSV file.`],
-                });
-                return;
-              }
-
-              skusInFile.add(parsed.data.sku);
-              productsToCreate.push(parsed.data);
-            });
-
-            // 3. Separate products into "to insert" and "to skip"
-            const productsToInsert = productsToCreate.filter(p => !existingProductSkus.has(p.sku));
-            const skippedProducts = productsToCreate
-              .filter(p => existingProductSkus.has(p.sku))
-              .map(p => ({ sku: p.sku, name: p.name }));
-
-            // 4. If there are products to insert, proceed with transaction
-            if (productsToInsert.length > 0) {
-              const client = await db.connect();
-              try {
-                await client.query('BEGIN');
-
-                const attributesResult = await client.query(
-                  `SELECT id, value, type FROM product_attributes WHERE organization_id = $1`,
-                  [organization_id]
-                );
-                const attributesMap = new Map(attributesResult.rows.map(a => [`${a.type.toLowerCase()}:${a.value.toLowerCase()}`, a.id]));
-
-                const findOrCreateAttribute = async (type: string, value: string) => {
-                  const trimmedValue = value.trim();
-                  if (!trimmedValue) return;
-                  const key = `${type.toLowerCase()}:${trimmedValue.toLowerCase()}`;
-                  if (!attributesMap.has(key)) {
-                    const newAttr = await client.query(
-                      `INSERT INTO product_attributes (organization_id, type, value) VALUES ($1, $2, $3) RETURNING id`,
-                      [organization_id, type, trimmedValue]
-                    );
-                    attributesMap.set(key, newAttr.rows[0].id);
-                  }
-                };
-
-                for (const product of productsToInsert) {
-                  await findOrCreateAttribute('category', product.category);
-                  await findOrCreateAttribute('design', product.design);
-                  await findOrCreateAttribute('color', product.color);
-                  for (const quality of product.quality.split(',').map(q => q.trim()).filter(Boolean)) {
-                    await findOrCreateAttribute('quality', quality);
-                  }
-                  for (const packaging of product.packaging.split(',').map(p => p.trim()).filter(Boolean)) {
-                    await findOrCreateAttribute('packaging_type', packaging);
-                  }
-                }
-
-                for (const product of productsToInsert) {
-                  await client.query(
-                    `INSERT INTO products (
-                      organization_id, name, sku, category, design, color,
-                      available_qualities, available_packaging_types, image_url
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-                    [
-                      organization_id,
-                      product.name,
-                      product.sku,
-                      product.category.trim(),
-                      product.design.trim(),
-                      product.color.trim(),
-                      product.quality.split(',').map(q => q.trim()).filter(Boolean),
-                      product.packaging.split(',').map(p => p.trim()).filter(Boolean),
-                      product.image_url || null,
-                    ]
-                  );
-                }
-
-                await client.query('COMMIT');
-              } catch (e) {
-                await client.query('ROLLBACK');
-                throw e;
-              } finally {
-                client.release();
-              }
-            }
-
-            // 5. Compile and return the final report
-            return resolve(NextResponse.json({
-              totalRows: allRows.length,
-              importedCount: productsToInsert.length,
-              skippedCount: skippedProducts.length,
-              errorCount: errorRows.length,
-              importedProducts: productsToInsert.map(p => ({ sku: p.sku, name: p.name })),
-              skippedProducts,
-              errorRows,
-            }));
-
-          } catch (dbError) {
-            console.error('[PRODUCT_IMPORT_DB_ERROR]', dbError);
-            return reject(new NextResponse('Internal Server Error', { status: 500 }));
-          }
-        },
-        error: (error: Error) => {
-          console.error('[PRODUCT_IMPORT_PARSE_ERROR]', error);
-          return reject(new NextResponse('Error parsing CSV file', { status: 400 }));
-        },
-      });
+const parseCsv = (fileContent: string): Promise<Papa.ParseResult<ProductCsvRow>> => {
+  return new Promise((resolve, reject) => {
+    Papa.parse<ProductCsvRow>(fileContent, {
+      header: true,
+      skipEmptyLines: true,
+      complete: resolve,
+      error: reject,
     });
+  });
+};
 
-  } catch (error) {
-    console.error('[PRODUCT_IMPORT_API]', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+export const POST = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
-}, ['FACTORY_ADMIN']);
+  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+    throw new ForbiddenError();
+  }
+  const { organization_id } = authResult.user;
+
+  const formData = await req.formData();
+  const file = formData.get('file') as File;
+  if (!file) {
+    throw new BadRequestError('No file uploaded');
+  }
+
+  const fileContent = await file.text();
+  let results;
+  try {
+    results = await parseCsv(fileContent);
+  } catch {
+    throw new BadRequestError('Error parsing CSV file');
+  }
+
+  const allRows = results.data;
+  const errorRows: { row: number; errors: string[] }[] = [];
+  const productsToCreate: ProductCsvRow[] = [];
+  const skusInFile = new Set<string>();
+
+  allRows.forEach((row, index) => {
+    const rowIndex = index + 2;
+    const parsed = productSchema.safeParse(row);
+
+    if (!parsed.success) {
+      errorRows.push({ row: rowIndex, errors: Object.values(parsed.error.flatten().fieldErrors).flat() });
+      return;
+    }
+    if (skusInFile.has(parsed.data.sku)) {
+      errorRows.push({ row: rowIndex, errors: [`Duplicate SKU '${parsed.data.sku}' in this CSV file.`] });
+      return;
+    }
+    skusInFile.add(parsed.data.sku);
+    productsToCreate.push(parsed.data);
+  });
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    const existingProductsResult = await client.query(`SELECT sku FROM products WHERE organization_id = $1`, [organization_id as number]);
+    const existingProductSkus = new Set(existingProductsResult.rows.map((p: { sku: string }) => p.sku));
+
+    const productsToInsert = productsToCreate.filter(p => !existingProductSkus.has(p.sku));
+    const skippedProducts = productsToCreate
+      .filter(p => existingProductSkus.has(p.sku))
+      .map(p => ({ sku: p.sku, name: p.name }));
+
+    if (productsToInsert.length > 0) {
+      const attributesResult = await client.query(`SELECT id, value, type FROM product_attributes WHERE organization_id = $1`, [organization_id as number]);
+      const attributesMap = new Map(attributesResult.rows.map((a: { type: string, value: string, id: number }) => [`${a.type.toLowerCase()}:${a.value.toLowerCase()}`, a.id]));
+
+      const findOrCreateAttribute = async (client: VercelPoolClient, type: string, value: string) => {
+        const trimmedValue = value.trim();
+        if (!trimmedValue) return;
+        const key = `${type.toLowerCase()}:${trimmedValue.toLowerCase()}`;
+        if (!attributesMap.has(key)) {
+          const newAttr = await client.query(
+            `INSERT INTO product_attributes (organization_id, type, value) VALUES ($1, $2, $3) RETURNING id`,
+            [organization_id as number, type, trimmedValue]
+          );
+          attributesMap.set(key, newAttr.rows[0].id);
+        }
+      };
+
+      for (const product of productsToInsert) {
+        await findOrCreateAttribute(client, 'category', product.category);
+        await findOrCreateAttribute(client, 'design', product.design);
+        await findOrCreateAttribute(client, 'color', product.color);
+        for (const quality of product.quality.split(',').map(q => q.trim()).filter(Boolean)) {
+          await findOrCreateAttribute(client, 'quality', quality);
+        }
+        for (const packaging of product.packaging.split(',').map(p => p.trim()).filter(Boolean)) {
+          await findOrCreateAttribute(client, 'packaging_type', packaging);
+        }
+      }
+
+      for (const product of productsToInsert) {
+        // 1. Insert base product
+        const { rows: [newProduct] } = await client.query(
+          `INSERT INTO products (organization_id, name, sku, category, design, color, image_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+          [
+            organization_id as number,
+            product.name,
+            product.sku,
+            product.category.trim(),
+            product.design.trim(),
+            product.color.trim(),
+            product.image_url || null,
+          ]
+        );
+        const newProductId = newProduct.id;
+
+        // 2. Link qualities
+        const qualities = product.quality.split(',').map(q => q.trim()).filter(Boolean);
+        for (const qualityName of qualities) {
+          const attributeId = attributesMap.get(`quality:${qualityName.toLowerCase()}`);
+          if (attributeId) {
+            await client.query(
+              `INSERT INTO product_to_quality (product_id, attribute_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [newProductId, attributeId]
+            );
+          }
+        }
+
+        // 3. Link packaging types
+        const packagingTypes = product.packaging.split(',').map(p => p.trim()).filter(Boolean);
+        for (const packagingName of packagingTypes) {
+          const attributeId = attributesMap.get(`packaging_type:${packagingName.toLowerCase()}`);
+          if (attributeId) {
+            await client.query(
+              `INSERT INTO product_to_packaging_type (product_id, attribute_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [newProductId, attributeId]
+            );
+          }
+        }
+        
+        // 4. Create inventory entry
+        await client.query(
+          `INSERT INTO inventory (product_id, quantity_on_hand) VALUES ($1, 0)`,
+          [newProductId]
+        );
+      }
+    }
+    
+    await client.query('COMMIT');
+
+    return NextResponse.json({
+      totalRows: allRows.length,
+      importedCount: productsToInsert.length,
+      skippedCount: skippedProducts.length,
+      errorCount: errorRows.length,
+      importedProducts: productsToInsert.map(p => ({ sku: p.sku, name: p.name })),
+      skippedProducts,
+      errorRows,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+});

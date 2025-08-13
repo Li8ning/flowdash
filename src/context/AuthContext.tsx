@@ -10,7 +10,7 @@ interface User {
   id: number;
   username: string;
   name: string;
-  role: 'factory_admin' | 'floor_staff';
+  role: 'super_admin' | 'admin' | 'floor_staff';
   organization_id: number;
   organization_name?: string;
   is_active: boolean;
@@ -19,11 +19,9 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (username: string, password: string, rememberMe: boolean) => Promise<User>;
   logout: () => void;
   loading: boolean;
-  handleAuthentication: (data: { user: User; token: string }, rememberMe: boolean) => Promise<User>;
   updateUser: (user: Partial<User>) => void;
   organizationName: string | null;
   setOrganizationName: (name: string) => void;
@@ -35,53 +33,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Create the provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   const { i18n } = useTranslation();
   const router = useRouter();
 
   useEffect(() => {
-    const loadUser = async () => {
-      const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-      setToken(storedToken);
-
-      if (storedToken) {
-        try {
-          const { data: userData } = await api.get('/auth/me');
-          const finalUserData = { ...userData };
-          if (finalUserData.organization_id && !finalUserData.organization_name) {
-            try {
-              const { data: orgData } = await api.get(`/organizations/${finalUserData.organization_id}`);
-              finalUserData.organization_name = orgData.name;
-              setOrganizationName(orgData.name);
-            } catch (orgErr) {
-              console.error("Could not fetch organization details", orgErr);
-            }
-          } else if (finalUserData.organization_name) {
-            setOrganizationName(finalUserData.organization_name);
-          }
-          if (finalUserData.language) {
-            await i18n.changeLanguage(finalUserData.language);
-          }
-          setUser(finalUserData);
-        } catch {
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-        }
+    const loadUserOnMount = async () => {
+      try {
+        const { data: userData } = await api.get('/auth/me');
+        await processUserData(userData);
+      } catch {
+        // No valid session, user is not logged in
+        setUser(null);
       }
       setLoading(false);
     };
 
-    loadUser();
-  }, [token, i18n]);
+    loadUserOnMount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async (username: string, password: string, rememberMe: boolean) => {
     try {
       const response = await api.post('/auth/login', { username, password, rememberMe });
-      await handleAuthentication(response.data, rememberMe);
+      await processUserData(response.data.user);
+      router.push('/dashboard');
       return response.data.user;
     } catch (error) {
       throw error;
@@ -95,29 +72,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout failed, but clearing client-side session anyway.', error);
     } finally {
       setUser(null);
-      setToken(null);
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
       router.push('/');
     }
   };
 
-  const handleAuthentication = async (data: { user: User; token: string }, rememberMe: boolean) => {
-    const { user: userData, token: newToken } = data;
-
-    if (rememberMe) {
-      localStorage.setItem('token', newToken);
-    } else {
-      sessionStorage.setItem('token', newToken);
+  const processUserData = async (userData: User) => {
+    const finalUserData = { ...userData };
+    if (finalUserData.organization_id && !finalUserData.organization_name) {
+      try {
+        const { data: orgData } = await api.get(`/organizations/${finalUserData.organization_id}`);
+        finalUserData.organization_name = orgData.name;
+        setOrganizationName(orgData.name);
+      } catch (orgErr) {
+        console.error("Could not fetch organization details", orgErr);
+      }
+    } else if (finalUserData.organization_name) {
+      setOrganizationName(finalUserData.organization_name);
     }
-    setToken(newToken);
 
-    if (userData.language) {
-      await i18n.changeLanguage(userData.language);
+    if (finalUserData.language) {
+      await i18n.changeLanguage(finalUserData.language);
     }
-    setUser(userData);
-    return userData;
+    setUser(finalUserData);
+    return finalUserData;
   };
+
 
   const updateUser = (updatedData: Partial<User>) => {
     if (updatedData.language) {
@@ -131,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, loading, handleAuthentication, updateUser, organizationName, setOrganizationName }}
+      value={{ user, login, logout, loading, updateUser, organizationName, setOrganizationName }}
     >
       {children}
     </AuthContext.Provider>

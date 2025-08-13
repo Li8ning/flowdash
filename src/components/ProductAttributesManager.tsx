@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -26,11 +26,9 @@ import {
   Flex,
   IconButton,
 } from '@chakra-ui/react';
-import { useAuth } from '@/context/AuthContext';
-import api from '@/lib/api';
-import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { useCrud } from '@/hooks/useCrud';
 
 interface ProductAttribute {
   id: number;
@@ -47,39 +45,23 @@ const attributeTypes = [
 ];
 
 const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
-  const { user } = useAuth();
-  const toast = useToast();
   const { t } = useTranslation();
-  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const toast = useToast();
   const [newValue, setNewValue] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAttributeId, setEditingAttributeId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  const fetchAttributes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await api.get('/settings/attributes', {
-        params: { type: attributeType, organization_id: user?.organization_id },
-      });
-      setAttributes(data);
-    } catch {
-      toast({
-        title: t('attributes.toast.fetch_error_title'),
-        description: t('attributes.toast.fetch_error_desc'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [attributeType, user?.organization_id, toast, t]);
-
-  useEffect(() => {
-    fetchAttributes();
-  }, [fetchAttributes]);
+  const {
+    data: attributes,
+    loading: isLoading,
+    createItem,
+    updateItem,
+    deleteItem,
+  } = useCrud<ProductAttribute>({
+    endpoint: `/settings/attributes?type=${attributeType}`,
+    idKey: 'id',
+  });
 
   const handleAddAttribute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,50 +77,12 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
     }
     setIsSubmitting(true);
     try {
-      const { data } = await api.post('/settings/attributes', {
-        type: attributeType,
-        value: newValue,
-      });
-      setAttributes((prev) => [...prev, data]);
+      await createItem({ type: attributeType, value: newValue });
       setNewValue('');
-      toast({
-        title: t('attributes.toast.add_success_title'),
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      const error = err as AxiosError<{ error: string }>;
-      toast({
-        title: t('attributes.toast.add_error_title'),
-        description: error.response?.data?.error || t('attributes.toast.add_error_desc'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    } catch {
+      // Error is already handled by the hook's toast
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteAttribute = async (id: number) => {
-    try {
-      await api.delete(`/settings/attributes/${id}`);
-      setAttributes((prev) => prev.filter((attr) => attr.id !== id));
-      toast({
-        title: t('attributes.toast.delete_success_title'),
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch {
-      toast({
-        title: t('attributes.toast.delete_error_title'),
-        description: t('attributes.toast.delete_error_desc'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
     }
   };
 
@@ -154,25 +98,11 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
       return;
     }
     try {
-      const { data } = await api.patch(`/settings/attributes/${id}`, { value: editingValue });
-      setAttributes((prev) => prev.map((attr) => (attr.id === id ? data : attr)));
+      await updateItem(id, { value: editingValue });
       setEditingAttributeId(null);
       setEditingValue('');
-      toast({
-        title: t('attributes.toast.update_success_title'),
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      const error = err as AxiosError<{ error: string }>;
-      toast({
-        title: t('attributes.toast.update_error_title'),
-        description: error.response?.data?.error || t('attributes.toast.update_error_desc'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    } catch {
+      // Error is already handled by the hook's toast
     }
   };
 
@@ -256,7 +186,7 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
                       _hover={{ color: 'blue.500', backgroundColor: 'white' }}
                     />
                     <TagCloseButton
-                      onClick={() => handleDeleteAttribute(attribute.id)}
+                      onClick={() => deleteItem(attribute.id)}
                       sx={{ color: 'white', '&:hover': { color: 'blue.500', backgroundColor: 'white' } }}
                     />
                   </Tag>

@@ -1,64 +1,63 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth-utils';
 import sql from '@/lib/db';
 import { z } from 'zod';
-import logger from '@/lib/logger';
+import { handleError, BadRequestError, ForbiddenError, ConflictError } from '@/lib/errors';
 
 const attributeSchema = z.object({
   type: z.enum(['category', 'design', 'color', 'quality', 'packaging_type']),
-  value: z.string().min(1, "Value cannot be empty"),
+  value: z.string().min(1, "Value cannot be empty").transform(val => val.trim()),
 });
 
-// GET endpoint to fetch all attributes, with optional filtering by type
-export const GET = withAuth(async (req: AuthenticatedRequest) => {
-  try {
-    const { organization_id } = req.user;
-    const { searchParams } = new URL(req.url);
-    const type = searchParams.get('type');
-
-    let query;
-
-    if (type) {
-      query = sql`SELECT * FROM product_attributes WHERE organization_id = ${organization_id} AND type = ${type} ORDER BY value ASC`;
-    } else {
-      query = sql`SELECT * FROM product_attributes WHERE organization_id = ${organization_id} ORDER BY value ASC`;
-    }
-
-    const { rows } = await query;
-    return NextResponse.json(rows);
-  } catch (err) {
-    logger.error({ err }, 'Failed to fetch product attributes');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+export const GET = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
+  const { organization_id } = authResult.user;
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type');
+
+  let query;
+  if (type) {
+    query = sql`SELECT * FROM product_attributes WHERE organization_id = ${organization_id as number} AND type = ${type} ORDER BY value ASC`;
+  } else {
+    query = sql`SELECT * FROM product_attributes WHERE organization_id = ${organization_id as number} ORDER BY value ASC`;
+  }
+
+  const { rows } = await query;
+  return NextResponse.json(rows);
 });
 
-// POST endpoint to create a new attribute
-export const POST = withAuth(async (req: AuthenticatedRequest) => {
-  try {
-    const { organization_id } = req.user;
-    const body = await req.json();
-
-    const validation = attributeSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid input', issues: validation.error.issues }, { status: 400 });
-    }
-
-    const { type, value } = validation.data;
-
-    const { rows } = await sql`
-      INSERT INTO product_attributes (organization_id, type, value)
-      VALUES (${organization_id}, ${type}, ${value})
-      ON CONFLICT (organization_id, type, value) DO NOTHING
-      RETURNING *
-    `;
-
-    if (rows.length === 0) {
-      return NextResponse.json({ error: 'Attribute already exists.' }, { status: 409 });
-    }
-
-    return NextResponse.json(rows[0], { status: 201 });
-  } catch (err) {
-    logger.error({ err }, 'Failed to create product attribute');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+export const POST = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
-}, ['factory_admin']);
+  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+    throw new ForbiddenError('You do not have permission to create attributes.');
+  }
+
+  const { organization_id } = authResult.user;
+  const body = await req.json();
+
+  const validation = attributeSchema.safeParse(body);
+  if (!validation.success) {
+    throw new BadRequestError('Invalid input', validation.error.flatten());
+  }
+
+  const { type, value } = validation.data;
+
+  const { rows } = await sql`
+    INSERT INTO product_attributes (organization_id, type, value)
+    VALUES (${organization_id as number}, ${type}, ${value})
+    ON CONFLICT (organization_id, type, value) DO NOTHING
+    RETURNING *
+  `;
+
+  if (rows.length === 0) {
+    throw new ConflictError('This attribute already exists.');
+  }
+
+  return NextResponse.json(rows[0], { status: 201 });
+});

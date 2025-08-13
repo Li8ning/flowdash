@@ -3,7 +3,7 @@
 import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, useToast } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import api from '../lib/api';
+import api from '@/lib/api';
 import WeeklyProductionChart from '@/components/WeeklyProductionChart';
 
 interface DashboardSummary {

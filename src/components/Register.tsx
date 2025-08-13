@@ -25,13 +25,13 @@ import { useLanguage } from '@/context/LanguageContext';
 
 export default function Register() {
   const { t } = useTranslation();
-  const { changeLanguage } = useLanguage();
+  const { language, changeLanguage } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const { handleAuthentication } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
   const toast = useToast();
 
@@ -45,7 +45,8 @@ export default function Register() {
         organizationName,
         name,
       });
-      await handleAuthentication(response.data, true);
+      // Log the user in after successful registration
+      await login(username, password, true);
       toast({
         title: t('register.toast.success_title'),
         description: t('register.toast.success_description'),
@@ -53,7 +54,7 @@ export default function Register() {
         duration: 5000,
         isClosable: true,
       });
-      router.push('/admin'); // Redirect to admin dashboard
+      router.push('/dashboard'); // Redirect to dashboard
     } catch (err) {
       setError(t('register.error.generic'));
       console.error(err);
@@ -78,7 +79,7 @@ export default function Register() {
           <Select
             w="120px"
             onChange={(e) => changeLanguage(e.target.value)}
-            defaultValue="en"
+            value={language}
           >
             <option value="en">English</option>
             <option value="hi">Hindi</option>

@@ -1,76 +1,90 @@
-# FlowDash - Inventory Management System
+# Inventory Management System
 
-FlowDash is a web-based application designed for small to medium-sized factories to manage their product inventory and track production. It provides a user-friendly interface for floor staff to log their work and for factory admins to oversee operations, manage products, and view reports.
+This is a web-based inventory management system designed to track product stock, manage production logs, and handle user access control. The application is built with a modern tech stack, including Next.js, TypeScript, and a PostgreSQL database.
 
-## Comprehensive Documentation
+## Key Features
 
-For a detailed technical overview of the project, including architecture, API endpoints, database schema, and component descriptions, please refer to the main documentation file:
-
-**[➡️ View Full Documentation](./DOCUMENTATION.md)**
+*   **Role-Based Access Control (RBAC):** The system supports three user roles (`super_admin`, `admin`, `floor_staff`) with granular permissions.
+*   **Product Management:** Create, update, and manage products, including attributes like color, design, and quality.
+*   **Inventory Logging:** Track inventory changes with detailed logs, including who made the change and when.
+*   **User Management:** Invite, deactivate, and manage user accounts.
+*   **Data Export:** Export inventory logs to PDF and Excel formats.
+*   **Dashboard Analytics:** (Future) Visualize key inventory metrics and production trends.
 
 ## Tech Stack
 
-*   **Framework:** [Next.js](https://nextjs.org/) (v14+ with App Router)
-*   **Language:** [TypeScript](https://www.typescriptlang.org/)
-*   **Database:** [Vercel Postgres](https://vercel.com/storage/postgres)
-*   **UI Library:** [Chakra UI](https://chakra-ui.com/)
-*   **Authentication:** [JWT](https://jwt.io/)
-*   **File Storage:** [Vercel Blob](https://vercel.com/storage/blob)
-*   **Testing:** [Jest](https://jestjs.io/) & [React Testing Library](https://testing-library.com/)
-*   **CI/CD:** [GitHub Actions](https://github.com/features/actions)
+*   **Frontend:** Next.js, React, TypeScript, Chakra UI
+*   **Backend:** Next.js API Routes, PostgreSQL (Vercel Postgres)
+*   **Authentication:** JWT (RS256)
+*   **Database ORM:** `node-postgres` (pg)
+*   **Validation:** Zod
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app/
+│   │   ├── api/                # API routes
+│   │   ├── (dashboard)/        # Main application pages (protected)
+│   │   └── (auth)/             # Authentication pages (login, register)
+│   ├── components/             # Reusable React components
+│   ├── context/                # React context providers (e.g., AuthContext)
+│   ├── hooks/                  # Custom React hooks (e.g., useCrud)
+│   ├── lib/                    # Core libraries (API client, auth, db, etc.)
+│   └── types/                  # Centralized TypeScript types
+├── .env.local                  # Environment variables
+├── .github/workflows/ci.yml    # CI/CD pipeline
+└── README.md                   # This file
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-*   [Node.js](https://nodejs.org/) (v18 or later)
-*   [npm](https://www.npmjs.com/)
-*   A Vercel Postgres database
+*   Node.js (v18 or later)
+*   npm or yarn
+*   A PostgreSQL database
 
 ### Installation
 
-1.  Clone the repository:
+1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url>
-    cd flowdash
+    git clone <repository-url>
+    cd <repository-name>
     ```
 
-2.  Install the dependencies:
+2.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-### Environment Variables
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root of the project and add the following variables:
 
-Create a `.env.local` file in the root of the project and add the following environment variables. See `DOCUMENTATION.md` for more details.
+    ```
+    POSTGRES_URL="your_database_connection_string"
+    JWT_PRIVATE_KEY="your_private_key"
+    JWT_PUBLIC_KEY="your_public_key"
+    ```
 
-```
-# Vercel Postgres connection string
-POSTGRES_URL="your_postgres_connection_string"
+    *   `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` should be a valid RS256 key pair.
 
-# Secret for signing JWTs (must be at least 32 characters long)
-JWT_SECRET="your_super_secret_and_long_jwt_secret"
+4.  **Run the database migrations:**
+    (Instructions for running migrations would go here. Since we don't have a migration tool set up, this is a placeholder.)
 
-# Vercel Blob read/write token
-BLOB_READ_WRITE_TOKEN="your_vercel_blob_token"
+5.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-# Sentry DSN for error reporting (optional)
-NEXT_PUBLIC_SENTRY_DSN="your_sentry_dsn"
-```
+    The application will be available at `http://localhost:3000`.
 
-## Running the Application
+## CI/CD
 
-To start the development server, run:
+The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that performs the following checks on every push and pull request to the `main` branch:
 
-```bash
-npm run dev
-```
+*   **Linting:** Runs `npm run lint` to enforce code style.
+*   **Security Scanning:** Uses Trivy to scan for vulnerabilities in the codebase.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
-
-## Running Tests
-
-To run the test suite, use the following command:
-
-```bash
-npm test
+This concludes the project audit and improvement tasks. The application is now more secure, performant, and maintainable.

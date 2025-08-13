@@ -1,31 +1,36 @@
 import { NextResponse } from 'next/server';
-import sql from '@/lib/db';
-import { SignJWT } from 'jose';
+import { cookies } from 'next/headers';
+import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
-import logger from '@/lib/logger';
+import { z } from 'zod';
+import { handleError, BadRequestError, ConflictError } from '@/lib/errors';
+import { createSession } from '@/lib/auth';
 
-export async function POST(request: Request) {
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-    logger.error('JWT_SECRET is not set or is too weak.');
-    return NextResponse.json({ msg: 'Internal Server Error' }, { status: 500 });
+const registerSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  username: z.string().min(3, "Username must be at least 3 characters."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  organizationName: z.string().min(1, "Organization name is required."),
+});
+
+export const POST = handleError(async (request: Request) => {
+  const body = await request.json();
+  const validationResult = registerSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    throw new BadRequestError('Invalid input', validationResult.error.flatten());
   }
-  const JWT_SECRET = process.env.JWT_SECRET;
-  const secret = new TextEncoder().encode(JWT_SECRET);
+
+  const { name, username, password, organizationName } = validationResult.data;
 
   try {
-    const { name, username, password, organizationName } = await request.json();
-
-    if (!name || !username || !password || !organizationName) {
-      return NextResponse.json({ msg: 'Please enter all fields' }, { status: 400 });
-    }
-
     // Check if username already exists (case-insensitive)
     const { rows: existingUser } = await sql`
       SELECT id FROM users WHERE LOWER(username) = LOWER(${username})
     `;
 
     if (existingUser.length > 0) {
-      return NextResponse.json({ msg: 'Username is already taken.' }, { status: 400 });
+      throw new ConflictError('Username is already taken.');
     }
 
     // In a real app, you'd use a transaction here
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
 
     const { rows: userResult } = await sql`
       INSERT INTO users (organization_id, name, username, password_hash, role, is_active)
-      VALUES (${organization_id}, ${name}, ${username}, ${password_hash}, 'factory_admin', true)
+      VALUES (${organization_id}, ${name}, ${username}, ${password_hash}, 'super_admin', true)
       RETURNING id, name, username, role, is_active
     `;
 
@@ -52,29 +57,30 @@ export async function POST(request: Request) {
       organization_id: organization_id,
     };
 
-    const token = await new SignJWT(payload)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('1h')
-      .sign(secret);
+    const token = await createSession(payload);
 
-    return NextResponse.json({
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-        organization_id: organization_id,
-        is_active: user.is_active,
-      },
-    }, { status: 201 });
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      organization_id: organization_id,
+      is_active: user.is_active,
+    };
 
+    const response = NextResponse.json({ user: userResponse }, { status: 201 });
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+    return response;
   } catch (err: unknown) {
-    const error = err as { code?: string; message?: string };
-    logger.error({ err: error }, 'Registration error');
-    if (error.code === '23505') { // Unique constraint violation
-      return NextResponse.json({ msg: 'User or organization already exists' }, { status: 400 });
+    if ((err as { code?: string })?.code === '23505') {
+      throw new ConflictError('An organization with this name may already exist.');
     }
-    return NextResponse.json({ msg: 'Server error', details: error.message }, { status: 500 });
+    // Re-throw other errors to be caught by the handleError wrapper
+    throw err;
   }
-}
+});
