@@ -16,16 +16,21 @@ async function loadKeys() {
     return;
   }
   try {
-    const privateKeyPath = path.resolve(process.cwd(), 'private-key.pem');
-    const publicKeyPath = path.resolve(process.cwd(), 'public-key.pem');
+    if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
+      privateKey = createPrivateKey(process.env.JWT_PRIVATE_KEY);
+      publicKey = createPublicKey(process.env.JWT_PUBLIC_KEY);
+    } else {
+      const privateKeyPath = path.resolve(process.cwd(), 'private-key.pem');
+      const publicKeyPath = path.resolve(process.cwd(), 'public-key.pem');
 
-    const [privateKeyData, publicKeyData] = await Promise.all([
-      fs.readFile(privateKeyPath, 'utf-8'),
-      fs.readFile(publicKeyPath, 'utf-8'),
-    ]);
+      const [privateKeyData, publicKeyData] = await Promise.all([
+        fs.readFile(privateKeyPath, 'utf-8'),
+        fs.readFile(publicKeyPath, 'utf-8'),
+      ]);
 
-    privateKey = createPrivateKey(privateKeyData);
-    publicKey = createPublicKey(publicKeyData);
+      privateKey = createPrivateKey(privateKeyData);
+      publicKey = createPublicKey(publicKeyData);
+    }
   } catch (error) {
     console.error('Error loading cryptographic keys:', error);
     throw new Error('Could not load cryptographic keys. The application cannot start securely.');
