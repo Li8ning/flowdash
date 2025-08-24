@@ -16,19 +16,21 @@ async function loadKeys() {
     return;
   }
   try {
-    if (process.env.JWT_PRIVATE_KEY && process.env.JWT_PUBLIC_KEY) {
+    // Private Key
+    if (process.env.JWT_PRIVATE_KEY) {
       privateKey = createPrivateKey(process.env.JWT_PRIVATE_KEY);
-      publicKey = createPublicKey(process.env.JWT_PUBLIC_KEY);
     } else {
       const privateKeyPath = path.resolve(process.cwd(), 'private-key.pem');
-      const publicKeyPath = path.resolve(process.cwd(), 'public-key.pem');
-
-      const [privateKeyData, publicKeyData] = await Promise.all([
-        fs.readFile(privateKeyPath, 'utf-8'),
-        fs.readFile(publicKeyPath, 'utf-8'),
-      ]);
-
+      const privateKeyData = await fs.readFile(privateKeyPath, 'utf-8');
       privateKey = createPrivateKey(privateKeyData);
+    }
+
+    // Public Key
+    if (process.env.JWT_PUBLIC_KEY) {
+      publicKey = createPublicKey(process.env.JWT_PUBLIC_KEY);
+    } else {
+      const publicKeyPath = path.resolve(process.cwd(), 'public-key.pem');
+      const publicKeyData = await fs.readFile(publicKeyPath, 'utf-8');
       publicKey = createPublicKey(publicKeyData);
     }
   } catch (error) {
