@@ -1,25 +1,53 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+import { loadKeys } from './lib/auth';
+import { KeyObject } from 'crypto';
 
 const publicPaths = ['/', '/register'];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const token = request.cookies.get('token');
+// Initialize keys
+let publicKey: KeyObject | CryptoKey;
+loadKeys().then(keys => {
+  publicKey = keys.publicKey;
+}).catch((err: unknown) => {
+  console.error('Failed to load keys in middleware:', err);
+  process.exit(1);
+});
 
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get('token')?.value;
   const isPublicPath = publicPaths.includes(pathname);
 
-  // If the user is logged in and tries to access a public path, redirect to dashboard
-  if (token && isPublicPath) {
-    return NextResponse.redirect(new URL('/dashboard', request.nextUrl));
+  if (isPublicPath) {
+    if (token) {
+      try {
+        await jwtVerify(token, publicKey, { algorithms: ['RS256'] });
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      } catch {
+        // Invalid token, let them proceed to the public path but clear the cookie
+        const response = NextResponse.next();
+        response.cookies.delete('token');
+        return response;
+      }
+    }
+    return NextResponse.next();
   }
 
-  // If the user is not logged in and tries to access a protected path, redirect to login
-  if (!token && !isPublicPath) {
-    return NextResponse.redirect(new URL('/', request.nextUrl));
+  if (!token) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next();
+  try {
+    await jwtVerify(token, publicKey, { algorithms: ['RS256'] });
+    return NextResponse.next();
+  } catch (err) {
+    console.error('JWT Verification failed in middleware:', err);
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('token');
+    return response;
+  }
 }
 
 export const config = {

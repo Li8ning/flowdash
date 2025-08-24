@@ -12,9 +12,6 @@ let privateKey: CryptoKey | KeyObject;
 let publicKey: CryptoKey | KeyObject;
 
 const formatPemKey = (key: string, type: 'PUBLIC' | 'PRIVATE'): string => {
-          console.log(`--- Formatting ${type} Key ---`);
-          console.log('Step 1: Initial raw key length:', key.length);
-
           const keyHeader = `-----BEGIN ${type} KEY-----`;
           const keyFooter = `-----END ${type} KEY-----`;
 
@@ -23,20 +20,17 @@ const formatPemKey = (key: string, type: 'PUBLIC' | 'PRIVATE'): string => {
             .replace(keyHeader, '')
             .replace(keyFooter, '')
             .replace(/[^A-Za-z0-9+/=]/g, ''); // Keep only valid Base64 characters
-          console.log('Step 4: Final cleaned key body length:', keyBody.length);
 
           const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
           
           const finalKey = `${keyHeader}\n${keyBodyLines}\n${keyFooter}`;
-          console.log('Step 5: Final reconstructed key:', finalKey);
-          console.log(`--- End Formatting ${type} Key ---`);
           
           return finalKey;
         };
 
-async function loadKeys() {
+export async function loadKeys() {
   if (privateKey && publicKey) {
-    return;
+    return { privateKey, publicKey };
   }
   try {
     const privateKeyEnv = process.env.JWT_PRIVATE_KEY
@@ -51,13 +45,13 @@ async function loadKeys() {
 
     const publicKeyData = publicKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'public-key.pem'), 'utf-8');
     publicKey = createPublicKey(publicKeyData);
+    return { privateKey, publicKey };
   } catch (error) {
     console.error('Error loading cryptographic keys:', error);
     throw new Error('Could not load cryptographic keys. The application cannot start securely.');
   }
 }
 
-loadKeys();
 
 export async function getSession(): Promise<User> {
   let token: string | undefined;
