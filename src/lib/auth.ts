@@ -12,21 +12,32 @@ let privateKey: CryptoKey | KeyObject;
 let publicKey: CryptoKey | KeyObject;
 
 const formatPemKey = (key: string, type: 'PUBLIC' | 'PRIVATE'): string => {
-  const keyHeader = `-----BEGIN ${type} KEY-----`;
-  const keyFooter = `-----END ${type} KEY-----`;
-  
-  // Remove headers and any existing newlines/whitespace
-  const keyBody = key
-    .replace(keyHeader, '')
-    .replace(keyFooter, '')
-    .replace(/\\n/g, '') // Remove escaped newlines
-    .replace(/\s/g, '');   // Remove whitespace
-    
-  // Split the body into 64-character lines
-  const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
-  
-  return `${keyHeader}\n${keyBodyLines}\n${keyFooter}`;
-};
+          console.log(`--- Formatting ${type} Key ---`);
+          console.log('Step 1: Initial raw key length:', key.length);
+
+          const keyHeader = `-----BEGIN ${type} KEY-----`;
+          const keyFooter = `-----END ${type} KEY-----`;
+
+          // Step 2: Remove headers and footers
+          let keyBody = key.replace(keyHeader, '').replace(keyFooter, '');
+          console.log('Step 2: Key body after removing headers/footers length:', keyBody.length);
+
+          // Step 3: Remove escaped newlines
+          keyBody = keyBody.replace(/\\n/g, '');
+          console.log('Step 3: Key body after removing escaped newlines length:', keyBody.length);
+          
+          // Step 4: Remove all other whitespace
+          keyBody = keyBody.replace(/\s/g, '');
+          console.log('Step 4: Final cleaned key body length:', keyBody.length);
+
+          const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
+          
+          const finalKey = `${keyHeader}\n${keyBodyLines}\n${keyFooter}`;
+          console.log('Step 5: Final reconstructed key:', finalKey);
+          console.log(`--- End Formatting ${type} Key ---`);
+          
+          return finalKey;
+        };
 
 async function loadKeys() {
   if (privateKey && publicKey) {
