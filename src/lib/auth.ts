@@ -32,15 +32,33 @@ async function loadKeys() {
     return;
   }
   try {
-    const privateKeyEnv = process.env.JWT_PRIVATE_KEY
-      ? formatPemKey(process.env.JWT_PRIVATE_KEY, 'PRIVATE')
+    // --- JWT Key Debugging ---
+    // 1. Log Raw Private Key
+    const rawPrivateKey = process.env.JWT_PRIVATE_KEY;
+    console.log('Raw Private Key from env:', rawPrivateKey ? `Present (length: ${rawPrivateKey.length})` : 'Not Present');
+    
+    // 2. Log Raw Public Key
+    const rawPublicKey = process.env.JWT_PUBLIC_KEY;
+    console.log('Raw Public Key from env:', rawPublicKey ? `Present (length: ${rawPublicKey.length})` : 'Not Present');
+
+    const privateKeyEnv = rawPrivateKey
+      ? formatPemKey(rawPrivateKey, 'PRIVATE')
       : null;
+    
+    // 3. Log Formatted Private Key
+    console.log('Formatted Private Key:', privateKeyEnv);
+    
+    const publicKeyEnv = rawPublicKey
+      ? formatPemKey(rawPublicKey, 'PUBLIC')
+      : null;
+      
+    // 4. Log Formatted Public Key
+    console.log('Formatted Public Key:', publicKeyEnv);
+    console.log('-------------------------');
+
     const privateKeyData = privateKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'private-key.pem'), 'utf-8');
     privateKey = createPrivateKey(privateKeyData);
 
-    const publicKeyEnv = process.env.JWT_PUBLIC_KEY
-      ? formatPemKey(process.env.JWT_PUBLIC_KEY, 'PUBLIC')
-      : null;
     const publicKeyData = publicKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'public-key.pem'), 'utf-8');
     publicKey = createPublicKey(publicKeyData);
   } catch (error) {
