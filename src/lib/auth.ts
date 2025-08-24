@@ -19,15 +19,10 @@ const formatPemKey = (key: string, type: 'PUBLIC' | 'PRIVATE'): string => {
           const keyFooter = `-----END ${type} KEY-----`;
 
           // Step 2: Remove headers and footers
-          let keyBody = key.replace(keyHeader, '').replace(keyFooter, '');
-          console.log('Step 2: Key body after removing headers/footers length:', keyBody.length);
-
-          // Step 3: Remove escaped newlines
-          keyBody = keyBody.replace(/\\n/g, '');
-          console.log('Step 3: Key body after removing escaped newlines length:', keyBody.length);
-          
-          // Step 4: Remove all other whitespace
-          keyBody = keyBody.replace(/\s/g, '');
+          const keyBody = key
+            .replace(keyHeader, '')
+            .replace(keyFooter, '')
+            .replace(/[^A-Za-z0-9+/=]/g, ''); // Keep only valid Base64 characters
           console.log('Step 4: Final cleaned key body length:', keyBody.length);
 
           const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
