@@ -1,19 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
-import { loadKeys } from './lib/auth';
-import { KeyObject } from 'crypto';
+import { verifyJwt } from './lib/auth-edge';
 
 const publicPaths = ['/', '/register'];
-
-// Initialize keys
-let publicKey: KeyObject | CryptoKey;
-loadKeys().then(keys => {
-  publicKey = keys.publicKey;
-}).catch((err: unknown) => {
-  console.error('Failed to load keys in middleware:', err);
-  process.exit(1);
-});
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,7 +12,7 @@ export async function middleware(request: NextRequest) {
   if (isPublicPath) {
     if (token) {
       try {
-        await jwtVerify(token, publicKey, { algorithms: ['RS256'] });
+        await verifyJwt(token);
         return NextResponse.redirect(new URL('/dashboard', request.url));
       } catch {
         // Invalid token, let them proceed to the public path but clear the cookie
@@ -40,7 +29,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, publicKey, { algorithms: ['RS256'] });
+    await verifyJwt(token);
     return NextResponse.next();
   } catch (err) {
     console.error('JWT Verification failed in middleware:', err);
