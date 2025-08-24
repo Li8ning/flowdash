@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { jwtVerify, SignJWT } from 'jose';
 import { sql } from '@vercel/postgres';
 import { User } from '@/types';
@@ -112,8 +112,3 @@ export interface AuthenticatedRequest extends NextRequest {
 export interface HandlerContext {
   params: { [key: string]: string | string[] | undefined };
 }
-
-type Handler = (
-  req: AuthenticatedRequest,
-  context: HandlerContext
-) => Promise<NextResponse>;
