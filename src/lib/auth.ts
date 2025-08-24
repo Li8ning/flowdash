@@ -11,19 +11,35 @@ import { createPrivateKey, createPublicKey, KeyObject } from 'crypto';
 let privateKey: CryptoKey | KeyObject;
 let publicKey: CryptoKey | KeyObject;
 
+const formatPemKey = (key: string, type: 'PUBLIC' | 'PRIVATE'): string => {
+  const keyHeader = `-----BEGIN ${type} KEY-----`;
+  const keyFooter = `-----END ${type} KEY-----`;
+  
+  // Remove headers and any existing newlines/whitespace
+  const keyBody = key
+    .replace(keyHeader, '')
+    .replace(keyFooter, '')
+    .replace(/\s/g, '');
+    
+  // Split the body into 64-character lines
+  const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
+  
+  return `${keyHeader}\n${keyBodyLines}\n${keyFooter}`;
+};
+
 async function loadKeys() {
   if (privateKey && publicKey) {
     return;
   }
   try {
     const privateKeyEnv = process.env.JWT_PRIVATE_KEY
-      ? process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n')
+      ? formatPemKey(process.env.JWT_PRIVATE_KEY, 'PRIVATE')
       : null;
     const privateKeyData = privateKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'private-key.pem'), 'utf-8');
     privateKey = createPrivateKey(privateKeyData);
 
     const publicKeyEnv = process.env.JWT_PUBLIC_KEY
-      ? process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
+      ? formatPemKey(process.env.JWT_PUBLIC_KEY, 'PUBLIC')
       : null;
     const publicKeyData = publicKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'public-key.pem'), 'utf-8');
     publicKey = createPublicKey(publicKeyData);
