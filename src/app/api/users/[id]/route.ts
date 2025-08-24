@@ -4,12 +4,22 @@ import { verifyAuth } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { handleError, ForbiddenError, BadRequestError, NotFoundError, ConflictError } from '@/lib/errors';
 
-const updateUserSchema = z.object({
+const baseUpdateUserSchema = z.object({
   name: z.string().min(1, "Name cannot be empty.").optional(),
   username: z.string().min(3, "Username must be at least 3 characters.").optional(),
   language: z.string().optional(),
-  role: z.enum(['super_admin', 'admin', 'floor_staff']).optional(),
-}).strict();
+});
+
+const getUpdateUserSchema = (currentUserRole: string) => {
+  if (currentUserRole === 'super_admin') {
+    return baseUpdateUserSchema.extend({
+      role: z.enum(['admin', 'floor_staff']).optional(),
+    }).strict();
+  }
+  return baseUpdateUserSchema.extend({
+    role: z.literal('floor_staff').optional(),
+  }).strict();
+};
 
 interface HandlerContext {
   params: { id: string };
@@ -21,6 +31,9 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
     return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
   const body = await req.json();
+  const { role: currentUserRole } = authResult.user;
+
+  const updateUserSchema = getUpdateUserSchema(currentUserRole as string);
   const validationResult = updateUserSchema.safeParse(body);
 
   if (!validationResult.success) {
@@ -29,7 +42,7 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
 
   const { name, language, username, role: newRole } = validationResult.data;
   const userId = parseInt(params.id, 10);
-  const { id: currentUserId, role: currentUserRole, organization_id } = authResult.user;
+  const { id: currentUserId, organization_id } = authResult.user;
 
   const isSelf = (currentUserId as number) === userId;
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
@@ -38,14 +51,6 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
     throw new ForbiddenError();
   }
 
-  if (newRole) {
-    if (!isAdmin) {
-      throw new ForbiddenError('You are not authorized to change roles.');
-    }
-    if (newRole === 'super_admin' && currentUserRole !== 'super_admin') {
-      throw new ForbiddenError('Only super_admins can assign super_admin role.');
-    }
-  }
 
   const { rows: [userRecord] } = await sql`SELECT * FROM users WHERE id = ${userId}`;
   if (!userRecord) {

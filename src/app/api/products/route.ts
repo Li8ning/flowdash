@@ -22,7 +22,7 @@ export const GET = handleError(async (req: NextRequest) => {
   const category = searchParams.get('category');
   const design = searchParams.get('design');
 
-  const whereClauses = ['organization_id = $1'];
+  const whereClauses = ['organization_id = $1', '(p.is_archived IS NULL OR p.is_archived = false)'];
   const queryParams: (string | number)[] = [organization_id as number];
   let paramIndex = 2;
 

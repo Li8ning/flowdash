@@ -5,14 +5,22 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { handleError, ForbiddenError, BadRequestError, ConflictError } from '@/lib/errors';
 
-const UserRole = z.enum(['admin', 'floor_staff']);
-
-const createUserSchema = z.object({
+const baseCreateUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters long."),
   name: z.string().min(1, "Name is required."),
   password: z.string().min(8, "Password must be at least 8 characters long."),
-  role: UserRole,
 });
+
+const getCreateUserSchema = (currentUserRole: string) => {
+  if (currentUserRole === 'super_admin') {
+    return baseCreateUserSchema.extend({
+      role: z.enum(['admin', 'floor_staff']),
+    }).strict();
+  }
+  return baseCreateUserSchema.extend({
+    role: z.literal('floor_staff'),
+  }).strict();
+};
 
 // Get all users in the admin's organization
 export const GET = handleError(async (req: NextRequest) => {
@@ -60,11 +68,13 @@ export const POST = handleError(async (req: NextRequest) => {
   if (authResult.error || !authResult.user) {
     return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
-  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+  const { role: creatorRole, organization_id } = authResult.user;
+  if (!['admin', 'super_admin'].includes(creatorRole as string)) {
     throw new ForbiddenError();
   }
 
   const body = await req.json();
+  const createUserSchema = getCreateUserSchema(creatorRole as string);
   const validationResult = createUserSchema.safeParse(body);
 
   if (!validationResult.success) {
@@ -72,30 +82,23 @@ export const POST = handleError(async (req: NextRequest) => {
   }
   
   const { username, password, role, name } = validationResult.data;
-  const { organization_id, role: creatorRole } = authResult.user;
 
-  // Enforce role creation hierarchy
-  if (creatorRole === 'admin' && role !== 'floor_staff') {
-    throw new ForbiddenError('Admins can only create Floor Staff.');
-  }
-  if (creatorRole === 'floor_staff') {
-    throw new ForbiddenError('Floor Staff cannot create users.');
+  // Check if username is already taken
+  const { rows: existingUsers } = await sql`
+    SELECT id FROM users WHERE username = ${username} AND organization_id = ${organization_id as number}
+  `;
+
+  if (existingUsers.length > 0) {
+    throw new ConflictError('Username is already taken.');
   }
 
   const salt = await bcrypt.genSalt(10);
   const password_hash = await bcrypt.hash(password, salt);
 
-  try {
-    const { rows: [newUser] } = await sql`
-      INSERT INTO users (username, name, password_hash, role, organization_id, is_active)
-      VALUES (${username}, ${name}, ${password_hash}, ${role}, ${organization_id as number}, true)
-      RETURNING id, username, role, name, is_active
-    `;
-    return NextResponse.json(newUser, { status: 201 });
-  } catch (err: unknown) {
-    if ((err as { code?: string })?.code === '23505' && (err as Error).message.includes('users_username_key')) {
-      throw new ConflictError('Username is already taken.');
-    }
-    throw err;
-  }
+  const { rows: [newUser] } = await sql`
+    INSERT INTO users (username, name, password_hash, role, organization_id, is_active)
+    VALUES (${username}, ${name}, ${password_hash}, ${role}, ${organization_id as number}, true)
+    RETURNING id, username, role, name, is_active
+  `;
+  return NextResponse.json(newUser, { status: 201 });
 });

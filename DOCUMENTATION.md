@@ -77,108 +77,81 @@ The application uses a Vercel Postgres database. Database queries are executed u
 
 ### 2.4. Authentication
 
-The authentication system is based on JSON Web Tokens (JWT). It supports both session-only and persistent ("Keep me signed in") logins.
+The authentication system is based on JSON Web Tokens (JWT) stored in secure, `httpOnly` cookies. It supports both session-only and persistent ("Keep me signed in") logins.
 
 #### How it Works:
 
 1.  **Login Request:** The user enters their credentials on the login page. A `rememberMe` boolean flag is sent along with the username and password to the `POST /api/auth/login` endpoint.
-2.  **Token Generation:** The backend validates the credentials. If they are correct, it generates a JWT using the `jose` library. The token's expiration is set conditionally:
+2.  **Token Generation & Cookie Setting:** The backend validates the credentials. If they are correct, it generates a JWT using the `jose` library. The token's expiration is set conditionally:
     *   If `rememberMe` is `true`, the token expires in **30 days**.
     *   If `rememberMe` is `false`, the token expires in **1 day**.
-3.  **Token Storage:** The generated token is sent back to the client. The `AuthContext` on the frontend is responsible for storing this token:
-    *   If `rememberMe` is `true`, the token is stored in **`localStorage`**. This persists the token even after the browser is closed.
-    *   If `rememberMe` is `false`, the token is stored in **`sessionStorage`**. This token is cleared when the browser session ends (i.e., the tab or window is closed).
-4.  **Authenticated Requests:** An Axios request interceptor (`src/lib/api.js`) is configured to run before every API call. It reads the token from either `localStorage` or `sessionStorage` and adds it to the `Authorization` header of the request:
-    ```
-    Authorization: Bearer <jwt_token>
-    ```
-5.  **Token Verification:** A backend middleware (`src/lib/auth.ts`) protects all secure API routes. It extracts the token from the `Authorization` header, verifies its signature and expiration using the `JWT_SECRET`, and attaches the user's payload to the request object for use in the API route handlers.
-6.  **Logout:** When the user logs out, the `AuthContext` explicitly removes the token from both `localStorage` and `sessionStorage` to ensure the session is terminated.
+    The server then sets this token in an `httpOnly`, `Secure` cookie named `token` in the response. This cookie is automatically managed by the browser and is not accessible to client-side JavaScript, providing protection against XSS attacks.
+3.  **Authenticated Requests:** The browser automatically includes the `token` cookie with every subsequent request to the server. A backend middleware (`src/lib/auth.ts`) protects all secure API routes. It extracts the token from the cookie, verifies its signature and expiration using the `JWT_SECRET`, and attaches the user's payload to the request object for use in the API route handlers.
+4.  **Logout:** When the user logs out, a request is made to the `GET /api/auth/logout` endpoint. This endpoint sets the `token` cookie with a `maxAge` of -1, instructing the browser to delete it. The `AuthContext` on the frontend clears its local state.
 
-This approach replaces the previous `httpOnly` cookie-based method to provide more flexible, client-side control over session persistence.
-
----
 ---
 
 ## 3. Database Schema
 
-The database consists of the following core tables. Primary keys are marked with 🔑 and foreign keys with 🔗.
+This section provides a high-level overview of the main tables in the FlowDash database.
 
-### 3.1. `organizations`
+### `organizations`
 
-Stores information about the organizations (factories) using the application.
+This table stores information about the different factory organizations using the application. Each organization acts as a separate tenant.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` 🔑 | `integer` | NOT NULL, PRIMARY KEY | Unique identifier for the organization. |
-| `name` | `varchar(255)` | NOT NULL | The name of the organization. |
-| `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the record was created. |
-| `updated_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of the last update. |
+-   `id`: Unique identifier for the organization.
+-   `name`: The name of the organization.
 
-### 3.2. `users`
+### `users`
 
-Stores user accounts. Each user belongs to an organization.
+This table manages user accounts. Each user belongs to an organization and has a specific role.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` 🔑 | `integer` | NOT NULL, PRIMARY KEY | Unique identifier for the user. |
-| `organization_id` 🔗 | `integer` | FOREIGN KEY -> organizations(id) | The organization this user belongs to. |
-| `username` | `varchar(255)` | NOT NULL, UNIQUE (with organization_id) | The user's login name. |
-| `name` | `varchar(255)` | | The user's full name. |
-| `password_hash` | `varchar(255)` | NOT NULL | The user's hashed password. |
-| `role` | `varchar(50)` | NOT NULL, CHECK (`super_admin`, `admin`, or `floor_staff`) | The user's role, which determines their permissions. |
-| `is_active` | `boolean` | DEFAULT true | Whether the user account is active or disabled. |
-| `language` | `varchar(10)` | DEFAULT 'en' | The user's preferred language for the UI. |
-| `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the record was created. |
-| `updated_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of the last update. |
+-   `id`: Unique identifier for the user.
+-   `organization_id`: Foreign key linking to the `organizations` table.
+-   `username`: The user's login name.
+-   `password_hash`: The user's hashed password.
+-   `role`: The user's role (`super_admin`, `admin`, or `floor_staff`).
+-   `is_active`: A boolean to activate or deactivate the user account.
 
-### 3.3. `product_attributes`
+### `products`
 
-A central table to store predefined values for various product attributes, ensuring data consistency.
+This table contains the product catalog for each organization.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` 🔑 | `integer` | NOT NULL, PRIMARY KEY | Unique identifier for the attribute. |
-| `organization_id` 🔗 | `integer` | NOT NULL, FOREIGN KEY -> organizations(id) | The organization these attributes belong to. |
-| `type` | `varchar(50)` | NOT NULL, UNIQUE (with org_id, value) | The type of attribute (e.g., 'category', 'design', 'color'). |
-| `value` | `varchar(255)` | NOT NULL, UNIQUE (with org_id, type) | The actual value of the attribute (e.g., 'Water Closet', 'Designer', 'Blue'). |
-| `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the record was created. |
-| `updated_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of the last update. |
+-   `id`: Unique identifier for the product.
+-   `organization_id`: Foreign key linking to the `organizations` table.
+-   `sku`: The Stock Keeping Unit for the product.
+-   `name`: The name of the product.
+-   `image_url`: URL for the product's image.
+-   `is_archived`: A boolean to mark a product as archived.
 
-### 3.4. `products`
+### `inventory_logs`
 
-Stores the product catalog for each organization.
+This is the core table for tracking production. Floor staff create entries here to log the products they have produced.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` 🔑 | `integer` | NOT NULL, PRIMARY KEY | Unique identifier for the product. |
-| `organization_id` 🔗 | `integer` | FOREIGN KEY -> organizations(id) | The organization this product belongs to. |
-| `sku` | `varchar(100)` | NOT NULL, UNIQUE (with organization_id) | The unique Stock Keeping Unit for the product. |
-| `name` | `varchar(255)` | NOT NULL | The product's name. |
-| `category` | `varchar(255)` | | The product's category (from `product_attributes`). |
-| `design` | `varchar(255)` | | The product's design/series (from `product_attributes`). |
-| `color` | `varchar(100)` | | The product's color (from `product_attributes`). |
-| `image_url` | `text` | | URL of the product's image, hosted on Vercel Blob. |
-| `available_qualities` | `text[]` | | Array of available quality levels (from `product_attributes`). |
-| `available_packaging_types` | `text[]` | | Array of available packaging types (from `product_attributes`). |
-| `is_archived` | `boolean` | DEFAULT false | Whether the product is archived and hidden from view. |
-| `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the record was created. |
-| `updated_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of the last update. |
+-   `id`: Unique identifier for the log entry.
+-   `product_id`: Foreign key linking to the `products` table.
+-   `user_id`: Foreign key linking to the `users` table (the staff member who created the log).
+-   `produced`: The quantity of the product that was produced.
+-   `quality`: The quality of the produced items (e.g., 'A', 'B').
+-   `packaging_type`: The type of packaging used.
 
-### 3.5. `inventory_logs`
+### `inventory`
 
-Records production entries made by `floor_staff` users.
+This table provides a real-time summary of the stock levels for each product. It is updated based on the entries in `inventory_logs`.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` 🔑 | `integer` | NOT NULL, PRIMARY KEY | Unique identifier for the log entry. |
-| `product_id` 🔗 | `integer` | FOREIGN KEY -> products(id) | The product that was produced. |
-| `user_id` 🔗 | `integer` | FOREIGN KEY -> users(id) | The user who logged the production. |
-| `produced` | `integer` | NOT NULL | The quantity of items produced. |
-| `quality` | `text` | | The quality of the produced items. |
-| `packaging_type` | `text` | | The packaging type used. |
-| `created_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of when the log was created. |
-| `updated_at` | `timestamptz` | DEFAULT CURRENT_TIMESTAMP | Timestamp of the last update. |
+-   `product_id`: Foreign key linking to the `products` table.
+-   `quantity_on_hand`: The current stock level for the product.
+
+### `product_attributes`
+
+This table stores reusable attributes that can be associated with products, such as categories, designs, colors, and packaging types. This helps in standardizing product information.
+
+-   `id`: Unique identifier for the attribute.
+-   `organization_id`: Foreign key linking to the `organizations` table.
+-   `type`: The type of attribute (e.g., 'category', 'design').
+-   `value`: The value of the attribute (e.g., 'Water Closet', 'Designer Series').
+
+For the complete and detailed schema, please see the [`schema_dump.sql`](schema_dump.sql:1) file.
 
 ---
 ## 4. Frontend Components
@@ -223,6 +196,7 @@ This logic is enforced in the backend API (`/api/users`) and reflected in the fr
 *   **`WeeklyProductionChart.tsx`**: A bar chart component that visualizes the production totals for the last seven days.
 
 ---
+
 ## 5. Context Providers
 
 The application uses the React Context API for global state management. The providers are set up in `src/components/Providers.tsx`.
@@ -261,6 +235,7 @@ Manages the global loading state, allowing any component to trigger the global l
     *   `hideLoading()`: Sets `isLoading` to `false`.
 
 ---
+
 ## 6. API Endpoints
 
 The backend is exposed via a set of RESTful API endpoints. All endpoints under `/api` are handled by Next.js API Routes.
@@ -341,6 +316,7 @@ The backend is exposed via a set of RESTful API endpoints. All endpoints under `
 *   `GET /api/inventory/summary/weekly-production`
     *   Retrieves data for the weekly production chart.
 ---
+
 ## 7. Security Remediations
 
 This section details the security vulnerabilities that have been identified and addressed in the application.

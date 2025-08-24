@@ -60,6 +60,7 @@ const productUpdateSchema = z.object({
   image_url: z.string().url().optional().or(z.literal('')),
   available_qualities: z.array(z.string()).optional(),
   available_packaging_types: z.array(z.string()).optional(),
+  is_archived: z.boolean().optional(),
 }).strict();
 
 export const PATCH = handleError(async (req: NextRequest, { params }: HandlerContext) => {

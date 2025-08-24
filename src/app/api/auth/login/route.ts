@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import { handleError, UnauthorizedError, ForbiddenError } from '@/lib/errors';

@@ -72,13 +72,28 @@ export function useCrud<T>({
         params.limit = limit;
       }
       const response = await api.get(endpoint, { params });
-      setState(prevState => ({
-        ...prevState,
-        data: page === 1 ? response.data.data : [...prevState.data, ...response.data.data],
-        total: response.data.totalCount !== undefined ? response.data.totalCount : prevState.total,
-        loading: false,
-        error: null,
-      }));
+      setState(prevState => {
+        const dataContainer = response.data;
+        let responseData;
+
+        if (dataContainer && Array.isArray(dataContainer.data)) {
+          responseData = dataContainer.data;
+        } else if (Array.isArray(dataContainer)) {
+          responseData = dataContainer;
+        } else {
+          responseData = dataContainer ? dataContainer.data : undefined;
+        }
+        
+        const newData = Array.isArray(responseData) ? responseData : (responseData ? [responseData] : []);
+        
+        return {
+          ...prevState,
+          data: page && page > 1 ? [...prevState.data, ...newData] : newData,
+          total: response.data.totalCount !== undefined ? response.data.totalCount : prevState.total,
+          loading: false,
+          error: null,
+        };
+      });
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to fetch data.';
@@ -134,11 +149,38 @@ export function useCrud<T>({
     }
   };
 
+  const archiveItem = async (id: number | string) => {
+    try {
+      await api.patch(`${endpoint}/${id}`, { is_archived: true });
+      // Refetch data to reflect the archived status
+      fetchData(1);
+      handleSuccess('Item archived successfully.');
+    } catch (err) {
+      const error = err as AxiosError;
+      const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to archive item.';
+      handleError(errorMessage);
+      throw error;
+    }
+  };
+
+  const reactivateItem = async (id: number | string) => {
+    try {
+      await api.put(`${endpoint}/${id}/reactivate`);
+      fetchData(1); // Refetch data to reflect the reactivated status
+      handleSuccess('Item reactivated successfully.');
+    } catch (err) {
+      const error = err as AxiosError;
+      const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to reactivate item.';
+      handleError(errorMessage);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     if (initialFetch) {
       fetchData();
     }
   }, [endpoint, initialFetch, fetchData]);
 
-  return { ...state, fetchData, createItem, updateItem, deleteItem };
+  return { ...state, fetchData, createItem, updateItem, deleteItem, archiveItem, reactivateItem };
 }

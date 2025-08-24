@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '@/lib/api';
 import {
   Box,
   Button,
@@ -12,7 +11,6 @@ import {
   Input,
   Select,
   Stack,
-  useToast,
   Table,
   Thead,
   Tbody,
@@ -52,7 +50,6 @@ import { User, Role } from '@/types';
 const UserManager: React.FC = () => {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
-  const toast = useToast();
   
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -75,6 +72,7 @@ const UserManager: React.FC = () => {
     createItem,
     deleteItem,
     updateItem,
+    reactivateItem,
   } = useCrud<User>({
     endpoint: '/users',
   });
@@ -109,27 +107,6 @@ const UserManager: React.FC = () => {
     }
   };
 
-  const handleReactivateUser = async (userId: number) => {
-    try {
-      await api.put(`/users/${userId}/reactivate`);
-      toast({
-        title: t('user_manager.toast.user_reactivated'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      fetchData();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_reactivating_user'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  };
-
   const openAlert = (type: 'remove' | 'reactivate', userId: number) => {
     setAlertAction({ type, userId });
     onAlertOpen();
@@ -140,7 +117,7 @@ const UserManager: React.FC = () => {
     if (alertAction.type === 'remove') {
       deleteItem(alertAction.userId);
     } else if (alertAction.type === 'reactivate') {
-      handleReactivateUser(alertAction.userId);
+      reactivateItem(alertAction.userId);
     }
     onAlertClose();
   };
@@ -260,102 +237,102 @@ const UserManager: React.FC = () => {
             <Spinner size="xl" />
           </Flex>
         ) : (
-        <TableContainer>
-          <Table variant="simple" colorScheme="teal" sx={{
-            '@media (max-width: 768px)': {
-              thead: {
-                display: 'none',
-              },
-              tr: {
-                display: 'block',
-                marginBottom: '1rem',
-                border: '1px solid',
-                borderColor: 'gray.200',
-                borderRadius: 'md',
-                padding: '1rem',
-              },
-              td: {
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid',
-                borderColor: 'gray.200',
-                padding: '0.75rem 0',
-                '&:last-child': {
-                  borderBottom: 'none',
+          <TableContainer>
+            <Table variant="simple" colorScheme="teal" sx={{
+              '@media (max-width: 768px)': {
+                thead: {
+                  display: 'none',
                 },
-                '&::before': {
-                  content: 'attr(data-label)',
-                  fontWeight: 'bold',
-                  marginRight: '1rem',
+                tr: {
+                  display: 'block',
+                  marginBottom: '1rem',
+                  border: '1px solid',
+                  borderColor: 'gray.200',
+                  borderRadius: 'md',
+                  padding: '1rem',
+                },
+                td: {
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid',
+                  borderColor: 'gray.200',
+                  padding: '0.75rem 0',
+                  '&:last-child': {
+                    borderBottom: 'none',
+                  },
+                  '&::before': {
+                    content: 'attr(data-label)',
+                    fontWeight: 'bold',
+                    marginRight: '1rem',
+                  },
                 },
               },
-            },
-          }}>
-            <Thead bg="brand.background">
-              <Tr>
-                <Th>{t('user_manager.table.name')}</Th>
-                <Th>{t('user_manager.table.username')}</Th>
-                <Th>{t('user_manager.table.role')}</Th>
-                <Th>{t('user_manager.table.status')}</Th>
-                {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <Th>{t('user_manager.table.actions')}</Th>}
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredUsers.map((user) => (
-                <Tr key={user.id}
-                    sx={{
-                        '@media (min-width: 769px)': {
-                            '&:hover': {
-                                backgroundColor: 'gray.50',
-                                cursor: 'pointer'
-                            }
-                        }
-                    }}
-                >
-                  <Td data-label={t('user_manager.table.name')}><Text noOfLines={1}>{user.name}</Text></Td>
-                  <Td data-label={t('user_manager.table.username')}><Text noOfLines={1}>{user.username}</Text></Td>
-                  <Td data-label={t('user_manager.table.role')}><Text noOfLines={1}>{user.role}</Text></Td>
-                  <Td data-label={t('user_manager.table.status')}>
-                    <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
-                      {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
-                    </Text>
-                  </Td>
-                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
-                    <Td data-label={t('user_manager.table.actions')}>
-                      <Flex gap={2}>
-                        <IconButton
-                          aria-label={t('user_manager.actions.edit')}
-                          icon={<EditIcon />}
-                          colorScheme="blue"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        />
-                        {user.is_active !== false ? (
-                          <IconButton
-                            aria-label={t('user_manager.actions.deactivate')}
-                            icon={<DeleteIcon />}
-                            colorScheme="red"
-                            size="sm"
-                            onClick={() => openAlert('remove', user.id)}
-                          />
-                        ) : (
-                          <IconButton
-                            aria-label={t('user_manager.actions.reactivate')}
-                            icon={<RepeatIcon />}
-                            colorScheme="green"
-                            size="sm"
-                            onClick={() => openAlert('reactivate', user.id)}
-                          />
-                        )}
-                      </Flex>
-                    </Td>
-                  )}
+            }}>
+              <Thead bg="brand.background">
+                <Tr>
+                  <Th>{t('user_manager.table.name')}</Th>
+                  <Th>{t('user_manager.table.username')}</Th>
+                  <Th>{t('user_manager.table.role')}</Th>
+                  <Th>{t('user_manager.table.status')}</Th>
+                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <Th>{t('user_manager.table.actions')}</Th>}
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </TableContainer>
+              </Thead>
+              <Tbody>
+                {filteredUsers.map((user) => (
+                  <Tr key={user.id}
+                      sx={{
+                          '@media (min-width: 769px)': {
+                              '&:hover': {
+                                  backgroundColor: 'gray.50',
+                                  cursor: 'pointer'
+                              }
+                          }
+                      }}
+                  >
+                    <Td data-label={t('user_manager.table.name')}><Text noOfLines={1}>{user.name}</Text></Td>
+                    <Td data-label={t('user_manager.table.username')}><Text noOfLines={1}>{user.username}</Text></Td>
+                    <Td data-label={t('user_manager.table.role')}><Text noOfLines={1}>{user.role}</Text></Td>
+                    <Td data-label={t('user_manager.table.status')}>
+                      <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
+                        {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
+                      </Text>
+                    </Td>
+                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+                      <Td data-label={t('user_manager.table.actions')}>
+                        <Flex gap={2}>
+                          <IconButton
+                            aria-label={t('user_manager.actions.edit')}
+                            icon={<EditIcon />}
+                            colorScheme="blue"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          />
+                          {user.is_active !== false ? (
+                            <IconButton
+                              aria-label={t('user_manager.actions.deactivate')}
+                              icon={<DeleteIcon />}
+                              colorScheme="red"
+                              size="sm"
+                              onClick={() => openAlert('remove', user.id)}
+                            />
+                          ) : (
+                            <IconButton
+                              aria-label={t('user_manager.actions.reactivate')}
+                              icon={<RepeatIcon />}
+                              colorScheme="green"
+                              size="sm"
+                              onClick={() => openAlert('reactivate', user.id)}
+                            />
+                          )}
+                        </Flex>
+                      </Td>
+                    )}
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
         )}
       </Box>
 

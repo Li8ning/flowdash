@@ -154,6 +154,7 @@
   "product_manager.table.sku": "SKU",
   "product_manager.table.design": "Design",
   "product_manager.table.color": "Color",
+  "product_manager.table.quantity": "Quantity",
   "product_manager.table.actions": "Actions",
   "product_manager.archive_dialog.title": "Archive Product",
   "product_manager.archive_dialog.body": "Are you sure? This will mark the product as inactive.",

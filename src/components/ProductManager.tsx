@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '@/lib/api';
-import { Product, ProductAttribute, GroupedAttributes } from '@/types';
+import { Product } from '@/types';
 import {
   Box,
   Button,
@@ -55,6 +55,7 @@ import { useTranslation } from 'react-i18next';
 import { FiUpload } from 'react-icons/fi';
 import Link from 'next/link';
 import { useCrud } from '@/hooks/useCrud';
+import { useProductAttributes } from '@/hooks/useProductAttributes';
 
 const ProductManager = () => {
   const { t } = useTranslation();
@@ -72,7 +73,7 @@ const ProductManager = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [attributes, setAttributes] = useState<GroupedAttributes>({});
+  const { attributes, loading: attributesLoading } = useProductAttributes();
   const [lastCreatedProduct, setLastCreatedProduct] = useState<Product | null>(null);
 
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -89,6 +90,7 @@ const ProductManager = () => {
     fetchData,
     createItem,
     updateItem,
+    archiveItem,
   } = useCrud<Product>({
     endpoint: '/products',
   });
@@ -98,36 +100,6 @@ const ProductManager = () => {
       fetchData(currentPage, activeFilters, productsPerPage);
     }
   }, [user?.role, fetchData, currentPage, activeFilters, productsPerPage, toast]);
-
-  useEffect(() => {
-    const fetchAttributes = async () => {
-      if (!user?.organization_id || user?.role === 'floor_staff') return;
-      try {
-        const { data } = await api.get<ProductAttribute[]>('/settings/attributes', {
-          params: { organization_id: user.organization_id },
-        });
-        const grouped = data.reduce((acc, attr) => {
-          const { type } = attr;
-          if (!acc[type]) {
-            acc[type] = [];
-          }
-          acc[type].push(attr);
-          return acc;
-        }, {} as GroupedAttributes);
-        setAttributes(grouped);
-      } catch (err) {
-        console.error('Failed to fetch attributes', err);
-        toast({
-          title: "Error",
-          description: "Could not load product attributes.",
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
-    fetchAttributes();
-  }, [user?.organization_id, user?.role, toast, t]);
 
   const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -197,7 +169,27 @@ const ProductManager = () => {
     if (!editingProduct) return;
     setIsUploading(true);
 
-    const productData = { ...editingProduct };
+    const {
+      name,
+      sku,
+      color,
+      category,
+      design,
+      image_url,
+      available_qualities,
+      available_packaging_types,
+    } = editingProduct;
+
+    const productData = {
+      name,
+      sku,
+      color,
+      category,
+      design,
+      image_url,
+      available_qualities,
+      available_packaging_types,
+    };
 
     try {
       if (imageFile) {
@@ -219,23 +211,6 @@ const ProductManager = () => {
     }
   };
 
-  const handleArchiveProduct = async (productId: number) => {
-    try {
-      await api.patch(`/products/${productId}/archive`);
-      fetchData(1, activeFilters, productsPerPage); // Refetch from page 1
-      setCurrentPage(1);
-      toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error('Failed to archive product:', err);
-      toast({
-        title: t('product_manager.toast.error_archiving_product'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
   const openArchiveDialog = (productId: number) => {
     setProductToArchive(productId);
     onArchiveOpen();
@@ -243,7 +218,7 @@ const ProductManager = () => {
 
   const confirmArchive = () => {
     if (productToArchive) {
-      handleArchiveProduct(productToArchive);
+      archiveItem(productToArchive);
     }
     onArchiveClose();
   };
@@ -329,39 +304,51 @@ const ProductManager = () => {
       <Divider mb={6} />
 
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
-        <Select
-          placeholder={t('product_manager.filter_by_category')}
-          value={filters.category}
-          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-        >
-          {(attributes.category || []).map((attr) => (
-            <option key={attr.id} value={attr.value}>
-              {attr.value}
-            </option>
-          ))}
-        </Select>
-        <Select
-          placeholder={t('product_manager.filter_by_design')}
-          value={filters.design}
-          onChange={(e) => setFilters({ ...filters, design: e.target.value })}
-        >
-          {(attributes.design || []).map((attr) => (
-            <option key={attr.id} value={attr.value}>
-              {attr.value}
-            </option>
-          ))}
-        </Select>
-        <Select
-          placeholder={t('product_manager.filter_by_color')}
-          value={filters.color}
-          onChange={(e) => setFilters({ ...filters, color: e.target.value })}
-        >
-          {(attributes.color || []).map((attr) => (
-            <option key={attr.id} value={attr.value}>
-              {attr.value}
-            </option>
-          ))}
-        </Select>
+        <Flex align="center">
+          <Select
+            placeholder={t('product_manager.filter_by_category')}
+            value={filters.category}
+            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            isDisabled={attributesLoading}
+          >
+            {(attributes.category || []).map((attr) => (
+              <option key={attr.id} value={attr.value}>
+                {attr.value}
+              </option>
+            ))}
+          </Select>
+          {attributesLoading && <Spinner size="sm" ml={2} />}
+        </Flex>
+        <Flex align="center">
+          <Select
+            placeholder={t('product_manager.filter_by_design')}
+            value={filters.design}
+            onChange={(e) => setFilters({ ...filters, design: e.target.value })}
+            isDisabled={attributesLoading}
+          >
+            {(attributes.design || []).map((attr) => (
+              <option key={attr.id} value={attr.value}>
+                {attr.value}
+              </option>
+            ))}
+          </Select>
+          {attributesLoading && <Spinner size="sm" ml={2} />}
+        </Flex>
+        <Flex align="center">
+          <Select
+            placeholder={t('product_manager.filter_by_color')}
+            value={filters.color}
+            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+            isDisabled={attributesLoading}
+          >
+            {(attributes.color || []).map((attr) => (
+              <option key={attr.id} value={attr.value}>
+                {attr.value}
+              </option>
+            ))}
+          </Select>
+          {attributesLoading && <Spinner size="sm" ml={2} />}
+        </Flex>
         <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
         <Button onClick={handleClearFilters} colorScheme="gray">
           {t('product_manager.clear_filters')}
@@ -538,8 +525,8 @@ const ProductManager = () => {
         ) : isMobile ? (
           <Accordion allowMultiple>
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <AccordionItem key={product.id} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
+              filteredProducts.map((product, index) => (
+                <AccordionItem key={`${product.id}-${index}`} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
                   <h2>
                     <AccordionButton>
                       <Box flex="1" textAlign="left">
@@ -593,59 +580,73 @@ const ProductManager = () => {
           </Accordion>
         ) : (
           <TableContainer>
-            <Table variant="simple" colorScheme="blue">
-              <Thead bg="brand.background">
-                <Tr>
-                  <Th>{t('product_manager.table.image')}</Th>
-                  <Th>{t('product_manager.table.name')}</Th>
-                  <Th>{t('product_manager.table.sku')}</Th>
-                  <Th>{t('product_manager.table.design')}</Th>
-                  <Th>{t('product_manager.table.color')}</Th>
-                  <Th isNumeric>{t('product_manager.table.quantity')}</Th>
-                  <Th>{t('product_manager.table.actions')}</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {filteredProducts.map((product) => (
-                  <Tr key={product.id}
-                      sx={{
-                          '@media (min-width: 769px)': {
-                              '&:hover': {
-                                  backgroundColor: 'gray.50',
-                                  cursor: 'pointer'
-                              }
-                          }
-                      }}
-                  >
-                    <Td>
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        boxSize="50px"
-                        objectFit="cover"
-                        borderRadius="md"
-                        fallbackSrc="https://placehold.co/50"
-                      />
-                    </Td>
-                    <Td>
-                      <Text noOfLines={1}>{product.name}</Text>
-                    </Td>
-                    <Td>
-                      <Text noOfLines={1}>{product.sku}</Text>
-                    </Td>
-                    <Td><Text noOfLines={1}>{product.design}</Text></Td>
-                    <Td><Text noOfLines={1}>{product.color}</Text></Td>
-                    <Td isNumeric><Text noOfLines={1}>{product.quantity_on_hand ?? 0}</Text></Td>
-                    <Td>
-                      <Flex wrap="wrap" gap={2}>
-                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
-                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
-                      </Flex>
-                    </Td>
+            {isLoading ? (
+              <Flex justify="center" align="center" h="200px">
+                <Spinner size="xl" />
+              </Flex>
+            ) : (
+              <Table variant="simple" colorScheme="blue">
+                <Thead bg="brand.background">
+                  <Tr>
+                    <Th>{t('product_manager.table.image')}</Th>
+                    <Th>{t('product_manager.table.name')}</Th>
+                    <Th>{t('product_manager.table.sku')}</Th>
+                    <Th>{t('product_manager.table.design')}</Th>
+                    <Th>{t('product_manager.table.color')}</Th>
+                    <Th isNumeric>{t('product_manager.table.quantity')}</Th>
+                    <Th>{t('product_manager.table.actions')}</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            </Table>
+                </Thead>
+                <Tbody>
+                  {filteredProducts.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={7} textAlign="center">
+                        {t('product_manager.no_products_found')}
+                      </Td>
+                    </Tr>
+                  ) : (
+                    filteredProducts.map((product, index) => (
+                      <Tr key={`${product.id}-${index}`}
+                          sx={{
+                              '@media (min-width: 769px)': {
+                                  '&:hover': {
+                                      backgroundColor: 'gray.50',
+                                      cursor: 'pointer'
+                                  }
+                              }
+                          }}
+                      >
+                        <Td>
+                          <Image
+                            src={product.image_url}
+                            alt={product.name}
+                            boxSize="50px"
+                            objectFit="cover"
+                            borderRadius="md"
+                            fallbackSrc="https://placehold.co/50"
+                          />
+                        </Td>
+                        <Td>
+                          <Text noOfLines={1}>{product.name}</Text>
+                        </Td>
+                        <Td>
+                          <Text noOfLines={1}>{product.sku}</Text>
+                        </Td>
+                        <Td><Text noOfLines={1}>{product.design}</Text></Td>
+                        <Td><Text noOfLines={1}>{product.color}</Text></Td>
+                        <Td isNumeric><Text noOfLines={1}>{product.quantity_on_hand ?? 0}</Text></Td>
+                        <Td>
+                          <Flex wrap="wrap" gap={2}>
+                            <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
+                            <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
+                          </Flex>
+                        </Td>
+                      </Tr>
+                    ))
+                  )}
+                </Tbody>
+              </Table>
+            )}
           </TableContainer>
         )}
       </Box>

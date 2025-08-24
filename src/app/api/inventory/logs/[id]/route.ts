@@ -52,14 +52,17 @@ export const PUT = handleError(async (req: NextRequest, { params }: RouteContext
   `;
   
   const { rows: [result] } = await sql`
-    SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url
+    SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url, u.username
     FROM inventory_logs l
     JOIN products p ON l.product_id = p.id
+    JOIN users u ON l.user_id = u.id
     WHERE l.id = ${logId}
   `;
 
   return NextResponse.json(result);
 });
+
+export const PATCH = PUT;
 
 // DELETE handler to remove a log entry
 export const DELETE = handleError(async (req: NextRequest, { params }: RouteContext) => {

@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { handleError, BadRequestError } from '../../../../lib/errors';
 import { VercelPoolClient } from '@vercel/postgres';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = handleError(async (req: NextRequest) => {
   const authResult = await verifyAuth(req);
   if (authResult.error || !authResult.user) {

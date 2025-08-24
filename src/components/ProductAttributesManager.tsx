@@ -22,9 +22,9 @@ import {
   TagCloseButton,
   Wrap,
   WrapItem,
-  CircularProgress,
   Flex,
   IconButton,
+  Spinner,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { FaEdit, FaSave, FaTimes } from 'react-icons/fa';
@@ -140,7 +140,7 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
       <Heading size="sm" mb={4}>{t('attributes.existing_label', { type: t(`attributes.types.${attributeType}`) })}</Heading>
       {isLoading ? (
         <Flex justify="center" align="center" h="100px">
-          <CircularProgress isIndeterminate color="blue.300" />
+          <Spinner size="xl" />
         </Flex>
       ) : (
         <Wrap spacing={2}>

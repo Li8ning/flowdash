@@ -39,7 +39,7 @@ export default function Register() {
     e.preventDefault();
     setError('');
     try {
-      const response = await api.post('/auth/register', {
+      await api.post('/auth/register', {
         username,
         password,
         organizationName,

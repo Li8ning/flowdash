@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, useToast } from '@chakra-ui/react';
+import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, useToast, Spinner } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
@@ -21,6 +21,7 @@ const ProductionDashboard = () => {
     month: 0,
     todaysLogs: 0,
   });
+  const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   useEffect(() => {
@@ -36,6 +37,8 @@ const ProductionDashboard = () => {
           duration: 3000,
           isClosable: true,
         });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -48,19 +51,19 @@ const ProductionDashboard = () => {
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={{ base: 6, md: 10 }} px={{ base: 4, md: 6 }}>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
           <StatLabel fontWeight="bold" color="brand.textSecondary">{t('production_dashboard.todays_production')}</StatLabel>
-          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.today}</StatNumber>
+          <StatNumber fontSize="3xl" color="brand.textPrimary">{loading ? <Spinner /> : summary.today}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
           <StatLabel fontWeight="bold" color="brand.textSecondary">{t('production_dashboard.this_weeks_production')}</StatLabel>
-          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.week}</StatNumber>
+          <StatNumber fontSize="3xl" color="brand.textPrimary">{loading ? <Spinner /> : summary.week}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
           <StatLabel fontWeight="bold" color="brand.textSecondary">{t('production_dashboard.this_months_production')}</StatLabel>
-          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.month}</StatNumber>
+          <StatNumber fontSize="3xl" color="brand.textPrimary">{loading ? <Spinner /> : summary.month}</StatNumber>
         </Stat>
         <Stat bg="brand.surface" p={{ base: 4, md: 5 }} shadow="lg" borderWidth="1px" borderColor="brand.lightBorder" borderRadius="xl">
           <StatLabel fontWeight="bold" color="brand.textSecondary">{t('production_dashboard.todays_log_entries')}</StatLabel>
-          <StatNumber fontSize="3xl" color="brand.textPrimary">{summary.todaysLogs}</StatNumber>
+          <StatNumber fontSize="3xl" color="brand.textPrimary">{loading ? <Spinner /> : summary.todaysLogs}</StatNumber>
         </Stat>
       </SimpleGrid>
       <Box px={{ base: 4, md: 6 }}>
