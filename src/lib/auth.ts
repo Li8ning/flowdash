@@ -33,18 +33,29 @@ export async function loadKeys() {
     return { privateKey, publicKey };
   }
   try {
-    const privateKeyEnv = process.env.JWT_PRIVATE_KEY
-      ? formatPemKey(process.env.JWT_PRIVATE_KEY, 'PRIVATE')
+    const privateKeyEnvVal = process.env.JWT_PRIVATE_KEY;
+    const privateKeyEnv = privateKeyEnvVal
+      ? formatPemKey(privateKeyEnvVal, 'PRIVATE')
       : null;
-    const publicKeyEnv = process.env.JWT_PUBLIC_KEY
-      ? formatPemKey(process.env.JWT_PUBLIC_KEY, 'PUBLIC')
+    
+    const publicKeyEnvVal = process.env.JWT_PUBLIC_KEY;
+    console.log('Original JWT_PUBLIC_KEY (server):', publicKeyEnvVal);
+    const publicKeyEnv = publicKeyEnvVal
+      ? formatPemKey(publicKeyEnvVal, 'PUBLIC')
       : null;
+    console.log('Formatted public key (server):', publicKeyEnv);
 
     const privateKeyData = privateKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'private-key.pem'), 'utf-8');
     privateKey = createPrivateKey(privateKeyData);
 
     const publicKeyData = publicKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'public-key.pem'), 'utf-8');
-    publicKey = createPublicKey(publicKeyData);
+    try {
+      publicKey = createPublicKey(publicKeyData);
+    } catch (e) {
+      console.error("Error creating public key on server:", e);
+      console.error("Key that failed on server:", publicKeyData);
+      throw e;
+    }
     return { privateKey, publicKey };
   } catch (error) {
     console.error('Error loading cryptographic keys:', error);

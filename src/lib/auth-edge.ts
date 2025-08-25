@@ -24,15 +24,24 @@ async function loadPublicKey() {
     return publicKey;
   }
   
-  const publicKeyEnv = process.env.JWT_PUBLIC_KEY
-    ? formatPemKey(process.env.JWT_PUBLIC_KEY)
+  const publicKeyEnvVal = process.env.JWT_PUBLIC_KEY;
+  console.log('Original JWT_PUBLIC_KEY (edge):', publicKeyEnvVal);
+  const publicKeyEnv = publicKeyEnvVal
+    ? formatPemKey(publicKeyEnvVal)
     : null;
+  console.log('Formatted public key (edge):', publicKeyEnv);
 
   if (!publicKeyEnv) {
     throw new Error('JWT_PUBLIC_KEY environment variable is not set.');
   }
 
-  publicKey = createPublicKey(publicKeyEnv);
+  try {
+    publicKey = createPublicKey(publicKeyEnv);
+  } catch (e) {
+    console.error("Error creating public key on edge:", e);
+    console.error("Key that failed on edge:", publicKeyEnv);
+    throw e;
+  }
   return publicKey;
 }
 
