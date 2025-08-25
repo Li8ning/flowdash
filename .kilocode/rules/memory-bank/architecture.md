@@ -1,0 +1,62 @@
+# FlowDash - Architecture
+
+## 🏗️ **System Architecture**
+FlowDash is a modern web application built on a serverless architecture, leveraging the Next.js framework for both the frontend and backend. The application is designed to be deployed on Vercel, taking advantage of its serverless functions for API endpoints and integration with Vercel Postgres for the database and Vercel Blob for file storage.
+
+```mermaid
+graph TD
+    A[Client Browser] -->|HTTPS| B(Next.js Frontend)
+    B -->|API Calls| C(Next.js API Routes)
+    C -->|Database Queries| D(Vercel Postgres)
+    C -->|File Operations| E(Vercel Blob)
+    C -->|Authentication| F(JWT Service)
+```
+
+## 📂 **Source Code Paths**
+- **`src/app`**: Contains the main application code, following the Next.js App Router structure.
+  - **`src/app/api`**: Houses all the API endpoints for the application, organized by feature.
+  - **`src/app/dashboard`**: Contains the pages for the main user dashboard, with subdirectories for each major feature.
+  - **`src/app/register`**: Contains the user registration page.
+- **`src/components`**: Reusable React components used throughout the application.
+  - **`src/components/layout`**: Components related to the overall page structure, like headers and sidebars.
+  - **`src/components/__tests__`**: Tests for the components.
+- **`src/lib`**: Core libraries and utility functions.
+  - **`src/lib/auth.ts`**: Authentication-related functions.
+  - **`src/lib/db.ts`**: Database connection and query logic.
+  - **`src/lib/migrations`**: SQL files for database schema migrations.
+- **`src/schemas`**: Zod schemas for data validation, organized by data model.
+- **`src/context`**: React context providers for global state management (e.g., authentication, language).
+- **`src/hooks`**: Custom React hooks for reusable logic.
+- **`src/theme`**: Chakra UI theme configuration.
+- **`src/types`**: TypeScript type definitions.
+- **`public`**: Static assets, including images, fonts, and translation files.
+  - **`public/locales`**: Translation files for internationalization.
+
+## 🔑 **Key Technical Decisions**
+- **Next.js App Router**: Chosen for its server-side rendering capabilities, improved performance, and simplified routing.
+- **Serverless Functions**: API endpoints are deployed as serverless functions on Vercel, providing scalability and cost-effectiveness.
+- **Vercel Postgres**: A serverless PostgreSQL database that integrates seamlessly with Vercel deployments.
+- **Chakra UI**: A component library that provides a set of accessible, reusable, and composable React components to speed up development.
+- **JWT for Authentication**: JSON Web Tokens are used for securing the API and managing user sessions.
+- **Zod for Validation**: Zod is used for schema validation on both the client and server sides, ensuring data integrity.
+
+## 🎨 **Design Patterns**
+- **MVC (Model-View-Controller)**: The application loosely follows the MVC pattern, with the Next.js pages/components acting as the View, the API routes as the Controller, and the database/schemas as the Model.
+- **Repository Pattern**: The database logic is abstracted away from the API routes using a repository pattern, making the code more modular and easier to test.
+- **Provider Pattern**: React's Context API is used to manage global state, such as authentication and language preferences.
+
+## 🔗 **Component Relationships**
+- The main application is wrapped in a `Providers` component that provides the necessary context for authentication, UI theme, and internationalization.
+- The `WithAuth` higher-order component is used to protect routes that require authentication.
+- The dashboard pages are composed of smaller, reusable components for managing products, users, and inventory logs.
+- The `AppInitializer` component handles the initial application state, including checking for an existing user session.
+- The `GlobalSpinner` component provides a global loading state for the application.
+
+## 🗃️ **Database Schema**
+The database schema is designed to support a multi-tenant architecture, with each organization's data isolated. The main tables include:
+- **`organizations`**: Stores information about each factory.
+- **`users`**: Manages user accounts, roles, and their association with an organization.
+- **`products`**: Contains the product catalog for each organization.
+- **`inventory_logs`**: Tracks production data logged by floor staff.
+- **`inventory`**: Provides a real-time summary of stock levels.
+- **`product_attributes`**: Stores reusable attributes for products.
