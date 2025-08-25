@@ -1,5 +1,5 @@
-import { jwtVerify } from 'jose';
-import { createPublicKey, KeyObject } from 'crypto';
+import { jwtVerify, importSPKI } from 'jose';
+import { KeyObject } from 'crypto';
 
 let publicKey: CryptoKey | KeyObject;
 
@@ -24,24 +24,15 @@ async function loadPublicKey() {
     return publicKey;
   }
   
-  const publicKeyEnvVal = process.env.JWT_PUBLIC_KEY;
-  console.log('Original JWT_PUBLIC_KEY (edge):', publicKeyEnvVal);
-  const publicKeyEnv = publicKeyEnvVal
-    ? formatPemKey(publicKeyEnvVal)
+  const publicKeyEnv = process.env.JWT_PUBLIC_KEY
+    ? formatPemKey(process.env.JWT_PUBLIC_KEY)
     : null;
-  console.log('Formatted public key (edge):', publicKeyEnv);
 
   if (!publicKeyEnv) {
     throw new Error('JWT_PUBLIC_KEY environment variable is not set.');
   }
 
-  try {
-    publicKey = createPublicKey(publicKeyEnv);
-  } catch (e) {
-    console.error("Error creating public key on edge:", e);
-    console.error("Key that failed on edge:", publicKeyEnv);
-    throw e;
-  }
+  publicKey = await importSPKI(publicKeyEnv, 'RS256');
   return publicKey;
 }
 

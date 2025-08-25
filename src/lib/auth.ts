@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
-import { jwtVerify, SignJWT } from 'jose';
+import { jwtVerify, SignJWT, importSPKI } from 'jose';
 import { sql } from '@vercel/postgres';
 import { User } from '@/types';
 import { cookies, headers } from 'next/headers';
 import { UnauthorizedError } from './errors';
 import fs from 'fs/promises';
 import path from 'path';
-import { createPrivateKey, createPublicKey, KeyObject } from 'crypto';
+import { createPrivateKey, KeyObject } from 'crypto';
 
 let privateKey: CryptoKey | KeyObject;
 let publicKey: CryptoKey | KeyObject;
@@ -33,29 +33,18 @@ export async function loadKeys() {
     return { privateKey, publicKey };
   }
   try {
-    const privateKeyEnvVal = process.env.JWT_PRIVATE_KEY;
-    const privateKeyEnv = privateKeyEnvVal
-      ? formatPemKey(privateKeyEnvVal, 'PRIVATE')
+    const privateKeyEnv = process.env.JWT_PRIVATE_KEY
+      ? formatPemKey(process.env.JWT_PRIVATE_KEY, 'PRIVATE')
       : null;
-    
-    const publicKeyEnvVal = process.env.JWT_PUBLIC_KEY;
-    console.log('Original JWT_PUBLIC_KEY (server):', publicKeyEnvVal);
-    const publicKeyEnv = publicKeyEnvVal
-      ? formatPemKey(publicKeyEnvVal, 'PUBLIC')
+    const publicKeyEnv = process.env.JWT_PUBLIC_KEY
+      ? formatPemKey(process.env.JWT_PUBLIC_KEY, 'PUBLIC')
       : null;
-    console.log('Formatted public key (server):', publicKeyEnv);
 
     const privateKeyData = privateKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'private-key.pem'), 'utf-8');
     privateKey = createPrivateKey(privateKeyData);
 
     const publicKeyData = publicKeyEnv || await fs.readFile(path.resolve(process.cwd(), 'public-key.pem'), 'utf-8');
-    try {
-      publicKey = createPublicKey(publicKeyData);
-    } catch (e) {
-      console.error("Error creating public key on server:", e);
-      console.error("Key that failed on server:", publicKeyData);
-      throw e;
-    }
+    publicKey = await importSPKI(publicKeyData, 'RS256');
     return { privateKey, publicKey };
   } catch (error) {
     console.error('Error loading cryptographic keys:', error);
