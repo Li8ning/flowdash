@@ -108,12 +108,12 @@ const Login = () => {
             {t('login.remember_me')}
           </Checkbox>
         </FormControl>
-        <Button type="submit" colorScheme="blue" width="full">
+        <Button type="submit" width="full">
           {t('login.button')}
         </Button>
         <Text>
           {t('login.no_account')}{' '}
-          <Link as={NextLink} href="/register" color="blue.500">
+          <Link as={NextLink} href="/register" color="brand.primary">
             {t('login.signup_link')}
           </Link>
         </Text>

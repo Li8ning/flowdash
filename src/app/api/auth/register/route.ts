@@ -1,28 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod';
-import { handleError, BadRequestError, ConflictError } from '@/lib/errors';
+import { handleError, ConflictError } from '@/lib/errors';
 import { createSession } from '@/lib/auth';
+import { registerSchema } from '@/schemas/auth';
+import { withValidation } from '@/lib/validations';
+import { withRateLimiter } from '@/lib/rate-limiter';
 
-const registerSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  username: z.string().min(3, "Username must be at least 3 characters."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-  organizationName: z.string().min(1, "Organization name is required."),
-});
+export const POST = handleError(
+  withRateLimiter(
+    withValidation(registerSchema, async (req: NextRequest, body) => {
+      const { name, username, password, organizationName } = body;
 
-export const POST = handleError(async (request: Request) => {
-  const body = await request.json();
-  const validationResult = registerSchema.safeParse(body);
-
-  if (!validationResult.success) {
-    throw new BadRequestError('Invalid input', validationResult.error.flatten());
-  }
-
-  const { name, username, password, organizationName } = validationResult.data;
-
-  try {
+      try {
     // Check if username already exists (case-insensitive)
     const { rows: existingUser } = await sql`
       SELECT id FROM users WHERE LOWER(username) = LOWER(${username})
@@ -73,6 +63,7 @@ export const POST = handleError(async (request: Request) => {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
+      sameSite: 'strict',
     });
     return response;
   } catch (err: unknown) {
@@ -81,5 +72,7 @@ export const POST = handleError(async (request: Request) => {
     }
     // Re-throw other errors to be caught by the handleError wrapper
     throw err;
-  }
-});
+      }
+    })
+  )
+);

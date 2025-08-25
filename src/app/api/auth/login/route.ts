@@ -3,11 +3,16 @@ import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import { handleError, UnauthorizedError, ForbiddenError } from '@/lib/errors';
 import { createSession } from '@/lib/auth';
+import { loginSchema } from '@/schemas/auth';
+import { withValidation } from '@/lib/validations';
+import { withRateLimiter } from '@/lib/rate-limiter';
 
-export const POST = handleError(async (request: Request) => {
-  const { username, password, rememberMe } = await request.json();
+export const POST = handleError(
+  withRateLimiter(
+    withValidation(loginSchema, async (req, body) => {
+      const { username, password, rememberMe } = body;
 
-  const { rows: userResult } = await sql`SELECT * FROM users WHERE username = ${username}`;
+      const { rows: userResult } = await sql`SELECT * FROM users WHERE username = ${username}`;
 
   if (userResult.length === 0) {
     throw new UnauthorizedError('Invalid credentials');
@@ -50,7 +55,10 @@ export const POST = handleError(async (request: Request) => {
     secure: process.env.NODE_ENV === 'production',
     maxAge: rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24, // 7 days or 1 day
     path: '/',
+    sameSite: 'strict',
   });
 
   return response;
-});
+    })
+  )
+);

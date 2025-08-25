@@ -1,17 +1,17 @@
-import { extendTheme, theme as baseTheme, StyleFunctionProps } from '@chakra-ui/react';
+import { extendTheme, theme as baseTheme } from '@chakra-ui/react';
 
 const colors = {
   brand: {
-    primary: baseTheme.colors.blue[600],
-    accent: baseTheme.colors.teal[500],
-    background: baseTheme.colors.gray[50],
+    primary: '#3182CE',
+    accent: baseTheme.colors.teal,
+    background: baseTheme.colors.gray,
     surface: baseTheme.colors.white,
-    textPrimary: baseTheme.colors.gray[800],
-    textSecondary: baseTheme.colors.gray[600],
-    success: baseTheme.colors.green[500],
-    warning: baseTheme.colors.yellow[500],
-    danger: baseTheme.colors.red[500],
-    lightBorder: baseTheme.colors.gray[200],
+    textPrimary: baseTheme.colors.gray,
+    textSecondary: baseTheme.colors.gray,
+    success: baseTheme.colors.green,
+    warning: baseTheme.colors.yellow,
+    danger: baseTheme.colors.red,
+    lightBorder: baseTheme.colors.gray,
   },
 };
 
@@ -39,27 +39,12 @@ const theme = extendTheme({
         px: { base: 3, md: 4, lg: 6 }, // Granular responsive padding
       },
       variants: {
-        solid: (props: StyleFunctionProps) => {
-          const { colorScheme: c } = props;
-          if (c === 'green') {
-            return {
-              bg: 'brand.success',
-              color: 'white',
-              _hover: { bg: baseTheme.colors.green[600] },
-            };
-          }
-          if (c === 'red') {
-            return {
-              bg: 'brand.danger',
-              color: 'white',
-              _hover: { bg: baseTheme.colors.red[600] },
-            };
-          }
-          return {
-            bg: 'brand.primary',
-            color: 'white',
-            _hover: { bg: baseTheme.colors.blue[700] },
-          };
+        solid: {
+          bg: 'brand.primary',
+          color: 'white',
+          _hover: {
+            bg: 'blue.600',
+          },
         },
         outline: {
           borderColor: 'brand.primary',
@@ -68,7 +53,6 @@ const theme = extendTheme({
       },
       defaultProps: {
         variant: 'solid',
-        colorScheme: 'blue', // Keep a default
       },
     },
     Input: {

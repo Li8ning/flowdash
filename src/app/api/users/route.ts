@@ -2,31 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { verifyAuth } from '@/lib/auth-utils';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod';
 import { handleError, ForbiddenError, BadRequestError, ConflictError } from '@/lib/errors';
-
-const baseCreateUserSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters long."),
-  name: z.string().min(1, "Name is required."),
-  password: z.string().min(8, "Password must be at least 8 characters long."),
-});
-
-const getCreateUserSchema = (currentUserRole: string) => {
-  if (currentUserRole === 'super_admin') {
-    return baseCreateUserSchema.extend({
-      role: z.enum(['admin', 'floor_staff']),
-    }).strict();
-  }
-  return baseCreateUserSchema.extend({
-    role: z.literal('floor_staff'),
-  }).strict();
-};
+import { userSchema } from '@/schemas/user';
+import { withValidation } from '@/lib/validations';
 
 // Get all users in the admin's organization
 export const GET = handleError(async (req: NextRequest) => {
   const authResult = await verifyAuth(req);
   if (authResult.error || !authResult.user) {
-    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+    return NextResponse.json(
+      { error: authResult.error || 'Authentication failed' },
+      { status: authResult.status }
+    );
   }
   if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
     throw new ForbiddenError();
@@ -63,25 +50,29 @@ export const GET = handleError(async (req: NextRequest) => {
 });
 
 // Invite a new user
-export const POST = handleError(async (req: NextRequest) => {
-  const authResult = await verifyAuth(req);
-  if (authResult.error || !authResult.user) {
-    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
-  }
-  const { role: creatorRole, organization_id } = authResult.user;
-  if (!['admin', 'super_admin'].includes(creatorRole as string)) {
-    throw new ForbiddenError();
+export const POST = handleError(
+  withValidation(userSchema, async (req: NextRequest, body) => {
+    const authResult = await verifyAuth(req);
+    if (authResult.error || !authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication failed' },
+        { status: authResult.status }
+      );
+    }
+    const { role: creatorRole, organization_id } = authResult.user;
+    if (!['admin', 'super_admin'].includes(creatorRole as string)) {
+      throw new ForbiddenError();
+    }
+
+    const { username, password, role, name } = body;
+
+    if (creatorRole === 'admin' && role === 'super_admin') {
+    throw new ForbiddenError('Admins cannot create super admins.');
   }
 
-  const body = await req.json();
-  const createUserSchema = getCreateUserSchema(creatorRole as string);
-  const validationResult = createUserSchema.safeParse(body);
-
-  if (!validationResult.success) {
-    throw new BadRequestError('Invalid input', validationResult.error.flatten());
+  if (!password) {
+    throw new BadRequestError('Password is required when creating a user.');
   }
-  
-  const { username, password, role, name } = validationResult.data;
 
   // Check if username is already taken
   const { rows: existingUsers } = await sql`
@@ -101,4 +92,5 @@ export const POST = handleError(async (req: NextRequest) => {
     RETURNING id, username, role, name, is_active
   `;
   return NextResponse.json(newUser, { status: 201 });
-});
+  })
+);

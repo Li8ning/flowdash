@@ -1,5 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import logger from './logger';
+
+type RequestHandler<T = Record<string, string>> = (
+  req: NextRequest,
+  context: { params: T }
+) => Promise<NextResponse>;
 
 interface ErrorResponse {
   error: string;
@@ -57,6 +62,12 @@ export class ConflictError extends ApiError {
   }
 }
 
+export class TooManyRequestsError extends ApiError {
+  constructor(message = 'Too Many Requests') {
+    super(429, message);
+  }
+}
+
 export class InternalServerError extends ApiError {
   constructor(message = 'Internal Server Error') {
     super(500, message);
@@ -64,15 +75,11 @@ export class InternalServerError extends ApiError {
 }
 
 // Centralized Error Handler
-export function handleError(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (...args: any[]) => Promise<NextResponse>
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return async (...args: any[]) => {
+export function handleError<T>(handler: RequestHandler<T>) {
+  return async (req: NextRequest, context: { params: T }) => {
     const isProduction = process.env.NODE_ENV === 'production';
     try {
-      return await handler(...args);
+      return await handler(req, context);
     } catch (error) {
       if (error instanceof ApiError) {
         // For client errors, we can pass the message and details in dev

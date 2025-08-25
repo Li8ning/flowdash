@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest, HandlerContext } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth-utils';
 import { sql } from '@vercel/postgres';
 import logger from '@/lib/logger';
+import { handleError } from '@/lib/errors';
 
 // Define a strict allowlist for entities and their queryable fields.
 // This is the primary defense against SQL injection for identifiers.
@@ -18,16 +19,23 @@ const validationConfig = {
 
 type ValidEntity = keyof typeof validationConfig;
 
-async function getDistinctValues(
-  req: AuthenticatedRequest,
-  { params }: HandlerContext
-) {
-  const { entity, field } = params as { entity: string; field: string };
-  const user = req.user;
-  const { organization_id } = user;
+export const GET = handleError(
+  async (
+    req: NextRequest,
+    { params }: { params: { entity: string; field: string } }
+  ) => {
+    const authResult = await verifyAuth(req);
+    if (authResult.error || !authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication failed' },
+        { status: authResult.status }
+      );
+    }
+    const { organization_id } = authResult.user;
+    const { entity, field } = params;
 
-  // 1. Validate the entity against our strict allowlist keys
-  if (!(entity in validationConfig)) {
+    // 1. Validate the entity against our strict allowlist keys
+    if (!(entity in validationConfig)) {
     logger.warn({ entity, field }, 'Invalid entity requested');
     return NextResponse.json({ error: 'Invalid entity' }, { status: 400 });
   }
@@ -50,7 +58,7 @@ async function getDistinctValues(
             FROM users u
             INNER JOIN inventory_logs l ON u.id = l.user_id
             INNER JOIN products p ON l.product_id = p.id
-            WHERE p.organization_id = ${organization_id}
+            WHERE p.organization_id = ${organization_id as number}
               AND u.username IS NOT NULL AND u.username != ''
             ORDER BY u.username;
         `;
@@ -60,7 +68,7 @@ async function getDistinctValues(
             SELECT DISTINCT p.name as value
             FROM products p
             INNER JOIN inventory_logs l ON p.id = l.product_id
-            WHERE p.organization_id = ${organization_id}
+            WHERE p.organization_id = ${organization_id as number}
               AND p.name IS NOT NULL AND p.name != ''
             ORDER BY p.name;
         `;
@@ -69,17 +77,17 @@ async function getDistinctValues(
         const columnName = field;
         const result = await sql.query(
             `
-                SELECT DISTINCT l."${columnName}" as value
-                FROM inventory_logs l
-                INNER JOIN products p ON l.product_id = p.id
-                WHERE p.organization_id = $1
-                  AND l."${columnName}" IS NOT NULL
-                  AND CAST(l."${columnName}" AS TEXT) != ''
-                ORDER BY value;
-            `,
-            [organization_id]
-        );
-        rows = result.rows as { value: string }[];
+            SELECT DISTINCT l."${columnName}" as value
+            FROM inventory_logs l
+            INNER JOIN products p ON l.product_id = p.id
+            WHERE p.organization_id = $1
+              AND l."${columnName}" IS NOT NULL
+              AND CAST(l."${columnName}" AS TEXT) != ''
+            ORDER BY value;
+        `,
+        [organization_id as number]
+    );
+    rows = result.rows as { value: string }[];
     }
     else {
         // Since @vercel/postgres does not support sql.identifier, we build the query string
@@ -90,16 +98,16 @@ async function getDistinctValues(
 
         const result = await sql.query(
             `
-                SELECT DISTINCT "${columnName}" as value
-                FROM "${tableName}"
-                WHERE organization_id = $1
-                  AND "${columnName}" IS NOT NULL
-                  AND CAST("${columnName}" AS TEXT) != ''
-                ORDER BY value;
-            `,
-            [organization_id]
-        );
-        rows = result.rows as { value: string }[];
+            SELECT DISTINCT "${columnName}" as value
+            FROM "${tableName}"
+            WHERE organization_id = $1
+              AND "${columnName}" IS NOT NULL
+              AND CAST("${columnName}" AS TEXT) != ''
+            ORDER BY value;
+        `,
+        [organization_id as number]
+    );
+    rows = result.rows as { value: string }[];
     }
 
     // Return a simple array of strings
@@ -110,6 +118,4 @@ async function getDistinctValues(
     const message = err instanceof Error ? err.message : 'An unknown error occurred';
     return NextResponse.json({ error: 'Server Error', details: message }, { status: 500 });
   }
-}
-
-export const GET = withAuth(getDistinctValues);
+});
