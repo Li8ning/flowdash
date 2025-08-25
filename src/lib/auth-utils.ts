@@ -1,6 +1,21 @@
-import { jwtVerify } from 'jose';
+import { jwtVerify, importSPKI } from 'jose';
 import { NextRequest } from 'next/server';
-import { createPublicKey } from 'crypto';
+
+const formatPemKey = (key: string): string => {
+  const keyHeader = `-----BEGIN PUBLIC KEY-----`;
+  const keyFooter = `-----END PUBLIC KEY-----`;
+
+  const keyBody = key
+    .replace(keyHeader, '')
+    .replace(keyFooter, '')
+    .replace(/[^A-Za-z0-9+/=]/g, '');
+
+  const keyBodyLines = keyBody.match(/.{1,64}/g)?.join('\n') || '';
+  
+  const finalKey = `${keyHeader}\n${keyBodyLines}\n${keyFooter}`;
+  
+  return finalKey;
+};
 
 export async function verifyAuth(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
@@ -11,8 +26,11 @@ export async function verifyAuth(request: NextRequest) {
   }
 
   try {
-    // The public key must be imported as a CryptoKey object for 'jose' to use it.
-    const publicKey = createPublicKey(process.env.JWT_PUBLIC_KEY as string);
+    const publicKeyEnv = process.env.JWT_PUBLIC_KEY;
+    if (!publicKeyEnv) {
+      throw new Error('JWT_PUBLIC_KEY environment variable is not set.');
+    }
+    const publicKey = await importSPKI(formatPemKey(publicKeyEnv), 'RS256');
     const { payload } = await jwtVerify(token, publicKey, {
       algorithms: ['RS256'],
     });
