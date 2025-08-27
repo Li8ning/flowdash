@@ -15,7 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
   params: { lng: string };
 }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation(lng, 'common');
 
   const adminNavLinks: NavigationLink[] = [

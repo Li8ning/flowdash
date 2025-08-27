@@ -19,31 +19,20 @@ const AppInitializer = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (loading) {
-      console.log(`[APP_INITIALIZER] Still loading, waiting...`);
       return;
     }
 
     const currentLang = pathname.split('/')[1] || 'en';
-    console.log(`[APP_INITIALIZER] Processing redirect logic:`, {
-      user: user ? 'logged in' : 'not logged in',
-      isAuthPage,
-      pathname,
-      currentLang
-    });
 
     if (user && isAuthPage) {
       // If user is logged in and on an auth page, redirect to their dashboard
       // using their preferred language if available.
       const lang = user.language || currentLang;
-      console.log(`[APP_INITIALIZER] Redirecting logged-in user from auth page to dashboard: /${lang}/dashboard`);
       router.push(`/${lang}/dashboard`);
     } else if (!user && !isAuthPage) {
       // If user is not logged in and on a protected page, redirect to the
       // login page for the current language.
-      console.log(`[APP_INITIALIZER] Redirecting unauthenticated user from protected page to login: /${currentLang}`);
       router.push(`/${currentLang}`);
-    } else {
-      console.log(`[APP_INITIALIZER] No redirect needed`);
     }
   }, [user, loading, router, pathname, isAuthPage]);
 

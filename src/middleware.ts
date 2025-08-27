@@ -12,7 +12,6 @@ const cookieName = 'i18next';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  console.log(`[MIDDLEWARE] Processing request for: ${pathname}`);
 
   // Step 1: Determine language from cookie or headers
   let lng: string | undefined;

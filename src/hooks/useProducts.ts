@@ -54,9 +54,7 @@ const useProducts = () => {
 
   const updateProduct = async (productId: number, product: Omit<Product, 'id' | 'quantity_on_hand'>) => {
     try {
-      console.log('updateProduct called with:', { productId, product });
-      const response = await api.patch(`/products/${productId}`, product);
-      console.log('updateProduct success:', response);
+      await api.patch(`/products/${productId}`, product);
       fetchProducts({ name: '', category: '', design: '', color: '' });
       toast({
         title: t('products.success.update_title'),
@@ -68,7 +66,7 @@ const useProducts = () => {
     } catch (error) {
       console.error('updateProduct error:', error);
       if (error && typeof error === 'object' && 'response' in error) {
-        console.error('Error response:', (error as any).response);
+        console.error('Error response:', (error as { response: unknown }).response);
       }
       toast({
         title: t('products.errors.update_title'),
@@ -82,9 +80,7 @@ const useProducts = () => {
 
   const archiveProduct = async (productId: number) => {
     try {
-      console.log('archiveProduct called with:', { productId });
-      const response = await api.delete(`/products/${productId}`);
-      console.log('archiveProduct success:', response);
+      await api.delete(`/products/${productId}`);
       fetchProducts({ name: '', category: '', design: '', color: '' });
       toast({
         title: t('products.success.archive_title'),
@@ -96,7 +92,7 @@ const useProducts = () => {
     } catch (error) {
       console.error('archiveProduct error:', error);
       if (error && typeof error === 'object' && 'response' in error) {
-        console.error('Error response:', (error as any).response);
+        console.error('Error response:', (error as { response: unknown }).response);
       }
       toast({
         title: t('products.errors.archive_title'),

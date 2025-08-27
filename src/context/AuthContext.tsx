@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: userData } = await api.get('/auth/me');
         await processUserData(userData);
-      } catch (error) {
+      } catch {
         // No valid session, user is not logged in
         setUserData(null);
       } finally {
