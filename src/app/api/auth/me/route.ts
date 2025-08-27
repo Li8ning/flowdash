@@ -3,9 +3,15 @@ import { verifyAuth } from '@/lib/auth-utils';
 import sql from '@/lib/db';
 
 export async function GET(request: NextRequest) {
+  console.log(`[API/ME] Received request for /api/auth/me`);
+  console.log(`[API/ME] Request headers:`, Object.fromEntries(request.headers.entries()));
+
   const authResult = await verifyAuth(request);
 
+  console.log(`[API/ME] Auth result:`, authResult);
+
   if (authResult.error) {
+    console.log(`[API/ME] Authentication failed: ${authResult.error}`);
     return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
 

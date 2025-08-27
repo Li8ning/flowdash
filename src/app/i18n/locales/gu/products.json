@@ -9,6 +9,31 @@
     "design": "ડિઝાઇન",
     "image_url": "છબી URL",
     "available_qualities": "ઉપલબ્ધ ગુણવત્તાઓ",
-    "available_packaging_types": "ઉપલબ્ધ પેકેજિંગના પ્રકારો"
+    "available_packaging_types": "ઉપલબ્ધ પેકેજિંગના પ્રકારો",
+    "select_color": "રંગ પસંદ કરો",
+    "select_category": "શ્રેણી પસંદ કરો",
+    "select_design": "ડિઝાઇન પસંદ કરો",
+    "upload_image": "છબી અપલોડ કરો"
+  },
+  "success": {
+    "add_title": "ઉત્પાદન ઉમેરી દીધું",
+    "add_description": "નવું ઉત્પાદન યાદીમાં મૂકી દીધું છે.",
+    "update_title": "ઉત્પાદન બદલી દીધું",
+    "update_description": "ઉત્પાદનની માહિતી બદલી દીધી છે.",
+    "archive_title": "ઉત્પાદન કાઢી દીધું",
+    "archive_description": "ઉત્પાદન કાઢી નાખ્યું છે.",
+    "image_upload_title": "ફોટો મૂકી દીધી.",
+    "image_upload_description": "ફોટો સફળતાપૂર્વક અપલોડ થઈ ગઈ"
+  },
+  "errors": {
+    "add_title": "ઉત્પાદન ઉમેરી ન શક્યા",
+    "add_description": "ઉત્પાદન ઉમેરવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "update_title": "ઉત્પાદન બદલી ન શક્યા",
+    "update_description": "ઉત્પાદન બદલવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "archive_title": "ઉત્પાદન કાઢી ન શક્યા",
+    "archive_description": "ઉત્પાદન કાઢવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "image_upload_title": "ફોટો મૂકી ન શકી.",
+    "image_upload_description": "ફોટો અપલોડ નહીં થઈ, ફરી પ્રયાસ કરો",
+    "fetch": "પ્રોડક્ટ્સ લોડ નહીં થઈ શક્યા"
   }
 }

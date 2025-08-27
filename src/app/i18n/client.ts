@@ -42,7 +42,6 @@ export function useTranslation(lng: string, ns = 'common', options = {}) {
       if (!lng || i18n.resolvedLanguage === lng) return;
       i18n.changeLanguage(lng);
     }, [lng, i18n]);
-    // eslint-disable-next-line react-hooks/rules-of-hooks
   }
   return ret;
 }

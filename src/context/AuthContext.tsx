@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useTranslation } from 'react-i18next';
@@ -32,35 +32,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Create the provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   const { i18n } = useTranslation();
   const router = useRouter();
+
+  // Memoize the user object to prevent unnecessary re-renders
+  const user = useMemo(() => userData, [userData]);
 
   useEffect(() => {
     const loadUserOnMount = async () => {
       try {
         const { data: userData } = await api.get('/auth/me');
         await processUserData(userData);
-      } catch {
+      } catch (error) {
         // No valid session, user is not logged in
-        setUser(null);
+        setUserData(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadUserOnMount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Separate useEffect to handle language changes after i18n is ready
   useEffect(() => {
-    // Redirect after a successful login
-    if (!loading && user && !window.location.pathname.includes('/dashboard')) {
-      const redirectUrl = `/${user.language || 'en'}/dashboard`;
-      router.push(redirectUrl);
+    if (user?.language && i18n.isInitialized && typeof i18n.changeLanguage === 'function') {
+      i18n.changeLanguage(user.language);
     }
-  }, [user, loading, router]);
+  }, [user?.language, i18n.isInitialized, i18n]);
+
 
   const login = async (username: string, password: string, rememberMe: boolean) => {
     try {
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout failed, but clearing client-side session anyway.', error);
     } finally {
-      setUser(null);
+      setUserData(null);
       router.push('/');
     }
   };
@@ -98,10 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOrganizationName(finalUserData.organization_name);
     }
 
-    if (finalUserData.language) {
-      await i18n.changeLanguage(finalUserData.language);
-    }
-    setUser(finalUserData);
+    // Language change is now handled by a separate useEffect
+    setUserData(finalUserData);
     return finalUserData;
   };
 
@@ -110,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (updatedData.language) {
       i18n.changeLanguage(updatedData.language);
     }
-    setUser(currentUser => {
+    setUserData((currentUser: User | null) => {
       if (!currentUser) return null;
       return { ...currentUser, ...updatedData };
     });

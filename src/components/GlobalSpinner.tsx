@@ -1,29 +1,31 @@
 'use client';
 
-import React from 'react';
-import { useLoading } from '../context/LoadingContext';
-import { Spinner, Modal, ModalOverlay, ModalContent } from '@chakra-ui/react';
+import { Box, Spinner } from '@chakra-ui/react';
 
-const GlobalSpinner = () => {
-  const { isLoading } = useLoading();
+interface GlobalSpinnerProps {
+  isVisible?: boolean;
+}
 
-  if (!isLoading) {
+const GlobalSpinner = ({ isVisible = true }: GlobalSpinnerProps) => {
+  if (!isVisible) {
     return null;
   }
 
   return (
-    <Modal isOpen={isLoading} onClose={() => {}} isCentered>
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(5px)" />
-      <ModalContent bg="transparent" shadow="none" display="flex" justifyContent="center" alignItems="center">
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="blue.500"
-          size="xl"
-        />
-      </ModalContent>
-    </Modal>
+    <Box
+      position="fixed"
+      top="0"
+      left="0"
+      width="100vw"
+      height="100vh"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      bg="rgba(255, 255, 255, 0.8)"
+      zIndex="9999"
+    >
+      <Spinner size="xl" />
+    </Box>
   );
 };
 

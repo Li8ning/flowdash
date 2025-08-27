@@ -188,3 +188,47 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
     client.release();
   }
 });
+
+export const DELETE = handleError(async (req: NextRequest, { params }: HandlerContext) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+    throw new ForbiddenError();
+  }
+
+  const { id } = params;
+  const productId = parseInt(id, 10);
+  const { organization_id } = authResult.user;
+
+  const client = await sql.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Check if product exists
+    const { rows: [existingProduct] } = await client.query(
+      `SELECT id FROM products WHERE id = $1 AND organization_id = $2`,
+      [productId, organization_id as number]
+    );
+
+    if (!existingProduct) {
+      throw new NotFoundError('Product not found or not authorized');
+    }
+
+    // 2. Archive the product
+    await client.query(
+      `UPDATE products SET is_archived = true WHERE id = $1`,
+      [productId]
+    );
+
+    await client.query('COMMIT');
+
+    return NextResponse.json({ message: 'Product archived successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+});

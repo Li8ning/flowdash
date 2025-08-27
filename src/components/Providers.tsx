@@ -3,10 +3,8 @@
 import { CacheProvider } from '@chakra-ui/next-js';
 import { ChakraProvider } from '@chakra-ui/react';
 import { AuthProvider } from '@/context/AuthContext';
-import { LoadingProvider } from '@/context/LoadingContext';
 import { CookiesProvider } from 'react-cookie';
 import AppInitializer from './AppInitializer';
-import GlobalSpinner from './GlobalSpinner';
 import theme from '@/theme/theme';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,10 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ChakraProvider theme={theme}>
         <CookiesProvider>
           <AuthProvider>
-            <LoadingProvider>
-              <GlobalSpinner />
-              <AppInitializer>{children}</AppInitializer>
-            </LoadingProvider>
+            <AppInitializer>{children}</AppInitializer>
           </AuthProvider>
         </CookiesProvider>
       </ChakraProvider>

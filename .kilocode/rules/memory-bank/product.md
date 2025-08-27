@@ -17,6 +17,6 @@ FlowDash is a multi-tenant, web-based application with role-based access control
 
 ## ✨ **User Experience Goals**
 - **Simplicity and Ease of Use**: The application should be intuitive and easy to use, even for users who are not tech-savvy. The user interface should be clean, uncluttered, and focused on the core tasks of each user role.
-- **Accessibility**: The application must be accessible to users with varying levels of technical skills and literacy. This includes providing a simple and straightforward user interface and multi-language support (English, Hindi, and Gujarati).
+- **Accessibility**: The application must be accessible to users with varying levels of technical skills and literacy. This includes providing a simple and straightforward user interface and comprehensive multi-language support (English, Hindi, and Gujarati) with translations specifically simplified for factory workers with limited technical literacy.
 - **Mobile-First**: The application should be fully responsive and optimized for use on mobile devices, as floor staff will primarily use tablets or smartphones.
 - **Reliability**: The application should be reliable and performant, even in environments with intermittent internet connectivity.

@@ -2,21 +2,21 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { Box, Heading, Text } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/app/i18n/client';
 import { FiGrid, FiList, FiUsers, FiUser, FiBox, FiSettings, FiClipboard, FiLogIn, FiUpload } from 'react-icons/fi';
 
 import MainLayout from '@/components/layout/MainLayout';
 import { NavigationLink } from '@/components/layout/Sidebar';
-import GlobalSpinner from '@/components/GlobalSpinner';
 
 export default function DashboardLayout({
   children,
+  params: { lng },
 }: {
   children: React.ReactNode;
+  params: { lng: string };
 }) {
   const { user, loading } = useAuth();
-  const { t, i18n } = useTranslation();
-  const lng = i18n.language;
+  const { t } = useTranslation(lng, 'common');
 
   const adminNavLinks: NavigationLink[] = [
     { href: `/${lng}/dashboard`, label: t('sidebar.dashboard'), icon: FiGrid },
@@ -41,11 +41,8 @@ export default function DashboardLayout({
     { href: `/${lng}/dashboard/profile`, label: t('sidebar.profile'), icon: FiUser },
   ];
 
-  // The middleware handles the redirect, but we still need to handle the loading state
-  // and what to show while the user object is being fetched on the client.
-  if (loading) {
-    return <GlobalSpinner />;
-  }
+  // AppInitializer handles the loading state and redirects, so we can assume
+  // the user is authenticated and loaded at this point
 
   if (user?.role === 'super_admin' || user?.role === 'admin') {
     return (
