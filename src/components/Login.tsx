@@ -28,11 +28,13 @@ const { t } = useTranslation(lng, 'common');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoggingIn(true);
     try {
       await login(username, password, rememberMe);
       toast({
@@ -51,6 +53,8 @@ const { t } = useTranslation(lng, 'common');
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -108,7 +112,7 @@ const { t } = useTranslation(lng, 'common');
             {t('login.remember_me')}
           </Checkbox>
         </FormControl>
-        <Button type="submit" width="full">
+        <Button type="submit" width="full" isLoading={isLoggingIn}>
           {t('login.button')}
         </Button>
         <Text>

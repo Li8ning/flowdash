@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Flex, Heading, Text, Button, IconButton } from '@chakra-ui/react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,12 @@ interface HeaderProps {
 const Header = ({ onOpen }: HeaderProps) => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await logout();
+  };
 
   return (
     <Box
@@ -47,7 +53,7 @@ const Header = ({ onOpen }: HeaderProps) => {
         </Box>
 
         {/* Right: Logout Button */}
-        <Button colorScheme="red" onClick={logout} size={{ base: 'sm', md: 'md' }}>
+        <Button colorScheme="red" onClick={handleLogout} isLoading={isLoggingOut} size={{ base: 'sm', md: 'md' }}>
           {t('dashboard.logout')}
         </Button>
       </Flex>

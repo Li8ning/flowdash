@@ -1,46 +1,18 @@
 # FlowDash - Context
 
 ## 🎯 **Current Work Focus**
-The focus has shifted to enhancing the product management interface with improved UI components, better user experience, and robust error handling. The product table, filters, and editing modal have been significantly upgraded to provide a more intuitive and feature-rich experience for factory admins.
+The application has just undergone a critical stability fix related to a client-side race condition that occurred on page refresh for authenticated users. The focus was on resolving a series of cascading bugs, including an infinite API call loop, broken translations, and malformed navigation URLs.
 
 ## 🔄 **Recent Changes**
+- **Fixed Critical Race Condition**: Resolved a complex client-side race condition between Next.js App Router parameter hydration, `AuthContext` initialization, and `i18next` language loading. This fix stabilized the application on page refresh.
+- **Eliminated Infinite API Loop**: By fixing the underlying i18n and authentication race condition, the infinite API call loop that was occurring on all authenticated pages has been eliminated.
+- **Corrected URL Generation**: Fixed a bug where navigation links would be generated with `/undefined/...` in the URL path on page refresh. The fix ensures the language parameter (`lng`) is correctly passed from the page `params` to the layout components.
+- **Stabilized Translations**: Ensured that translations load correctly and reliably on page refresh by synchronizing the `i18next` instance with the language parameter from the URL.
+- **Centralized Loading State**: Refactored the initial application loading logic into the `AppInitializer` component to prevent multiple components from managing competing loading states, which was the original source of the "white blank screen" bug.
 - **Enhanced Product Table**: Added `Image` and `Color` columns to display product images and color information, improving visual representation of products.
 - **Revamped Product Filters**: Converted simple text inputs to dynamic dropdowns for `Category`, `Design`, and `Color`, populated from the settings API for better user experience and data consistency.
-- **Improved Product Editing Modal**: Updated the modal to use dropdowns for single-select attributes (`Category`, `Color`, `Design`) and checkbox groups for multi-select attributes (`Available Qualities`, `Available Packaging`). Replaced the image URL text input with a proper file upload component that integrates with the image upload API.
-- **Fixed Translation Keys**: Added missing translation keys for dropdown placeholders and upload button in the product edit modal, and corrected the toast notification keys to ensure proper internationalization.
-- **Added Robust Error Handling**: Implemented `AbortController` cleanup logic in `useEffect` hooks that fetch data to prevent potential race conditions and memory leaks, improving application stability.
-- **Comprehensive Translation Audit Completed**: Conducted a thorough review and simplification of all translation files to ensure they are accessible to factory workers with limited technical literacy. Translations were simplified from technical jargon to everyday language, making the application more user-friendly for the target audience.
-
-## 🌍 **Translation Audit Details**
-A comprehensive translation audit was completed to ensure the application is accessible to factory workers with limited technical literacy. The audit covered:
-
-### **Languages Supported**
-- **English**: Base language with clear, simple terminology
-- **Hindi**: Primary language for North Indian factory workers
-- **Gujarati**: Regional language for Western Indian factory workers
-
-### **Translation Files Structure**
-- **`common.json`**: Shared translations for login, dashboard, navigation, and common UI elements
-- **`product_manager.json`**: Product management interface translations
-- **`products.json`**: Product creation and editing modal translations
-
-### **Simplification Achievements**
-- Replaced technical terms with everyday language (e.g., "Dashboard" → "डैशबोर्ड"/"ડેશબોર્ડ")
-- Simplified complex UI terminology for better comprehension
-- Ensured consistent terminology across all languages
-- Maintained cultural appropriateness for Indian factory context
-- Verified all translation keys are properly implemented and functional
-
-### **Coverage Areas**
-- User authentication and registration
-- Dashboard and navigation
-- Product management (CRUD operations)
-- Inventory logging and tracking
-- User management
-- Settings and profile management
-- Bulk import/export functionality
-- Error messages and notifications
-- Form validation messages
+- **Improved Product Editing Modal**: Updated the modal to use dropdowns for single-select attributes and checkbox groups for multi-select attributes. Replaced the image URL text input with a proper file upload component.
+- **Comprehensive Translation Audit Completed**: Conducted a thorough review and simplification of all translation files to ensure they are accessible to factory workers with limited technical literacy.
 
 ## 🚀 **Next Steps**
-The authentication and language-handling bugs have been resolved, the i18n refactoring is complete, and the product management interface has been significantly enhanced. The comprehensive translation audit has been completed with all translations simplified for factory workers. The system is now in a stable state with improved accessibility for the target user base. Future work will proceed based on the project roadmap.
+The application is now in a stable state. The critical authentication and language-handling bugs have been resolved, and the product management interface has been significantly enhanced. Future work will proceed based on the project roadmap.
