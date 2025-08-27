@@ -1,0 +1,45 @@
+{
+  "cookies": [
+    {
+      "name": "i18next",
+      "value": "en",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "_csrfSecret",
+      "value": "uWhvSUazHzxEF%2ByLtIOlKTVN",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "token",
+      "value": "eyJhbGciOiJSUzI1NiJ9.eyJpZCI6NywidXNlcm5hbWUiOiJyYy5hZG1pbiIsInJvbGUiOiJhZG1pbiIsIm9yZ2FuaXphdGlvbl9pZCI6MSwiZXhwIjoxNzU2Mjc5OTIwfQ.PIPHmu5E1JXLuSbJFUNfuGx25zpYXwWsMF37mr8PztIlByeP6AM8RvKF-Oy1xl07n0J00nBfUNzxJNEp0W-zENVC3vsCGv--Qi7Q4c1WkWdcD_pKxFSIzJq04fVhAAuqpewYTrFasNiHzOU2sToOuZcsHZUf69oK57wPAuRFF6glfqFZdMzHrpECQv_qt5wj-05P1To8_L2IUTuwR-neNKQjjdm2kCFH90UA8lb407iwGlUJelfrSo18ZzJrld03hjc0EdRBdu4cpfO5pOlpkjvu2uyIdSqB2vDHZEd6-rXqkKFFnMbDkB4-iKzPRnqxwxWluCLj-PSCTNQNV7HR5Q",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1756279920.724816,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "chakra-ui-color-mode",
+          "value": "light"
+        }
+      ]
+    }
+  ]
+}

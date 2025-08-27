@@ -15,29 +15,30 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, loading } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lng = i18n.language;
 
   const adminNavLinks: NavigationLink[] = [
-    { href: '/dashboard', label: t('sidebar.dashboard'), icon: FiGrid },
-    { href: '/dashboard/inventory', label: t('sidebar.inventory_logs'), icon: FiList },
+    { href: `/${lng}/dashboard`, label: t('sidebar.dashboard'), icon: FiGrid },
+    { href: `/${lng}/dashboard/inventory`, label: t('sidebar.inventory_logs'), icon: FiList },
     {
       label: t('sidebar.products'),
       icon: FiBox,
       children: [
-        { href: '/dashboard/products', label: t('sidebar.manage_products'), icon: FiBox },
-        { href: '/dashboard/products/bulk-import', label: t('sidebar.bulk_import'), icon: FiUpload },
-        { href: '/dashboard/products/bulk-image-upload', label: t('sidebar.bulk_image_upload'), icon: FiUpload },
-        { href: '/dashboard/products/settings', label: t('sidebar.product_settings'), icon: FiSettings },
+        { href: `/${lng}/dashboard/products`, label: t('sidebar.manage_products'), icon: FiBox },
+        { href: `/${lng}/dashboard/products/bulk-import`, label: t('sidebar.bulk_import'), icon: FiUpload },
+        { href: `/${lng}/dashboard/products/bulk-image-upload`, label: t('sidebar.bulk_image_upload'), icon: FiUpload },
+        { href: `/${lng}/dashboard/products/settings`, label: t('sidebar.product_settings'), icon: FiSettings },
       ],
     },
-    { href: '/dashboard/users', label: t('sidebar.user_management'), icon: FiUsers },
-    { href: '/dashboard/profile', label: t('sidebar.profile'), icon: FiUser },
+    { href: `/${lng}/dashboard/users`, label: t('sidebar.user_management'), icon: FiUsers },
+    { href: `/${lng}/dashboard/profile`, label: t('sidebar.profile'), icon: FiUser },
   ];
 
   const floorStaffNavLinks: NavigationLink[] = [
-    { href: '/dashboard', label: t('sidebar.entry'), icon: FiLogIn },
-    { href: '/dashboard/logs', label: t('sidebar.my_logs'), icon: FiClipboard },
-    { href: '/dashboard/profile', label: t('sidebar.profile'), icon: FiUser },
+    { href: `/${lng}/dashboard`, label: t('sidebar.entry'), icon: FiLogIn },
+    { href: `/${lng}/dashboard/logs`, label: t('sidebar.my_logs'), icon: FiClipboard },
+    { href: `/${lng}/dashboard/profile`, label: t('sidebar.profile'), icon: FiUser },
   ];
 
   // The middleware handles the redirect, but we still need to handle the loading state

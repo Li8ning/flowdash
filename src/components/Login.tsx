@@ -19,12 +19,12 @@ import { useState } from 'react';
 import { AxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import NextLink from 'next/link';
-import { useTranslation } from 'react-i18next';
-import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from '@/app/i18n/client';
+import { useRouter } from 'next/navigation';
 
-const Login = () => {
-  const { t } = useTranslation();
-  const { language, changeLanguage } = useLanguage();
+const Login = ({ lng }: { lng: string }) => {
+const { t } = useTranslation(lng, 'common');
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -77,8 +77,8 @@ const Login = () => {
           </Heading>
           <Select
             w="120px"
-            onChange={(e) => changeLanguage(e.target.value)}
-            value={language}
+            onChange={(e) => router.push(`/${e.target.value}`)}
+            value={lng}
           >
             <option value="en">English</option>
             <option value="hi">Hindi</option>

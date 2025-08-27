@@ -35,6 +35,7 @@ export const POST = handleError(
     username: user.username,
     role: user.role,
     organization_id: user.organization_id,
+    language: user.language,
   };
 
   const token = await createSession(payload, rememberMe);
@@ -46,6 +47,7 @@ export const POST = handleError(
     role: user.role,
     organization_id: user.organization_id,
     is_active: user.is_active,
+    language: user.language,
   };
 
   const response = NextResponse.json({ user: userResponse });
@@ -56,6 +58,10 @@ export const POST = handleError(
     maxAge: rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24, // 7 days or 1 day
     path: '/',
     sameSite: 'strict',
+  });
+
+  response.cookies.set('i18next', user.language, {
+    path: '/',
   });
 
   return response;

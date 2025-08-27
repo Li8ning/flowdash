@@ -1,0 +1,14 @@
+{
+  "add_product": "ઉત્પાદન ઉમેરો",
+  "edit_product": "ઉત્પાદન સંપાદિત કરો",
+  "form": {
+    "name": "નામ",
+    "sku": "SKU",
+    "color": "રંગ",
+    "category": "શ્રેણી",
+    "design": "ડિઝાઇન",
+    "image_url": "છબી URL",
+    "available_qualities": "ઉપલબ્ધ ગુણવત્તાઓ",
+    "available_packaging_types": "ઉપલબ્ધ પેકેજિંગના પ્રકારો"
+  }
+}

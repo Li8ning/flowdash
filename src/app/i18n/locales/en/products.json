@@ -1,0 +1,24 @@
+{
+  "add_product": "Add Product",
+  "edit_product": "Edit Product",
+  "form": {
+    "name": "Name",
+    "sku": "SKU",
+    "color": "Color",
+    "category": "Category",
+    "design": "Design",
+    "image_url": "Image URL",
+    "available_qualities": "Available Qualities",
+    "available_packaging_types": "Available Packaging Types",
+    "select_color": "Select Color",
+    "select_category": "Select Category",
+    "select_design": "Select Design",
+    "upload_image": "Upload Image"
+  },
+  "success": {
+    "image_upload_title": "Image uploaded successfully."
+  },
+  "errors": {
+    "image_upload_title": "Image upload failed."
+  }
+}

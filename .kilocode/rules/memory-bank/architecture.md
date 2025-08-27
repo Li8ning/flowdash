@@ -15,8 +15,8 @@ graph TD
 ## 📂 **Source Code Paths**
 - **`src/app`**: Contains the main application code, following the Next.js App Router structure.
   - **`src/app/api`**: Houses all the API endpoints for the application, organized by feature.
-  - **`src/app/dashboard`**: Contains the pages for the main user dashboard, with subdirectories for each major feature.
-  - **`src/app/register`**: Contains the user registration page.
+  - **`src/app/(pages)/[lng]`**: Contains all language-aware pages.
+    - **`src/app/(pages)/[lng]/dashboard`**: Contains the pages for the main user dashboard.
 - **`src/components`**: Reusable React components used throughout the application.
   - **`src/components/layout`**: Components related to the overall page structure, like headers and sidebars.
   - **`src/components/__tests__`**: Tests for the components.
@@ -30,15 +30,16 @@ graph TD
 - **`src/theme`**: Chakra UI theme configuration.
 - **`src/types`**: TypeScript type definitions.
 - **`public`**: Static assets, including images, fonts, and translation files.
-  - **`public/locales`**: Translation files for internationalization.
+  - **`src/app/i18n/locales`**: Translation files for internationalization.
 
 ## 🔑 **Key Technical Decisions**
 - **Next.js App Router**: Chosen for its server-side rendering capabilities, improved performance, and simplified routing.
 - **Serverless Functions**: API endpoints are deployed as serverless functions on Vercel, providing scalability and cost-effectiveness.
 - **Vercel Postgres**: A serverless PostgreSQL database that integrates seamlessly with Vercel deployments.
 - **Chakra UI**: A component library that provides a set of accessible, reusable, and composable React components to speed up development.
-- **JWT for Authentication**: JSON Web Tokens are used for securing the API and managing user sessions.
+- **JWT for Authentication**: JSON Web Tokens are used for securing the API and managing user sessions. The `AuthContext` handles the post-login redirect logic to prevent race conditions.
 - **Zod for Validation**: Zod is used for schema validation on both the client and server sides, ensuring data integrity.
+- **i18next for Internationalization**: `i18next` and `react-i18next` are used to handle translations in a way that is compatible with the Next.js App Router. This includes language-based routing using a dynamic `[lng]` segment in the URL. The `middleware.ts` file is the single source of truth for synchronizing the language cookie with the URL. Translation keys are organized into logical namespaces (e.g., `common`, `products`) to improve maintainability. The JSON translation files should have a flat structure, with keys at the root level.
 
 ## 🎨 **Design Patterns**
 - **MVC (Model-View-Controller)**: The application loosely follows the MVC pattern, with the Next.js pages/components acting as the View, the API routes as the Controller, and the database/schemas as the Model.

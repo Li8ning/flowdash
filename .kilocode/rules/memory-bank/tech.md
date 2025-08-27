@@ -34,5 +34,5 @@
 - **`@vercel/blob`**: Adapter for Vercel Blob storage.
 - **`jose`**: For JWT signing and verification.
 - **`zod`**: For data validation.
-- **`next-i18next`**: For internationalization.
+- **`i18next`**, **`react-i18next`**: For internationalization.
 - **`jest`**: For testing.

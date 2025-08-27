@@ -1,0 +1,82 @@
+{
+  "title": "Product Management",
+  "search_placeholder": "Search products...",
+  "add_new_product": "Add New Product",
+  "filter_by_color": "Filter by Color",
+  "filter_by_design": "Filter by Design",
+  "filter_by_category": "Filter by Category",
+  "filter": "Filter",
+  "clear_filters": "Clear Filters",
+  "create_modal": {
+    "title": "Add New Product",
+    "sku": "SKU",
+    "name": "Name",
+    "design": "Design",
+    "color": "Color",
+    "image_url": "Image URL",
+    "qualities": "Available Qualities",
+    "packaging": "Available Packaging Types",
+    "create_button": "Create Product",
+    "category_label": "Category",
+    "select_category_placeholder": "Select Category",
+    "design_label": "Design",
+    "select_design_placeholder": "Select Design",
+    "color_label": "Color",
+    "select_color_placeholder": "Select Color",
+    "cancel_button": "Cancel"
+  },
+  "edit_modal": {
+    "title": "Edit Product",
+    "save_button": "Save Changes",
+    "cancel_button": "Cancel"
+  },
+  "mobile": {
+    "sku": "SKU:",
+    "design": "Design:",
+    "color": "Color:",
+    "edit": "Edit",
+    "archive": "Archive"
+  },
+  "table": {
+    "image": "Image",
+    "name": "Name",
+    "sku": "SKU",
+    "design": "Design",
+    "color": "Color",
+    "quantity": "Quantity",
+    "actions": "Actions"
+  },
+  "archive_dialog": {
+    "title": "Archive Product",
+    "body": "Are you sure? This will mark the product as inactive.",
+    "cancel_button": "Cancel",
+    "archive_button": "Archive"
+  },
+  "toast": {
+    "error_fetching_data": "Error Fetching Data",
+    "error_fetching_data_description": "Could not load product data.",
+    "product_created": "Product created.",
+    "error_creating_product": "Error Creating Product",
+    "error_creating_product_description": "An unexpected error occurred.",
+    "product_updated": "Product updated.",
+    "error_updating_product": "Error Updating Product",
+    "error_updating_product_description": "An unexpected error occurred.",
+    "product_archived": "Product archived.",
+    "error_archiving_product": "Error Archiving Product",
+    "error_archiving_product_description": "An unexpected error occurred."
+  },
+  "no_products_found": "No products found.",
+  "import_from_csv": "Import from CSV",
+  "bulk_image_upload": "Bulk Image Upload",
+  "quality": {
+    "first": "First",
+    "second": "Second",
+    "rok": "ROK"
+  },
+  "packaging_type": {
+    "box": "Box",
+    "paper": "Paper",
+    "grass": "Grass",
+    "open": "Open"
+  }
+}

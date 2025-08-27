@@ -1,0 +1,14 @@
+{
+  "add_product": "उत्पाद जोड़ें",
+  "edit_product": "उत्पाद संपादित करें",
+  "form": {
+    "name": "नाम",
+    "sku": "SKU",
+    "color": "रंग",
+    "category": "श्रेणी",
+    "design": "डिज़ाइन",
+    "image_url": "छवि URL",
+    "available_qualities": "उपलब्ध गुण",
+    "available_packaging_types": "उपलब्ध पैकेजिंग के प्रकार"
+  }
+}

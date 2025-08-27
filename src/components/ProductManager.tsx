@@ -19,7 +19,7 @@ import ProductFormModal from './ProductFormModal';
 import { Product } from '@/types';
 
 const ProductManager = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['product_manager', 'common']);
   const {
     products,
     loading,
@@ -32,7 +32,7 @@ const ProductManager = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const handleFilter = (filters: { name: string; category: string; design: string }) => {
+  const handleFilter = (filters: { name: string; category: string; design: string; color: string }) => {
     fetchProducts(filters);
   };
 
@@ -58,20 +58,20 @@ const ProductManager = () => {
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
       <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} mb={6} direction={{ base: 'column', md: 'row' }}>
         <Heading as="h2" size={{ base: 'md', md: 'lg' }} mb={{ base: 4, md: 0 }}>
-          {t('product_manager.title')}
+          {t('title')}
         </Heading>
         <SimpleGrid columns={{ base: 1, lg: 2, xl: 4 }} spacing={2} alignItems="center">
           <Button onClick={onOpen} colorScheme="blue">
-            {t('product_manager.add_new_product')}
+            {t('add_new_product')}
           </Button>
           <Link href="/dashboard/products/bulk-import" style={{ width: '100%' }}>
             <Button colorScheme="green" leftIcon={<FiUpload />} w="full">
-              {t('product_manager.import_from_csv')}
+              {t('import_from_csv')}
             </Button>
           </Link>
           <Link href="/dashboard/products/bulk-image-upload" style={{ width: '100%' }}>
             <Button colorScheme="purple" leftIcon={<FiUpload />} w="full">
-              {t('product_manager.bulk_image_upload')}
+              {t('bulk_image_upload')}
             </Button>
           </Link>
         </SimpleGrid>

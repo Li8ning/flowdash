@@ -1,0 +1,82 @@
+{
+  "title": "प्रोडक्ट मैनेज करें",
+  "search_placeholder": "प्रोडक्ट खोजें...",
+  "add_new_product": "नया प्रोडक्ट जोड़ें",
+  "filter_by_color": "रंग से फ़िल्टर करें",
+  "filter_by_design": "डिज़ाइन से फ़िल्टर करें",
+  "filter_by_category": "श्रेणी से फ़िल्टर करें",
+  "filter": "फ़िल्टर",
+  "clear_filters": "फ़िल्टर हटाएँ",
+  "create_modal": {
+    "title": "नया प्रोडक्ट जोड़ें",
+    "sku": "SKU",
+    "name": "नाम",
+    "design": "डिज़ाइन",
+    "color": "रंग",
+    "image_url": "फोटो URL",
+    "qualities": "क्वालिटी",
+    "packaging": "पैकेजिंग",
+    "create_button": "प्रोडक्ट बनाएँ",
+    "category_label": "श्रेणी",
+    "select_category_placeholder": "श्रेणी चुनें",
+    "design_label": "डिज़ाइन",
+    "select_design_placeholder": "डिज़ाइन चुनें",
+    "color_label": "रंग",
+    "select_color_placeholder": "रंग चुनें",
+    "cancel_button": "कैंसिल"
+  },
+  "edit_modal": {
+    "title": "प्रोडक्ट बदलें",
+    "save_button": "सेव करें",
+    "cancel_button": "कैंसिल"
+  },
+  "mobile": {
+    "sku": "SKU:",
+    "design": "डिज़ाइन:",
+    "color": "रंग:",
+    "edit": "बदलें",
+    "archive": "आर्काइव करें"
+  },
+  "table": {
+    "image": "फोटो",
+    "name": "नाम",
+    "sku": "SKU",
+    "design": "डिज़ाइन",
+    "color": "रंग",
+    "quantity": "मात्रा",
+    "actions": "एक्शन"
+  },
+  "archive_dialog": {
+    "title": "प्रोडक्ट आर्काइव करें",
+    "body": "पक्का? यह प्रोडक्ट बंद हो जाएगा।",
+    "cancel_button": "कैंसिल",
+    "archive_button": "आर्काइव करें"
+  },
+  "toast": {
+    "error_fetching_data": "डेटा लाने में गलती",
+    "error_fetching_data_description": "प्रोडक्ट डेटा लोड नहीं हो सका।",
+    "product_created": "प्रोडक्ट बन गया।",
+    "error_creating_product": "प्रोडक्ट बनाने में गलती",
+    "error_creating_product_description": "कोई अनजान गलती हुई।",
+    "product_updated": "प्रोडक्ट अपडेट हो गया।",
+    "error_updating_product": "प्रोडक्ट अपडेट में गलती",
+    "error_updating_product_description": "कोई अनजान गलती हुई।",
+    "product_archived": "प्रोडक्ट आर्काइव हो गया।",
+    "error_archiving_product": "प्रोडक्ट आर्काइव में गलती",
+    "error_archiving_product_description": "कोई अनजान गलती हुई।"
+  },
+  "no_products_found": "कोई प्रोडक्ट नहीं मिला।",
+  "import_from_csv": "CSV से डालें",
+  "bulk_image_upload": "एक साथ फोटो अपलोड करें",
+  "quality": {
+    "first": "पहला",
+    "second": "दूसरा",
+    "rok": "ROK"
+  },
+  "packaging_type": {
+    "box": "बॉक्स",
+    "paper": "कागज",
+    "grass": "घास",
+    "open": "खुला"
+  }
+}

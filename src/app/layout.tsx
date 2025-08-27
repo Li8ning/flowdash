@@ -1,26 +1,14 @@
-import type { Metadata } from "next";
-import { Providers } from "@/components/Providers";
-import { Inter } from 'next/font/google';
-import "./globals.css";
+import { ReactNode } from 'react';
+import { Providers } from '@/components/Providers';
 
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: "Flowdash",
-  description: "Sanitaryware Inventory Management",
+export const metadata = {
+  title: 'FlowDash',
+  description: 'Inventory management for factories',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en">
       <body>
         <Providers>{children}</Providers>
       </body>

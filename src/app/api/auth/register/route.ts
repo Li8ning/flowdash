@@ -10,7 +10,7 @@ import { withRateLimiter } from '@/lib/rate-limiter';
 export const POST = handleError(
   withRateLimiter(
     withValidation(registerSchema, async (req: NextRequest, body) => {
-      const { name, username, password, organizationName } = body;
+      const { name, username, password, organizationName, language } = body;
 
       try {
     // Check if username already exists (case-insensitive)
@@ -32,9 +32,9 @@ export const POST = handleError(
     const password_hash = await bcrypt.hash(password, salt);
 
     const { rows: userResult } = await sql`
-      INSERT INTO users (organization_id, name, username, password_hash, role, is_active)
-      VALUES (${organization_id}, ${name}, ${username}, ${password_hash}, 'super_admin', true)
-      RETURNING id, name, username, role, is_active
+      INSERT INTO users (organization_id, name, username, password_hash, role, is_active, language)
+      VALUES (${organization_id}, ${name}, ${username}, ${password_hash}, 'super_admin', true, ${language || 'en'})
+      RETURNING id, name, username, role, is_active, language
     `;
 
     const user = userResult[0];
@@ -55,6 +55,7 @@ export const POST = handleError(
       role: user.role,
       organization_id: organization_id,
       is_active: user.is_active,
+      language: user.language,
     };
 
     const response = NextResponse.json({ user: userResponse }, { status: 201 });

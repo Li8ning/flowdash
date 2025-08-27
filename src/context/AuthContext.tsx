@@ -54,12 +54,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    // Redirect after a successful login
+    if (!loading && user && !window.location.pathname.includes('/dashboard')) {
+      const redirectUrl = `/${user.language || 'en'}/dashboard`;
+      router.push(redirectUrl);
+    }
+  }, [user, loading, router]);
+
   const login = async (username: string, password: string, rememberMe: boolean) => {
     try {
       const response = await api.post('/auth/login', { username, password, rememberMe });
-      await processUserData(response.data.user);
-      router.push('/dashboard');
-      return response.data.user;
+      // processUserData will call setUser, which will trigger the useEffect above
+      const user = await processUserData(response.data.user);
+      return user;
     } catch (error) {
       throw error;
     }
