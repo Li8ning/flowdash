@@ -10,6 +10,14 @@ interface CrudState<T> {
   error: string | null;
 }
 
+interface CrudMessages {
+  createSuccess?: string;
+  updateSuccess?: string;
+  deleteSuccess?: string;
+  archiveSuccess?: string;
+  reactivateSuccess?: string;
+}
+
 interface UseCrudOptions<T> {
   initialData?: T[];
   endpoint: string;
@@ -17,6 +25,7 @@ interface UseCrudOptions<T> {
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
   initialFetch?: boolean;
+  messages?: CrudMessages;
 }
 
 export function useCrud<T>({
@@ -26,6 +35,7 @@ export function useCrud<T>({
   onSuccess,
   onError,
   initialFetch = true,
+  messages,
 }: UseCrudOptions<T>) {
   const [state, setState] = useState<CrudState<T>>({
     data: initialData,
@@ -106,7 +116,9 @@ export function useCrud<T>({
     try {
       const response = await api.post<T>(endpoint, item);
       await fetchData(1); // Refetch the first page
-      handleSuccess('Item created successfully.');
+      if (messages?.createSuccess) {
+        handleSuccess(messages.createSuccess);
+      }
       return response.data;
     } catch (err) {
       const error = err as AxiosError;
@@ -123,7 +135,9 @@ export function useCrud<T>({
         ...prevState,
         data: prevState.data.map(d => (d[idKey] === id ? response.data : d)),
       }));
-      handleSuccess('Item updated successfully.');
+      if (messages?.updateSuccess) {
+        handleSuccess(messages.updateSuccess);
+      }
       return response.data;
     } catch (err) {
       const error = err as AxiosError;
@@ -140,7 +154,9 @@ export function useCrud<T>({
         ...prevState,
         data: prevState.data.filter(d => d[idKey] !== id),
       }));
-      handleSuccess('Item deleted successfully.');
+      if (messages?.deleteSuccess) {
+        handleSuccess(messages.deleteSuccess);
+      }
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to delete item.';
@@ -154,7 +170,9 @@ export function useCrud<T>({
       await api.patch(`${endpoint}/${id}`, { is_archived: true });
       // Refetch data to reflect the archived status
       fetchData(1);
-      handleSuccess('Item archived successfully.');
+      if (messages?.archiveSuccess) {
+        handleSuccess(messages.archiveSuccess);
+      }
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to archive item.';
@@ -167,7 +185,9 @@ export function useCrud<T>({
     try {
       await api.put(`${endpoint}/${id}/reactivate`);
       fetchData(1); // Refetch data to reflect the reactivated status
-      handleSuccess('Item reactivated successfully.');
+      if (messages?.reactivateSuccess) {
+        handleSuccess(messages.reactivateSuccess);
+      }
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as { error: string })?.error || 'Failed to reactivate item.';

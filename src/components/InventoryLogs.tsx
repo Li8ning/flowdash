@@ -115,6 +115,10 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   } = useCrud<InventoryLog>({
     endpoint: allLogs ? '/inventory/logs' : '/inventory/logs/me',
     initialFetch: false,
+    messages: {
+      deleteSuccess: t('inventory.logs.toast.log_deleted_description'),
+      updateSuccess: t('edit_log_modal.toast.log_updated_description'),
+    },
   });
 
 

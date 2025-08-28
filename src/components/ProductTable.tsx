@@ -20,6 +20,15 @@ import {
   Text,
   Spinner,
   Image,
+  useBreakpointValue,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  VStack,
+  Flex,
+  TableContainer,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +47,7 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   const handleArchiveClick = (productId: number) => {
     setSelectedProductId(productId);
@@ -77,52 +87,140 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
 
   return (
     <>
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>{t('table.image')}</Th>
-            <Th>{t('table.name')}</Th>
-            <Th>{t('create_modal.category_label')}</Th>
-            <Th>{t('table.design')}</Th>
-            <Th>{t('table.color')}</Th>
-            <Th>{t('table.quantity')}</Th>
-            <Th>{t('table.actions')}</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
+      {isMobile ? (
+        <Accordion allowMultiple>
           {products.map((product) => (
-            <Tr key={product.id}>
-              <Td>
-                <Image
-                  src={product.image_url || '/next.svg'}
-                  alt={product.name}
-                  boxSize="50px"
-                  objectFit="cover"
-                />
-              </Td>
-              <Td>{product.name}</Td>
-              <Td>{product.category}</Td>
-              <Td>{product.design}</Td>
-              <Td>{product.color}</Td>
-              <Td>{product.quantity_on_hand}</Td>
-              <Td>
-                <HStack spacing={2}>
-                  <Button size="sm" onClick={() => onEdit(product)}>
-                    {t('edit', { ns: 'common' })}
-                  </Button>
-                  <Button
-                    size="sm"
-                    colorScheme="red"
-                    onClick={() => handleArchiveClick(product.id)}
-                  >
-                    {t('archive', { ns: 'common' })}
-                  </Button>
-                </HStack>
-              </Td>
-            </Tr>
+            <AccordionItem key={product.id} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
+              <h2>
+                <AccordionButton>
+                  <Box flex="1" textAlign="left">
+                    <Flex align="center" w="100%">
+                      <Image
+                        src={product.image_url || '/next.svg'}
+                        alt={product.name}
+                        boxSize="50px"
+                        objectFit="cover"
+                        borderRadius="md"
+                        mr={4}
+                      />
+                      <Flex justify="space-between" align="center" w="100%">
+                        <VStack align="flex-start" spacing={0}>
+                          <Text fontWeight="bold">{product.name}</Text>
+                          <Text fontSize="sm" color="gray.500">
+                            {product.category}
+                          </Text>
+                        </VStack>
+                        <Text
+                          fontWeight="bold"
+                          color="blue.500"
+                        >
+                          Qty: {product.quantity_on_hand}
+                        </Text>
+                      </Flex>
+                    </Flex>
+                  </Box>
+                  <AccordionIcon />
+                </AccordionButton>
+              </h2>
+              <AccordionPanel pb={4}>
+                <VStack align="stretch" spacing={2}>
+                  <Flex justify="space-between">
+                    <Text fontWeight="bold">{t('create_modal.category_label')}:</Text>
+                    <Text>{product.category}</Text>
+                  </Flex>
+                  <Flex justify="space-between">
+                    <Text fontWeight="bold">{t('table.design')}:</Text>
+                    <Text>{product.design}</Text>
+                  </Flex>
+                  <Flex justify="space-between">
+                    <Text fontWeight="bold">{t('table.color')}:</Text>
+                    <Text>{product.color}</Text>
+                  </Flex>
+                  <Flex justify="space-between">
+                    <Text fontWeight="bold">{t('table.quantity')}:</Text>
+                    <Text>{product.quantity_on_hand}</Text>
+                  </Flex>
+                  <Flex mt={4}>
+                    <Button
+                      size="sm"
+                      mr={2}
+                      onClick={() => onEdit(product)}
+                    >
+                      {t('edit', { ns: 'common' })}
+                    </Button>
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      onClick={() => handleArchiveClick(product.id)}
+                    >
+                      {t('archive', { ns: 'common' })}
+                    </Button>
+                  </Flex>
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
           ))}
-        </Tbody>
-      </Table>
+        </Accordion>
+      ) : (
+        <TableContainer>
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>{t('table.image')}</Th>
+                <Th>{t('table.name')}</Th>
+                <Th>{t('create_modal.category_label')}</Th>
+                <Th>{t('table.design')}</Th>
+                <Th>{t('table.color')}</Th>
+                <Th>{t('table.quantity')}</Th>
+                <Th>{t('table.actions')}</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {products.map((product) => (
+                <Tr key={product.id}
+                  sx={{
+                    '@media (min-width: 769px)': {
+                      '&:hover': {
+                        backgroundColor: 'gray.50',
+                        cursor: 'pointer'
+                      }
+                    }
+                  }}
+                >
+                  <Td px={2}>
+                    <Image
+                      src={product.image_url || '/next.svg'}
+                      alt={product.name}
+                      boxSize="50px"
+                      objectFit="cover"
+                      borderRadius="md"
+                    />
+                  </Td>
+                  <Td>{product.name}</Td>
+                  <Td>{product.category}</Td>
+                  <Td>{product.design}</Td>
+                  <Td>{product.color}</Td>
+                  <Td>{product.quantity_on_hand}</Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Button size="sm" onClick={() => onEdit(product)}>
+                        {t('edit', { ns: 'common' })}
+                      </Button>
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        onClick={() => handleArchiveClick(product.id)}
+                      >
+                        {t('archive', { ns: 'common' })}
+                      </Button>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </TableContainer>
+      )}
 
       <AlertDialog
         isOpen={isOpen}

@@ -75,6 +75,13 @@ const UserManager: React.FC = () => {
     reactivateItem,
   } = useCrud<User>({
     endpoint: '/users',
+    messages: {
+      createSuccess: t('user_manager.toast.user_created_description'),
+      updateSuccess: t('user_manager.toast.user_updated_description'),
+      deleteSuccess: t('user_manager.toast.user_removed_description'),
+      archiveSuccess: t('user_manager.toast.user_removed_description'),
+      reactivateSuccess: t('user_manager.toast.user_reactivated_description'),
+    },
   });
 
   useEffect(() => {

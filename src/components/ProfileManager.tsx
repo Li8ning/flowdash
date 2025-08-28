@@ -127,8 +127,7 @@ const ProfileManager = () => {
 
     try {
       const payload = { currentPassword, newPassword: password };
-      const { data } = await api.put(`/users/${user?.id}/password`, payload);
-      updateUser(data.user);
+      await api.put(`/users/${user?.id}/password`, payload);
       toast({
         title: t('profile_manager.toast.password_updated'),
         status: 'success',

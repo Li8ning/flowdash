@@ -61,6 +61,11 @@ const AttributeTabPanel = ({ attributeType }: { attributeType: string }) => {
   } = useCrud<ProductAttribute>({
     endpoint: `/settings/attributes?type=${attributeType}`,
     idKey: 'id',
+    messages: {
+      createSuccess: t('attributes.toast.add_success_title'),
+      updateSuccess: t('attributes.toast.update_success_title'),
+      deleteSuccess: t('attributes.toast.delete_success_title'),
+    },
   });
 
   const handleAddAttribute = async (e: React.FormEvent) => {
