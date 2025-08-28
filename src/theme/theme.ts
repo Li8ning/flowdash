@@ -38,22 +38,8 @@ const theme = extendTheme({
         boxShadow: 'sm',
         px: { base: 3, md: 4, lg: 6 }, // Granular responsive padding
       },
-      variants: {
-        solid: {
-          bg: 'brand.primary',
-          color: 'white',
-          _hover: {
-            bg: 'blue.600',
-          },
-        },
-        outline: {
-          borderColor: 'brand.primary',
-          color: 'brand.primary',
-        },
-      },
-      defaultProps: {
-        variant: 'solid',
-      },
+      // Removed custom variants to allow colorScheme props to work properly
+      // The custom solid variant was overriding all colorScheme functionality
     },
     Input: {
       variants: {

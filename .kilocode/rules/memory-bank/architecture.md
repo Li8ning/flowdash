@@ -40,6 +40,7 @@ graph TD
 - **JWT for Authentication**: JSON Web Tokens are used for securing the API and managing user sessions. The `AuthContext` handles the post-login redirect logic to prevent race conditions.
 - **Zod for Validation**: Zod is used for schema validation on both the client and server sides, ensuring data integrity.
 - **i18next for Internationalization**: `i18next` and `react-i18next` are used to handle translations in a way that is compatible with the Next.js App Router. This includes language-based routing using a dynamic `[lng]` segment in the URL. The `middleware.ts` file is the single source of truth for synchronizing the language cookie with the URL. Translation keys are organized into logical namespaces (e.g., `common`, `products`) to improve maintainability. The JSON translation files have a flat structure with keys at the root level. A comprehensive translation audit has been completed to ensure all translations are simplified from technical jargon to everyday language, making the application accessible to factory workers with limited technical literacy. The application supports English, Hindi, and Gujarati languages for the Indian factory market.
+- **Theme Configuration**: Chakra UI theme is configured in `src/theme/theme.ts`. Custom Button variants were removed to allow proper colorScheme functionality, ensuring destructive actions appear red, positive actions appear green, and primary actions appear blue.
 
 ## 🎨 **Design Patterns**
 - **MVC (Model-View-Controller)**: The application loosely follows the MVC pattern, with the Next.js pages/components acting as the View, the API routes as the Controller, and the database/schemas as the Model.
@@ -61,3 +62,18 @@ The database schema is designed to support a multi-tenant architecture, with eac
 - **`inventory_logs`**: Tracks production data logged by floor staff.
 - **`inventory`**: Provides a real-time summary of stock levels.
 - **`product_attributes`**: Stores reusable attributes for products.
+
+## 🔒 **Security Considerations**
+- **SQL Injection Prevention**: The `/api/distinct/{entity}/{field}` endpoint uses whitelisting to prevent SQL injection attacks. Only pre-approved entity names and fields are allowed.
+- **JWT Authentication**: Secure httpOnly cookies are used for token storage, protecting against XSS attacks.
+- **Role-Based Access Control**: Strict hierarchy enforced - super_admin can create admin/floor_staff, admin can only create floor_staff.
+- **Input Validation**: Zod schemas validate all inputs on both client and server sides.
+
+## 🎨 **UI/UX Design Patterns**
+- **Button Color Coding**: Consistent color scheme for user actions:
+  - Red: Destructive actions (delete, archive, logout)
+  - Green: Positive actions (save, reactivate)
+  - Blue: Primary actions (login, add, update)
+  - Default: Neutral actions (edit, cancel)
+- **Mobile-First Design**: Responsive layouts with accordion-style mobile interfaces for complex tables.
+- **Accessibility**: WCAG-compliant design with proper ARIA labels and keyboard navigation.

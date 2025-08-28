@@ -112,7 +112,7 @@ const { t } = useTranslation(lng, 'common');
             {t('login.remember_me')}
           </Checkbox>
         </FormControl>
-        <Button type="submit" width="full" isLoading={isLoggingIn}>
+        <Button type="submit" width="full" isLoading={isLoggingIn} colorScheme="blue">
           {t('login.button')}
         </Button>
         <Text>

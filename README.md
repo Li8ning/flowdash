@@ -1,23 +1,38 @@
-# Inventory Management System
+# FlowDash - Inventory Management System
 
-This is a web-based inventory management system designed to track product stock, manage production logs, and handle user access control. The application is built with a modern tech stack, including Next.js, TypeScript, and a PostgreSQL database.
+**Version: 0.1.0**
+
+FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
 ## Key Features
 
-*   **Role-Based Access Control (RBAC):** The system supports three user roles (`super_admin`, `admin`, `floor_staff`) with granular permissions.
-*   **Product Management:** Create, update, and manage products, including attributes like color, design, and quality.
-*   **Inventory Logging:** Track inventory changes with detailed logs, including who made the change and when.
-*   **User Management:** Invite, deactivate, and manage user accounts.
-*   **Data Export:** Export inventory logs to PDF and Excel formats.
-*   **Dashboard Analytics:** (Future) Visualize key inventory metrics and production trends.
+*   **Role-Based Access Control (RBAC):** Three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
+*   **Product Management:** Create, update, and manage products with attributes like color, design, quality, and packaging types. Includes bulk CSV import and image upload capabilities.
+*   **Inventory Logging:** Floor staff can log production quantities with detailed tracking of who made changes and when.
+*   **User Management:** Invite, edit, deactivate, and reactivate user accounts with strict role hierarchy enforcement.
+*   **Multi-language Support:** Full internationalization support for English, Hindi, and Gujarati languages, optimized for factory workers with limited technical literacy.
+*   **Data Export:** Export inventory logs to PDF and Excel formats with comprehensive filtering options.
+*   **Dashboard Analytics:** Production summaries, weekly charts, and real-time inventory tracking.
+*   **Mobile-First Design:** Responsive interface optimized for tablets and smartphones used by floor staff.
+*   **Accessibility:** WCAG-compliant design with proper visual feedback through color-coded buttons (red for destructive actions, green for positive actions, blue for primary actions).
 
 ## Tech Stack
 
-*   **Frontend:** Next.js, React, TypeScript, Chakra UI
-*   **Backend:** Next.js API Routes, PostgreSQL (Vercel Postgres)
-*   **Authentication:** JWT (RS256)
-*   **Database ORM:** `node-postgres` (pg)
+*   **Framework:** Next.js 14+ (App Router)
+*   **Language:** TypeScript
+*   **UI Library:** Chakra UI
+*   **Database:** Vercel Postgres
+*   **File Storage:** Vercel Blob
+*   **Authentication:** JWT with Jose library
 *   **Validation:** Zod
+*   **API:** Next.js API Routes (Serverless Functions)
+*   **Image Processing:** Sharp
+*   **Testing:** Jest, React Testing Library, Playwright
+*   **Error Monitoring:** Sentry
+*   **Logging:** Pino
+*   **Internationalization:** i18next, react-i18next
+*   **Deployment:** Vercel
+*   **CI/CD:** GitHub Actions
 
 ## Project Structure
 
@@ -25,17 +40,26 @@ This is a web-based inventory management system designed to track product stock,
 .
 ├── src/
 │   ├── app/
-│   │   ├── api/                # API routes
-│   │   ├── (dashboard)/        # Main application pages (protected)
-│   │   └── (auth)/             # Authentication pages (login, register)
-│   ├── components/             # Reusable React components
-│   ├── context/                # React context providers (e.g., AuthContext)
-│   ├── hooks/                  # Custom React hooks (e.g., useCrud)
-│   ├── lib/                    # Core libraries (API client, auth, db, etc.)
-│   └── types/                  # Centralized TypeScript types
-├── .env.local                  # Environment variables
-├── .github/workflows/ci.yml    # CI/CD pipeline
-└── README.md                   # This file
+│   │   ├── api/                    # API routes (serverless functions)
+│   │   ├── (pages)/[lng]/          # Language-aware pages
+│   │   │   └── dashboard/          # Main application pages (protected)
+│   │   ├── i18n/                   # Internationalization configuration
+│   │   │   └── locales/            # Translation files (en, hi, gu)
+│   │   └── globals.css             # Global styles
+│   ├── components/                 # Reusable React components
+│   │   ├── layout/                 # Layout components (Header, Sidebar)
+│   │   └── __tests__/              # Component tests
+│   ├── context/                    # React context providers (Auth, Language)
+│   ├── hooks/                      # Custom React hooks (useCrud, useDebounce)
+│   ├── lib/                        # Core libraries (API, auth, db, migrations)
+│   ├── schemas/                    # Zod validation schemas
+│   ├── theme/                      # Chakra UI theme configuration
+│   └── types/                      # TypeScript type definitions
+├── .kilocode/                      # Memory bank and project documentation
+├── public/                         # Static assets
+├── .env.local                      # Environment variables
+├── .github/workflows/              # CI/CD pipeline
+└── README.md                       # This file
 ```
 
 ## Getting Started
@@ -63,15 +87,14 @@ This is a web-based inventory management system designed to track product stock,
     Create a `.env.local` file in the root of the project and add the following variables:
 
     ```
-    POSTGRES_URL="your_database_connection_string"
-    JWT_PRIVATE_KEY="your_private_key"
-    JWT_PUBLIC_KEY="your_public_key"
+    POSTGRES_URL="your_vercel_postgres_connection_string"
+    JWT_SECRET="your_jwt_secret_key"
+    BLOB_READ_WRITE_TOKEN="your_vercel_blob_token"
+    SENTRY_DSN="your_sentry_dsn" (optional)
     ```
 
-    *   `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` should be a valid RS256 key pair.
-
 4.  **Run the database migrations:**
-    (Instructions for running migrations would go here. Since we don't have a migration tool set up, this is a placeholder.)
+    Execute the SQL migration files in the `src/lib/migrations` directory against your Vercel Postgres database to set up the schema.
 
 5.  **Run the development server:**
     ```bash
@@ -80,11 +103,36 @@ This is a web-based inventory management system designed to track product stock,
 
     The application will be available at `http://localhost:3000`.
 
+## Recent Updates (v0.1.0)
+
+### Toast Message System Refactor
+- Implemented a comprehensive localized toast message system
+- Eliminated hardcoded translations in the generic useCrud hook
+- Each component now provides its own contextually appropriate messages
+- Full support for English, Hindi, and Gujarati languages
+
+### Button Color Scheme Implementation
+- Fixed theme configuration that was preventing proper colorScheme functionality
+- Implemented consistent color coding across all components:
+  - **Red**: Destructive actions (delete, archive, logout)
+  - **Green**: Positive actions (save, reactivate)
+  - **Blue**: Primary actions (login, add, update)
+  - **Default**: Neutral actions (edit, cancel)
+
+### Security & Performance
+- Fixed SQL injection vulnerability in distinct value endpoints
+- Implemented proper input validation with Zod schemas
+- Added comprehensive error monitoring with Sentry
+- Optimized for serverless deployment on Vercel
+
 ## CI/CD
 
-The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that performs the following checks on every push and pull request to the `main` branch:
+The project includes a GitHub Actions workflow that performs:
+*   **Linting:** Code style enforcement
+*   **Testing:** Unit and integration tests
+*   **Security Scanning:** Vulnerability detection
+*   **Type Checking:** TypeScript validation
 
-*   **Linting:** Runs `npm run lint` to enforce code style.
-*   **Security Scanning:** Uses Trivy to scan for vulnerabilities in the codebase.
+## Contributing
 
-This concludes the project audit and improvement tasks. The application is now more secure, performant, and maintainable.
+The application uses a Memory Bank system (`.kilocode/rules/memory-bank/`) to maintain project knowledge and context for developers. Please review the memory bank files before making significant changes.
