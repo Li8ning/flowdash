@@ -1,84 +1,133 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '../../../lib/auth-utils';
 import sql, { db } from '../../../lib/db';
-import { z } from 'zod';
-import logger from '../../../lib/logger';
+import {
+  handleError,
+  ForbiddenError,
+} from '../../../lib/errors';
+import { productSchema } from '@/schemas/product';
+import { withValidation } from '@/lib/validations';
 
-export const GET = withAuth(async (req: AuthenticatedRequest) => {
-  try {
-    const { organization_id } = req.user;
+interface Attribute {
+  id: number;
+  value: string;
+}
 
-    if (!organization_id) {
-      // If user has no organization, they have no products.
-      return NextResponse.json({
-        data: [],
-        totalCount: 0,
-      });
-    }
-    const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-
-    const productsPromise = sql`
-      SELECT *
-      FROM products
-      WHERE organization_id = ${organization_id}
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `;
-    
-    const countPromise = sql`
-      SELECT COUNT(*) FROM products WHERE organization_id = ${organization_id}
-    `;
-
-    const [productsResult, countResult] = await Promise.all([productsPromise, countPromise]);
-
-    const totalCount = parseInt(countResult.rows[0].count, 10);
-
-    return NextResponse.json({
-      data: productsResult.rows,
-      totalCount,
-    });
-  } catch (err) {
-    logger.error({ err }, 'Failed to fetch products');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
-  }
-});
-
-const productSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  sku: z.string().min(1, "SKU is required"),
-  model: z.string().optional(),
-  color: z.string().optional(),
-  image_url: z.string().url().optional().or(z.literal('')),
-  available_qualities: z.array(z.string()).optional(),
-  available_packaging_types: z.array(z.string()).optional(),
-});
-
-export const POST = withAuth(async (req: AuthenticatedRequest) => {
-  const client = await db.connect();
-  try {
-    await client.query('BEGIN');
-    const { organization_id } = req.user;
-    const body = await req.json();
-    
-    const validation = productSchema.safeParse(body);
-    if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid input', issues: validation.error.issues }, { status: 400 });
-    }
-
-    const { name, sku, model, color, image_url, available_qualities } = validation.data;
-    let { available_packaging_types } = validation.data;
-
-    const { rows: existingProducts } = await client.query(
-      `SELECT id FROM products WHERE sku = $1 AND organization_id = $2`,
-      [sku, organization_id]
+export const GET = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json(
+      { error: authResult.error || 'Authentication failed' },
+      { status: authResult.status }
     );
+  }
+  const { organization_id } = authResult.user;
 
-    if (existingProducts.length > 0) {
-      return NextResponse.json({ error: 'A product with this SKU already exists.' }, { status: 409 });
+  if (!organization_id) {
+    return NextResponse.json({ data: [], totalCount: 0 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const color = searchParams.get('color');
+  const category = searchParams.get('category');
+  const design = searchParams.get('design');
+
+  const whereClauses = [
+    'organization_id = $1',
+    '(p.is_archived IS NULL OR p.is_archived = false)',
+  ];
+  const queryParams: (string | number)[] = [organization_id as number];
+  let paramIndex = 2;
+
+  if (color) {
+    whereClauses.push(`color = $${paramIndex++}`);
+    queryParams.push(color);
+  }
+  if (category) {
+    whereClauses.push(`category = $${paramIndex++}`);
+    queryParams.push(category);
+  }
+  if (design) {
+    whereClauses.push(`design = $${paramIndex++}`);
+    queryParams.push(design);
+  }
+
+  const whereString = whereClauses.join(' AND ');
+
+  const productsPromise = sql.query(
+    `SELECT
+        p.*,
+        i.quantity_on_hand,
+        COALESCE(qualities.list, '{}') AS available_qualities,
+        COALESCE(packaging.list, '{}') AS available_packaging_types
+      FROM products p
+      LEFT JOIN inventory i ON p.id = i.product_id
+      LEFT JOIN (
+        SELECT
+          ptq.product_id,
+          ARRAY_AGG(pa.value) as list
+        FROM product_to_quality ptq
+        JOIN product_attributes pa ON ptq.attribute_id = pa.id
+        GROUP BY ptq.product_id
+      ) AS qualities ON p.id = qualities.product_id
+      LEFT JOIN (
+        SELECT
+          ptpt.product_id,
+          ARRAY_AGG(pa.value) as list
+        FROM product_to_packaging_type ptpt
+        JOIN product_attributes pa ON ptpt.attribute_id = pa.id
+        GROUP BY ptpt.product_id
+      ) AS packaging ON p.id = packaging.product_id
+      WHERE ${whereString}
+      GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+    [...queryParams, limit, offset]
+  );
+
+  const countPromise = sql.query(
+    `SELECT COUNT(p.*) FROM products p WHERE ${whereString}`,
+    queryParams
+  );
+
+  const [productsResult, countResult] = await Promise.all([
+    productsPromise,
+    countPromise,
+  ]);
+  const totalCount = parseInt(countResult.rows[0].count, 10);
+
+  return NextResponse.json({
+    data: productsResult.rows,
+    totalCount,
+  });
+});
+
+export const POST = handleError(
+  withValidation(productSchema, async (req, body) => {
+    const authResult = await verifyAuth(req);
+    if (authResult.error || !authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication failed' },
+        { status: authResult.status }
+      );
     }
+    if (!['admin', 'super_admin'].includes(authResult.user.role as string)) {
+      throw new ForbiddenError();
+    }
+
+    const { organization_id } = authResult.user;
+    const {
+      name,
+      sku,
+      color,
+      image_url,
+      available_qualities,
+      category,
+      design,
+    } = body;
+    let { available_packaging_types } = body;
 
     // Ensure 'Open' is always a packaging type
     if (!available_packaging_types) {
@@ -87,20 +136,116 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       available_packaging_types.push('Open');
     }
 
-    const { rows } = await client.query(
-      `INSERT INTO products (name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Insert the base product without the array columns
+      const {
+        rows: [newProduct],
+      } = await client.query(
+        `INSERT INTO products (name, sku, color, image_url, organization_id, category, design)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, sku, model, color, image_url, organization_id, available_qualities, available_packaging_types]
-    );
-    
-    await client.query('COMMIT');
-    return NextResponse.json(rows[0], { status: 201 });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    logger.error({ err }, 'Failed to create product');
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
-  } finally {
-    client.release();
-  }
-}, ['factory_admin']);
+        [
+          name,
+          sku,
+          color,
+          image_url,
+          organization_id as number,
+          category,
+          design,
+        ]
+      );
+
+      const newProductId = newProduct.id;
+
+      // 2. Handle qualities
+      if (available_qualities && available_qualities.length > 0) {
+        const qualitiesResult = await client.query(
+          `SELECT id, value FROM product_attributes WHERE type = 'quality' AND value = ANY($1::text[])`,
+          [available_qualities]
+        );
+        const qualityIdMap = new Map(
+          qualitiesResult.rows.map((r: Attribute) => [r.value, r.id])
+        );
+
+        for (const qualityName of available_qualities) {
+          const attributeId = qualityIdMap.get(qualityName);
+          if (attributeId) {
+            await client.query(
+              `INSERT INTO product_to_quality (product_id, attribute_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [newProductId, attributeId]
+            );
+          }
+        }
+      }
+
+      // 3. Handle packaging types
+      if (available_packaging_types && available_packaging_types.length > 0) {
+        const packagingResult = await client.query(
+          `SELECT id, value FROM product_attributes WHERE type = 'packaging_type' AND TRIM(value) = ANY($1::text[])`,
+          [available_packaging_types]
+        );
+        const packagingIdMap = new Map(
+          packagingResult.rows.map((r: Attribute) => [r.value.trim(), r.id])
+        );
+
+        for (const packagingName of available_packaging_types) {
+          const attributeId = packagingIdMap.get(packagingName);
+          if (attributeId) {
+            await client.query(
+              `INSERT INTO product_to_packaging_type (product_id, attribute_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [newProductId, attributeId]
+            );
+          }
+        }
+      }
+
+      // 4. Create inventory entry
+      await client.query(
+        `INSERT INTO inventory (product_id, quantity_on_hand) VALUES ($1, 0)`,
+        [newProductId]
+      );
+
+      await client.query('COMMIT');
+
+      // Return the full product with aggregated arrays for consistency
+      const { rows: [finalProduct] } = await client.query(
+        `SELECT
+          p.*,
+          i.quantity_on_hand,
+          COALESCE(qualities.list, '{}') AS available_qualities,
+          COALESCE(packaging.list, '{}') AS available_packaging_types
+        FROM products p
+        LEFT JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN (
+          SELECT
+            ptq.product_id,
+            ARRAY_AGG(pa.value) as list
+          FROM product_to_quality ptq
+          JOIN product_attributes pa ON ptq.attribute_id = pa.id
+          GROUP BY ptq.product_id
+        ) AS qualities ON p.id = qualities.product_id
+        LEFT JOIN (
+          SELECT
+            ptpt.product_id,
+            ARRAY_AGG(pa.value) as list
+          FROM product_to_packaging_type ptpt
+          JOIN product_attributes pa ON ptpt.attribute_id = pa.id
+          GROUP BY ptpt.product_id
+        ) AS packaging ON p.id = packaging.product_id
+        WHERE p.id = $1
+        GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list`,
+        [newProductId]
+      );
+
+      return NextResponse.json(finalProduct, { status: 201 });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err; // Re-throw to be handled by the handleError wrapper
+    } finally {
+      client.release();
+    }
+  })
+);

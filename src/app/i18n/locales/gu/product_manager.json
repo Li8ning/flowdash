@@ -1,0 +1,82 @@
+{
+  "title": "પ્રોડક્ટ મેનેજ કરો",
+  "search_placeholder": "પ્રોડક્ટ શોધો...",
+  "add_new_product": "નવી પ્રોડક્ટ ઉમેરો",
+  "filter_by_color": "રંગથી ફિલ્ટર કરો",
+  "filter_by_design": "ડિઝાઇનથી ફિલ્ટર કરો",
+  "filter_by_category": "કેટેગરીથી ફિલ્ટર કરો",
+  "filter": "ફિલ્ટર",
+  "clear_filters": "ફિલ્ટર કાઢો",
+  "create_modal": {
+    "title": "નવી પ્રોડક્ટ ઉમેરો",
+    "sku": "SKU",
+    "name": "નામ",
+    "design": "ડિઝાઇન",
+    "color": "રંગ",
+    "image_url": "ફોટો URL",
+    "qualities": "ક્વોલિટી",
+    "packaging": "પેકેજિંગ",
+    "create_button": "પ્રોડક્ટ બનાવો",
+    "category_label": "કેટેગરી",
+    "select_category_placeholder": "કેટેગરી પસંદ કરો",
+    "design_label": "ડિઝાઇન",
+    "select_design_placeholder": "ડિઝાઇન પસંદ કરો",
+    "color_label": "રંગ",
+    "select_color_placeholder": "રંગ પસંદ કરો",
+    "cancel_button": "કેન્સલ"
+  },
+  "edit_modal": {
+    "title": "પ્રોડક્ટ બદલો",
+    "save_button": "સેવ કરો",
+    "cancel_button": "કેન્સલ"
+  },
+  "mobile": {
+    "sku": "SKU:",
+    "design": "ડિઝાઇન:",
+    "color": "રંગ:",
+    "edit": "બદલો",
+    "archive": "આર્કાઇવ કરો"
+  },
+  "table": {
+    "image": "ફોટો",
+    "name": "નામ",
+    "sku": "SKU",
+    "design": "ડિઝાઇન",
+    "color": "રંગ",
+    "quantity": "જથ્થો",
+    "actions": "એક્શન"
+  },
+  "archive_dialog": {
+    "title": "પ્રોડક્ટ આર્કાઇવ કરો",
+    "body": "ચોક્કસ? આ પ્રોડક્ટ બંધ થઈ જશે.",
+    "cancel_button": "કેન્સલ",
+    "archive_button": "આર્કાઇવ કરો"
+  },
+  "toast": {
+    "error_fetching_data": "ડેટા લાવવામાં ભૂલ",
+    "error_fetching_data_description": "પ્રોડક્ટ ડેટા લોડ નથી થયો.",
+    "product_created": "પ્રોડક્ટ બની ગઈ.",
+    "error_creating_product": "પ્રોડક્ટ બનાવવામાં ભૂલ",
+    "error_creating_product_description": "કોઈ અજાણી ભૂલ થઈ.",
+    "product_updated": "પ્રોડક્ટ અપડેટ થઈ.",
+    "error_updating_product": "પ્રોડક્ટ અપડેટમાં ભૂલ",
+    "error_updating_product_description": "કોઈ અજાણી ભૂલ થઈ.",
+    "product_archived": "પ્રોડક્ટ આર્કાઇવ થઈ.",
+    "error_archiving_product": "પ્રોડક્ટ આર્કાઇવમાં ભૂલ",
+    "error_archiving_product_description": "કોઈ અજાણી ભૂલ થઈ."
+  },
+  "no_products_found": "કોઈ પ્રોડક્ટ નથી મળી.",
+  "import_from_csv": "CSV થી ઉમેરો",
+  "bulk_image_upload": "એક સાથે ફોટો અપલોડ કરો",
+  "quality": {
+    "first": "પહેલો",
+    "second": "બીજો",
+    "rok": "ROK"
+  },
+  "packaging_type": {
+    "box": "બોક્સ",
+    "paper": "કાગળ",
+    "grass": "ઘાસ",
+    "open": "ખુલ્લું"
+  }
+}

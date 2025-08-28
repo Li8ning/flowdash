@@ -1,138 +1,145 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '../../../../lib/auth-utils';
 import sql, { db } from '../../../../lib/db';
+import { z } from 'zod';
+import { handleError, BadRequestError } from '../../../../lib/errors';
+import { VercelPoolClient } from '@vercel/postgres';
 
-export const GET = withAuth(async (req: AuthenticatedRequest) => {
-  try {
-    const { organization_id } = req.user;
-    const { searchParams } = new URL(req.url);
-    const user = searchParams.get('user');
-    const product = searchParams.get('product');
-    const color = searchParams.get('color');
-    const model = searchParams.get('model');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const quality = searchParams.get('quality');
-    const packaging_type = searchParams.get('packaging_type');
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+export const dynamic = 'force-dynamic';
 
-    const conditions = [`p.organization_id = $1`];
-    const params: (string | number)[] = [organization_id];
-    let paramIndex = 2;
-
-    if (user) {
-      conditions.push(`u.name = $${paramIndex++}`);
-      params.push(user);
-    }
-    if (product) {
-      conditions.push(`p.name = $${paramIndex++}`);
-      params.push(product);
-    }
-    if (color) {
-      conditions.push(`p.color = $${paramIndex++}`);
-      params.push(color);
-    }
-    if (model) {
-      conditions.push(`p.model = $${paramIndex++}`);
-      params.push(model);
-    }
-    if (quality) {
-      conditions.push(`l.quality = $${paramIndex++}`);
-      params.push(quality);
-    }
-    if (packaging_type) {
-      conditions.push(`l.packaging_type = $${paramIndex++}`);
-      params.push(packaging_type);
-    }
-    if (startDate) {
-      conditions.push(`l.created_at >= $${paramIndex++}`);
-      params.push(startDate);
-    }
-    if (endDate) {
-      conditions.push(`l.created_at < $${paramIndex++}`);
-      params.push((new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1))).toISOString().split('T')[0]);
-    }
-
-    const whereClause = conditions.join(' AND ');
-
-    const logsQuery = `
-      SELECT l.id, l.product_id, p.name as product_name, p.color, p.model, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
-      FROM inventory_logs l
-      JOIN products p ON l.product_id = p.id
-      JOIN users u ON l.user_id = u.id
-      WHERE ${whereClause}
-      ORDER BY l.created_at DESC
-      LIMIT $${paramIndex++}
-      OFFSET $${paramIndex++}
-    `;
-    
-    const countQuery = `
-      SELECT COUNT(*)
-      FROM inventory_logs l
-      JOIN products p ON l.product_id = p.id
-      JOIN users u ON l.user_id = u.id
-      WHERE ${whereClause}
-    `;
-
-    const logsPromise = sql.query(logsQuery, [...params, limit, offset]);
-    const countPromise = sql.query(countQuery, params);
-
-    const [logsResult, countResult] = await Promise.all([logsPromise, countPromise]);
-
-    const totalCount = parseInt(countResult.rows[0].count, 10);
-
-    return NextResponse.json({
-      data: logsResult.rows,
-      totalCount,
-    });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+export const GET = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
   }
+  const { organization_id } = authResult.user;
+  if (!organization_id) {
+    return NextResponse.json({ error: 'User is not associated with an organization' }, { status: 400 });
+  }
+  const { searchParams } = new URL(req.url);
+  
+  const user = searchParams.get('user');
+  const product = searchParams.get('product');
+  const color = searchParams.get('color');
+  const design = searchParams.get('design');
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const quality = searchParams.get('quality');
+  const packaging_type = searchParams.get('packaging_type');
+  const limit = parseInt(searchParams.get('limit') || '20', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const getTotal = searchParams.get('getTotal') === 'true';
+
+  const conditions = [`p.organization_id = $1`];
+  const params: (string | number)[] = [organization_id as number];
+  let paramIndex = 2;
+
+  if (user) { conditions.push(`u.name = $${paramIndex++}`); params.push(user); }
+  if (product) { conditions.push(`p.name = $${paramIndex++}`); params.push(product); }
+  if (color) { conditions.push(`p.color = $${paramIndex++}`); params.push(color); }
+  if (design) { conditions.push(`p.design = $${paramIndex++}`); params.push(design); }
+  if (quality) { conditions.push(`l.quality = $${paramIndex++}`); params.push(quality); }
+  if (packaging_type) { conditions.push(`l.packaging_type = $${paramIndex++}`); params.push(packaging_type); }
+  if (startDate) { conditions.push(`l.created_at >= $${paramIndex++}`); params.push(startDate); }
+  if (endDate) {
+    const nextDay = new Date(endDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    conditions.push(`l.created_at < $${paramIndex++}`);
+    params.push(nextDay.toISOString().split('T')[0]);
+  }
+
+  const whereClause = conditions.join(' AND ');
+
+  const logsQuery = `
+    SELECT l.id, l.product_id, p.name as product_name, p.color, p.design, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
+    FROM inventory_logs l
+    JOIN products p ON l.product_id = p.id
+    JOIN users u ON l.user_id = u.id
+    WHERE ${whereClause}
+    ORDER BY l.created_at DESC
+    LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+  `;
+  
+  const countQuery = `
+    SELECT COUNT(*) FROM inventory_logs l
+    JOIN products p ON l.product_id = p.id
+    JOIN users u ON l.user_id = u.id
+    WHERE ${whereClause}
+  `;
+
+  const logsResult = await sql.query(logsQuery, [...params, limit, offset]);
+  
+  let totalCount = 0;
+  if (getTotal) {
+    const countResult = await sql.query(countQuery, params);
+    totalCount = parseInt(countResult.rows[0].count, 10);
+  }
+
+  return NextResponse.json({ data: logsResult.rows, totalCount: getTotal ? totalCount : undefined });
 });
-export const POST = withAuth(async (req: AuthenticatedRequest) => {
-  const { id: user_id } = req.user;
-  const logsToCreate = await req.json();
 
-  if (!Array.isArray(logsToCreate) || logsToCreate.length === 0) {
-    return NextResponse.json({ error: 'Request body must be a non-empty array of logs' }, { status: 400 });
+const logEntrySchema = z.object({
+  product_id: z.number().int().positive(),
+  produced: z.number().int().min(1),
+  quality: z.string().min(1),
+  packaging_type: z.string().min(1),
+});
+
+const createLogsSchema = z.array(logEntrySchema).nonempty();
+
+export const POST = handleError(async (req: NextRequest) => {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  const { id: user_id } = authResult.user;
+  const body = await req.json();
+
+  const validation = createLogsSchema.safeParse(body);
+  if (!validation.success) {
+    throw new BadRequestError('Invalid log entry data', validation.error.flatten());
   }
 
-  const client = await db.connect();
+  const logsToCreate = validation.data;
+
+  const client: VercelPoolClient = await db.connect();
   try {
     await client.query('BEGIN');
+    // Prepare data for bulk insert
+    const productIds = logsToCreate.map(log => log.product_id);
+    const producedValues = logsToCreate.map(log => log.produced);
+    const qualityValues = logsToCreate.map(log => log.quality);
+    const packagingValues = logsToCreate.map(log => log.packaging_type);
+    const userIds = Array(logsToCreate.length).fill(user_id);
 
-    const values = logsToCreate.map(log => {
-      const { product_id, produced, quality, packaging_type } = log;
-      if (!product_id || !Number.isInteger(produced) || produced < 1 || !quality || !packaging_type) {
-        throw new Error('Invalid log entry data');
-      }
-      return [product_id, user_id, produced, quality, packaging_type];
-    });
-
-    const flatValues = values.flat();
-    const valuePlaceholders = values.map((_, i) =>
-      `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`
-    ).join(',');
-
-    const query = `
+    // 1. Bulk insert into inventory_logs
+    const { rows: insertedLogs } = await client.query(
+      `
       INSERT INTO inventory_logs (product_id, user_id, produced, quality, packaging_type)
-      VALUES ${valuePlaceholders}
+      SELECT * FROM UNNEST(
+        $1::int[], $2::int[], $3::int[], $4::text[], $5::text[]
+      )
       RETURNING *
+      `,
+      [productIds, userIds, producedValues, qualityValues, packagingValues]
+    );
+
+    // 2. Prepare and execute bulk update on inventory table
+    const inventoryUpdateQuery = `
+      UPDATE inventory i
+      SET
+        quantity_on_hand = i.quantity_on_hand + d.produced,
+        last_updated_at = NOW()
+      FROM (SELECT UNNEST($1::int[]) as product_id, UNNEST($2::int[]) as produced) AS d
+      WHERE i.product_id = d.product_id
     `;
-
-    const { rows: insertedLogs } = await client.query(query, flatValues);
-
+    await client.query(inventoryUpdateQuery, [productIds, producedValues]);
+    
     await client.query('COMMIT');
     return NextResponse.json(insertedLogs, { status: 201 });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
-    if (err instanceof Error && err.message === 'Invalid log entry data') {
-      return NextResponse.json({ error: 'One or more log entries were invalid.' }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+    throw err;
   } finally {
     client.release();
   }

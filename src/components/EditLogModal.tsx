@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import api from '../lib/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,7 +29,7 @@ interface InventoryLog {
   product_id: number;
   product_name: string;
   color: string;
-  model: string;
+  design: string;
   produced: number;
   created_at: string;
   quality: string;
@@ -50,13 +50,22 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
   const toast = useToast();
   const { t } = useTranslation();
 
-  const QUALITY_OPTIONS = ['First', 'Second', 'ROK'];
+  const QUALITY_OPTIONS = useMemo(() => ['First', 'Second', 'ROK'], []);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         const { data } = await api.get(`/products/${log.product_id}`);
-        setAvailablePackagingTypes(data.available_packaging_types || []);
+        const packagingTypes = data.available_packaging_types || [];
+        setAvailablePackagingTypes(packagingTypes);
+        
+        if (!log.quality && QUALITY_OPTIONS.length > 0) {
+          setQuality(QUALITY_OPTIONS[0]);
+        }
+        
+        if (!log.packaging_type && packagingTypes.length > 0) {
+          setPackagingType(packagingTypes[0]);
+        }
       } catch (error) {
         console.error("Failed to fetch product details", error);
         toast({
@@ -72,7 +81,7 @@ const EditLogModal: React.FC<EditLogModalProps> = ({ log, onClose, onUpdate }) =
     if (log.product_id) {
       fetchProductDetails();
     }
-  }, [log.product_id, toast]);
+  }, [log.product_id, log.quality, log.packaging_type, toast, QUALITY_OPTIONS]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,0 +1,37 @@
+{
+  "add_product": "પ્રોડક્ટ ઉમેરો",
+  "edit_product": "પ્રોડક્ટ સંપાદિત કરો",
+  "form": {
+    "name": "નામ",
+    "sku": "SKU",
+    "color": "રંગ",
+    "category": "શ્રેણી",
+    "design": "ડિઝાઇન",
+    "image_url": "છબી URL",
+    "available_qualities": "ઉપલબ્ધ ગુણવત્તાઓ",
+    "available_packaging_types": "ઉપલબ્ધ પેકેજિંગના પ્રકારો",
+    "select_color": "રંગ પસંદ કરો",
+    "select_category": "શ્રેણી પસંદ કરો",
+    "select_design": "ડિઝાઇન પસંદ કરો",
+    "upload_image": "છબી અપલોડ કરો"
+  },
+  "success": {
+    "add_title": "પ્રોડક્ટ ઉમેરી દીધું",
+    "add_description": "નવું પ્રોડક્ટ યાદીમાં મૂકી દીધું છે.",
+    "update_title": "પ્રોડક્ટ બદલી દીધું",
+    "update_description": "પ્રોડક્ટની માહિતી બદલી દીધી છે.",
+    "archive_title": "પ્રોડક્ટ કાઢી દીધું",
+    "archive_description": "પ્રોડક્ટ કાઢી નાખ્યું છે.",
+    "image_upload_title": "ફોટો મૂકી દીધી."
+  },
+  "errors": {
+    "add_title": "પ્રોડક્ટ ઉમેરી ન શક્યા",
+    "add_description": "પ્રોડક્ટ ઉમેરવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "update_title": "પ્રોડક્ટ બદલી ન શક્યા",
+    "update_description": "પ્રોડક્ટ બદલવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "archive_title": "પ્રોડક્ટ કાઢી ન શક્યા",
+    "archive_description": "પ્રોડક્ટ કાઢવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "fetch": "પ્રોડક્ટ્સ લોડ નહીં થઈ શક્યા",
+    "image_upload_title": "ફોટો મૂકી ન શકી."
+  }
+}

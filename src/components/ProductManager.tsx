@@ -1,573 +1,99 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
+import { useState } from 'react';
 import {
   Box,
   Button,
   Flex,
   Heading,
-  Input,
-  Stack,
-  Image,
-  Select,
-  SimpleGrid,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Text,
-  Divider,
-  useToast,
-  useBreakpointValue,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
-  VStack,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  Checkbox,
-  CheckboxGroup,
-  FormControl,
-  FormLabel,
+  SimpleGrid,
 } from '@chakra-ui/react';
-import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
-
-interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  model: string;
-  color: string;
-  image_url: string;
-  available_qualities: string[];
-  available_packaging_types: string[];
-}
-
-const QUALITY_OPTIONS = ['First', 'Second', 'ROK'];
-const PACKAGING_OPTIONS = ['Paper', 'Box', 'Grass'];
+import { FiUpload } from 'react-icons/fi';
+import Link from 'next/link';
+import useProducts from '@/hooks/useProducts';
+import ProductTable from './ProductTable';
+import ProductFilter from './ProductFilter';
+import ProductFormModal from './ProductFormModal';
+import { Product } from '@/types';
 
 const ProductManager = () => {
-  const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(50);
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
+  const { t } = useTranslation(['product_manager', 'common']);
+  const {
+    products,
+    loading,
+    error,
+    fetchProducts,
+    addProduct,
+    updateProduct,
+    archiveProduct,
+  } = useProducts();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const { token } = useAuth();
-  const toast = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ color: '', model: '' });
-  const [activeFilters, setActiveFilters] = useState({ color: '', model: '' });
-  const [distinctColors, setDistinctColors] = useState([]);
-  const [distinctModels, setDistinctModels] = useState([]);
 
-  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
-  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const handleFilter = (filters: { name: string; category: string; design: string; color: string }) => {
+    fetchProducts(filters);
+  };
 
-  const { isOpen: isArchiveOpen, onOpen: onArchiveOpen, onClose: onArchiveClose } = useDisclosure();
-  const [productToArchive, setProductToArchive] = useState<number | null>(null);
-  const cancelRef = useRef(null);
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    onOpen();
+  };
 
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!token) return;
-      try {
-        const offset = (currentPage - 1) * productsPerPage;
-        const response = await api.get('/products', {
-          params: {
-            limit: productsPerPage,
-            offset,
-            // NOTE: Backend filtering is not yet implemented for products.
-            // The search and filter below are client-side on the current page.
-          },
-        });
-        if (currentPage === 1) {
-          setProducts(response.data.data);
-        } else {
-          setProducts(prevProducts => [...prevProducts, ...response.data.data]);
-        }
-        setTotalProducts(response.data.totalCount);
-      } catch (err) {
-        console.error('Failed to fetch products', err);
-        toast({
-          title: t('product_manager.toast.error_fetching_data'),
-          description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_fetching_data_description'),
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
-
-    fetchProducts();
-  }, [token, toast, t, currentPage, productsPerPage, activeFilters]);
-
-  useEffect(() => {
-    const fetchDistinctValues = async () => {
-      try {
-        const [colorsRes, modelsRes] = await Promise.all([
-          api.get('/distinct/products/color'),
-          api.get('/distinct/products/model'),
-        ]);
-        setDistinctColors(colorsRes.data);
-        setDistinctModels(modelsRes.data);
-      } catch (err) {
-        console.error('Failed to fetch distinct values', err);
-      }
-    };
-    if (token) {
-      fetchDistinctValues();
+  const handleSave = (productData: Omit<Product, 'id' | 'quantity_on_hand'>) => {
+    if (editingProduct) {
+      updateProduct(editingProduct.id, productData);
+    } else {
+      addProduct(productData);
     }
-  }, [token]);
-
-  const handleNewProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewProduct((prev) => ({ ...prev, [name]: value }));
+    setEditingProduct(null);
   };
 
-  const handleEditingProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditingProduct((prev) => {
-      if (!prev) return null;
-      return { ...prev, [name]: value };
-    });
+  const handleArchive = (productId: number) => {
+    archiveProduct(productId);
   };
-
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    try {
-      await api.post('/products', newProduct);
-      // After creating a product, refetch the first page to see the new product.
-      setCurrentPage(1);
-      // No need to manually add to state, the effect will refetch.
-      setNewProduct({ sku: '', name: '', model: '', color: '', image_url: '', available_qualities: [], available_packaging_types: [] });
-      onCreateClose();
-      toast({ title: t('product_manager.toast.product_created'), status: 'success', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: t('product_manager.toast.error_creating_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_creating_product_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const startEditing = (product: Product) => {
-    setEditingProduct({
-      ...product,
-      available_qualities: product.available_qualities || [],
-      available_packaging_types: product.available_packaging_types || [],
-    });
-    onEditOpen();
-  };
-
-  const handleUpdateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !editingProduct) return;
-    try {
-      const response = await api.patch(`/products/${editingProduct.id}`, editingProduct);
-      setProducts(products.map(p => p.id === editingProduct.id ? response.data : p)); // This is fine, updates in-place
-      setEditingProduct(null);
-      onEditClose();
-      toast({ title: t('product_manager.toast.product_updated'), status: 'success', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: t('product_manager.toast.error_updating_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_updating_product_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleArchiveProduct = async (productId: number) => {
-    if (!token) return;
-    try {
-      await api.patch(`/products/${productId}/archive`);
-      // Refetch the current page after archiving
-      setProducts(products.filter(p => p.id !== productId));
-      // A full refetch might be better to keep the page full.
-      const offset = (currentPage - 1) * productsPerPage;
-      const response = await api.get('/products', {
-        params: { limit: productsPerPage, offset },
-      });
-      setProducts(response.data.data);
-      setTotalProducts(response.data.totalCount);
-      toast({ title: t('product_manager.toast.product_archived'), status: 'warning', duration: 3000, isClosable: true });
-    } catch (err) {
-      console.error('Failed to archive product:', err);
-      toast({
-        title: t('product_manager.toast.error_archiving_product'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('product_manager.toast.error_archiving_product_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const openArchiveDialog = (productId: number) => {
-    setProductToArchive(productId);
-    onArchiveOpen();
-  };
-
-  const confirmArchive = () => {
-    if (productToArchive) {
-      handleArchiveProduct(productToArchive);
-    }
-    onArchiveClose();
-  };
-
-
-  const handleFilter = () => {
-    setCurrentPage(1); // Reset to first page on new filter
-    setActiveFilters(filters);
-  };
-
-  const filteredProducts = products.filter((product) => {
-    const searchMatch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
-    const modelMatch = activeFilters.model ? product.model === activeFilters.model : true;
-
-    return searchMatch && colorMatch && modelMatch;
-  });
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>
-          {t('product_manager.title')}
+      <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} mb={6} direction={{ base: 'column', md: 'row' }}>
+        <Heading as="h2" size={{ base: 'md', md: 'lg' }} mb={{ base: 4, md: 0 }}>
+          {t('title')}
         </Heading>
-        <Flex direction={{ base: 'column', sm: 'row' }} gap={2}>
-          <Input
-            placeholder={t('product_manager.search_placeholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Button onClick={onCreateOpen} colorScheme="blue" flexShrink={0}>
-            {t('product_manager.add_new_product')}
+        <SimpleGrid columns={{ base: 1, lg: 2, xl: 4 }} spacing={2} alignItems="center">
+          <Button onClick={onOpen} colorScheme="blue">
+            {t('add_new_product')}
           </Button>
-        </Flex>
-      </Flex>
-      <Divider mb={6} />
-
-      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
-        <Select
-          placeholder={t('product_manager.filter_by_color')}
-          value={filters.color}
-          onChange={(e) => setFilters({ ...filters, color: e.target.value })}
-        >
-          {distinctColors.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-        <Select
-          placeholder={t('product_manager.filter_by_model')}
-          value={filters.model}
-          onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-        >
-          {distinctModels.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </Select>
-        <Button onClick={handleFilter} colorScheme="blue">{t('product_manager.filter')}</Button>
-        <Button
-          onClick={() => {
-            setFilters({ color: '', model: '' });
-            setActiveFilters({ color: '', model: '' });
-            setCurrentPage(1);
-          }}
-          colorScheme="gray"
-        >
-          {t('product_manager.clear_filters')}
-        </Button>
-      </SimpleGrid>
-
-      {/* Create Product Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose}>
-        <ModalOverlay />
-        <ModalContent as="form" onSubmit={handleCreateProduct}>
-          <ModalHeader>{t('product_manager.create_modal.title')}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Stack gap={3}>
-              <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={newProduct.sku} onChange={handleNewProductInputChange} required />
-              <Input placeholder={t('product_manager.create_modal.name')} name="name" value={newProduct.name} onChange={handleNewProductInputChange} required />
-              <Input placeholder={t('product_manager.create_modal.model')} name="model" value={newProduct.model} onChange={handleNewProductInputChange} />
-              <Input placeholder={t('product_manager.create_modal.color')} name="color" value={newProduct.color} onChange={handleNewProductInputChange} />
-              <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={newProduct.image_url} onChange={handleNewProductInputChange} />
-              <FormControl>
-                <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={newProduct.available_qualities}
-                  onChange={(values) => setNewProduct(prev => ({ ...prev, available_qualities: values as string[] }))}
-                >
-                  <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                    {QUALITY_OPTIONS.map(quality => (
-                      <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
-              <FormControl>
-                <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
-                <CheckboxGroup
-                  colorScheme="green"
-                  value={newProduct.available_packaging_types}
-                  onChange={(values) => setNewProduct(prev => ({ ...prev, available_packaging_types: values as string[] }))}
-                >
-                  <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                    {PACKAGING_OPTIONS.map(pkg => (
-                      <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
-                    ))}
-                  </Stack>
-                </CheckboxGroup>
-              </FormControl>
-            </Stack>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="green" mr={3} type="submit">{t('product_manager.create_modal.create_button')}</Button>
-            <Button variant="ghost" onClick={onCreateClose}>{t('product_manager.create_modal.cancel_button')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Edit Product Modal */}
-      {editingProduct && (
-        <Modal isOpen={isEditOpen} onClose={onEditClose}>
-          <ModalOverlay />
-          <ModalContent as="form" onSubmit={handleUpdateProduct}>
-            <ModalHeader>{t('product_manager.edit_modal.title')}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Stack gap={3}>
-                <Input placeholder={t('product_manager.create_modal.sku')} name="sku" value={editingProduct.sku} onChange={handleEditingProductInputChange} required />
-                <Input placeholder={t('product_manager.create_modal.name')} name="name" value={editingProduct.name} onChange={handleEditingProductInputChange} required />
-                <Input placeholder={t('product_manager.create_modal.model')} name="model" value={editingProduct.model} onChange={handleEditingProductInputChange} />
-                <Input placeholder={t('product_manager.create_modal.color')} name="color" value={editingProduct.color} onChange={handleEditingProductInputChange} />
-                <Input placeholder={t('product_manager.create_modal.image_url')} name="image_url" value={editingProduct.image_url} onChange={handleEditingProductInputChange} />
-                 <FormControl>
-                  <FormLabel>{t('product_manager.create_modal.qualities')}</FormLabel>
-                  <CheckboxGroup
-                    colorScheme="green"
-                    value={editingProduct.available_qualities}
-                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_qualities: values as string[] }) : null)}
-                  >
-                    <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                      {QUALITY_OPTIONS.map(quality => (
-                        <Checkbox key={quality} value={quality}>{t(`product_manager.quality.${quality.toLowerCase()}`)}</Checkbox>
-                      ))}
-                    </Stack>
-                  </CheckboxGroup>
-                </FormControl>
-                <FormControl>
-                  <FormLabel>{t('product_manager.create_modal.packaging')}</FormLabel>
-                  <CheckboxGroup
-                    colorScheme="green"
-                    value={editingProduct.available_packaging_types}
-                    onChange={(values) => setEditingProduct(prev => prev ? ({ ...prev, available_packaging_types: values as string[] }) : null)}
-                  >
-                    <Stack spacing={[1, 5]} direction={{ base: 'column', sm: 'row' }}>
-                      {PACKAGING_OPTIONS.map(pkg => (
-                        <Checkbox key={pkg} value={pkg}>{t(`product_manager.packaging_type.${pkg.toLowerCase()}`)}</Checkbox>
-                      ))}
-                    </Stack>
-                  </CheckboxGroup>
-                </FormControl>
-              </Stack>
-            </ModalBody>
-            <ModalFooter>
-              <Button colorScheme="green" mr={3} type="submit">{t('product_manager.edit_modal.save_button')}</Button>
-              <Button variant="ghost" onClick={onEditClose}>{t('product_manager.edit_modal.cancel_button')}</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      )}
-
-      <Box>
-        {isMobile ? (
-          <Accordion allowMultiple>
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <AccordionItem key={product.id} mb={4} border="1px solid" borderColor="gray.200" borderRadius="md">
-                  <h2>
-                    <AccordionButton>
-                      <Box flex="1" textAlign="left">
-                        <Flex align="center">
-                          <Image
-                            src={product.image_url}
-                            alt={product.name}
-                            boxSize="50px"
-                            objectFit="cover"
-                            borderRadius="md"
-                            mr={4}
-                            fallbackSrc="https://via.placeholder.com/50"
-                          />
-                          <Text fontWeight="bold">{product.name}</Text>
-                        </Flex>
-                      </Box>
-                      <AccordionIcon />
-                    </AccordionButton>
-                  </h2>
-                  <AccordionPanel pb={4}>
-                    <VStack align="stretch" spacing={2}>
-                      <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('product_manager.mobile.sku')}</Text>
-                        <Text>{product.sku}</Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('product_manager.mobile.model')}</Text>
-                        <Text>{product.model}</Text>
-                      </Flex>
-                      <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('product_manager.mobile.color')}</Text>
-                        <Text>{product.color}</Text>
-                      </Flex>
-                      <Flex mt={4} wrap="wrap" gap={2}>
-                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
-                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
-                      </Flex>
-                    </VStack>
-                  </AccordionPanel>
-                </AccordionItem>
-              ))
-            ) : (
-              <Text textAlign="center" p={4}>
-                {t('product_manager.no_products_found')}
-              </Text>
-            )}
-          </Accordion>
-        ) : (
-          <TableContainer>
-            <Table variant="simple" colorScheme="teal">
-              <Thead bg="brand.background">
-                <Tr>
-                  <Th>{t('product_manager.table.image')}</Th>
-                  <Th>{t('product_manager.table.name')}</Th>
-                  <Th>{t('product_manager.table.sku')}</Th>
-                  <Th>{t('product_manager.table.model')}</Th>
-                  <Th>{t('product_manager.table.color')}</Th>
-                  <Th>{t('product_manager.table.actions')}</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {filteredProducts.map((product) => (
-                  <Tr key={product.id}
-                      sx={{
-                          '@media (min-width: 769px)': {
-                              '&:hover': {
-                                  backgroundColor: 'gray.50',
-                                  cursor: 'pointer'
-                              }
-                          }
-                      }}
-                  >
-                    <Td>
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        boxSize="50px"
-                        objectFit="cover"
-                        borderRadius="md"
-                        fallbackSrc="https://via.placeholder.com/50"
-                      />
-                    </Td>
-                    <Td>
-                      <Text noOfLines={1}>{product.name}</Text>
-                    </Td>
-                    <Td>
-                      <Text noOfLines={1}>{product.sku}</Text>
-                    </Td>
-                    <Td><Text noOfLines={1}>{product.model}</Text></Td>
-                    <Td><Text noOfLines={1}>{product.color}</Text></Td>
-                    <Td>
-                      <Flex wrap="wrap" gap={2}>
-                        <Button size="sm" onClick={() => startEditing(product)} colorScheme="blue">{t('product_manager.mobile.edit')}</Button>
-                        <Button size="sm" colorScheme="red" onClick={() => openArchiveDialog(product.id)}>{t('product_manager.mobile.archive')}</Button>
-                      </Flex>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </TableContainer>
-        )}
-      </Box>
-
-      <Flex justify="center" mt={6}>
-        {products.length > 0 && products.length < totalProducts && (
-          <Button
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            isDisabled={products.length >= totalProducts}
-          >
-            {t('pagination.load_more')}
-          </Button>
-        )}
+          <Link href="/dashboard/products/bulk-import" style={{ width: '100%' }}>
+            <Button colorScheme="green" leftIcon={<FiUpload />} w="full">
+              {t('import_from_csv')}
+            </Button>
+          </Link>
+          <Link href="/dashboard/products/bulk-image-upload" style={{ width: '100%' }}>
+            <Button colorScheme="purple" leftIcon={<FiUpload />} w="full">
+              {t('bulk_image_upload')}
+            </Button>
+          </Link>
+        </SimpleGrid>
       </Flex>
 
-      <AlertDialog
-        isOpen={isArchiveOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onArchiveClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              {t('product_manager.archive_dialog.title')}
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              {t('product_manager.archive_dialog.body')}
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onArchiveClose}>
-                {t('product_manager.archive_dialog.cancel_button')}
-              </Button>
-              <Button colorScheme="red" onClick={confirmArchive} ml={3}>
-                {t('product_manager.archive_dialog.archive_button')}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+      <ProductFilter onFilter={handleFilter} />
+      <ProductTable
+        products={products}
+        onEdit={handleEdit}
+        onArchive={handleArchive}
+        loading={loading}
+        error={error}
+      />
+      <ProductFormModal
+        isOpen={isOpen}
+        onClose={() => {
+          setEditingProduct(null);
+          onClose();
+        }}
+        onSave={handleSave}
+        product={editingProduct}
+      />
     </Box>
   );
 };

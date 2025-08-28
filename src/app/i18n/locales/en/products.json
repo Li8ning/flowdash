@@ -1,0 +1,37 @@
+{
+  "add_product": "Add Product",
+  "edit_product": "Edit Product",
+  "form": {
+    "name": "Name",
+    "sku": "SKU",
+    "color": "Color",
+    "category": "Category",
+    "design": "Design",
+    "image_url": "Image URL",
+    "available_qualities": "Available Qualities",
+    "available_packaging_types": "Available Packaging Types",
+    "select_color": "Select Color",
+    "select_category": "Select Category",
+    "select_design": "Select Design",
+    "upload_image": "Upload Image"
+  },
+  "success": {
+    "add_title": "Product added successfully",
+    "add_description": "The new product has been added to your catalog.",
+    "update_title": "Product updated successfully",
+    "update_description": "The product details have been updated.",
+    "archive_title": "Product archived successfully",
+    "archive_description": "The product has been archived.",
+    "image_upload_title": "Image uploaded successfully"
+  },
+  "errors": {
+    "add_title": "Failed to add product",
+    "add_description": "There was an error adding the product. Please try again.",
+    "update_title": "Failed to update product",
+    "update_description": "There was an error updating the product. Please try again.",
+    "archive_title": "Failed to archive product",
+    "archive_description": "There was an error archiving the product. Please try again.",
+    "fetch": "Failed to load products",
+    "image_upload_title": "Failed to upload image"
+  }
+}

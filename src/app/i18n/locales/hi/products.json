@@ -1,0 +1,37 @@
+{
+  "add_product": "प्रोडक्ट जोड़ें",
+  "edit_product": "प्रोडक्ट संपादित करें",
+  "form": {
+    "name": "नाम",
+    "sku": "SKU",
+    "color": "रंग",
+    "category": "श्रेणी",
+    "design": "डिज़ाइन",
+    "image_url": "छवि URL",
+    "available_qualities": "उपलब्ध गुण",
+    "available_packaging_types": "उपलब्ध पैकेजिंग के प्रकार",
+    "select_color": "रंग चुनें",
+    "select_category": "श्रेणी चुनें",
+    "select_design": "डिज़ाइन चुनें",
+    "upload_image": "छवि अपलोड करें"
+  },
+  "success": {
+    "add_title": "प्रोडक्ट जोड़ दिया गया",
+    "add_description": "नया प्रोडक्ट सूची में डाल दिया गया है।",
+    "update_title": "प्रोडक्ट बदल दिया गया",
+    "update_description": "प्रोडक्ट की जानकारी बदल दी गई है।",
+    "archive_title": "प्रोडक्ट हटा दिया गया",
+    "archive_description": "प्रोडक्ट को हटा दिया गया है।",
+    "image_upload_title": "फोटो लगाई गई।"
+  },
+  "errors": {
+    "add_title": "प्रोडक्ट नहीं जोड़ सका",
+    "add_description": "प्रोडक्ट जोड़ने में गड़बड़ हुई। फिर से कोशिश करो।",
+    "update_title": "प्रोडक्ट नहीं बदल सका",
+    "update_description": "प्रोडक्ट बदलने में गड़बड़ हुई। फिर से कोशिश करो।",
+    "archive_title": "प्रोडक्ट नहीं हटा सका",
+    "archive_description": "प्रोडक्ट हटाने में गड़बड़ हुई। फिर से कोशिश करो।",
+    "fetch": "प्रोडक्ट्स लोड नहीं हो सके",
+    "image_upload_title": "फोटो नहीं लग सकी।"
+  }
+}

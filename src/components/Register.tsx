@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   useToast,
@@ -21,31 +21,38 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { useLanguage } from '@/context/LanguageContext';
 
 export default function Register() {
-  const { t } = useTranslation();
-  const { changeLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const { handleAuthentication } = useAuth();
-  const router = useRouter();
+  const { login } = useAuth();
   const toast = useToast();
+
+  const handleLanguageChange = (newLanguage: string) => {
+    const newPath = pathname.replace(/\/[a-z]{2}(\/|$)/, `/${newLanguage}$1`);
+    i18n.changeLanguage(newLanguage);
+    router.push(newPath);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await api.post('/auth/register', {
+      await api.post('/auth/register', {
         username,
         password,
         organizationName,
         name,
+        language: i18n.language,
       });
-      await handleAuthentication(response.data);
+      // Log the user in after successful registration
+      await login(username, password, true);
       toast({
         title: t('register.toast.success_title'),
         description: t('register.toast.success_description'),
@@ -53,7 +60,7 @@ export default function Register() {
         duration: 5000,
         isClosable: true,
       });
-      router.push('/admin'); // Redirect to admin dashboard
+      router.push('/dashboard'); // Redirect to dashboard
     } catch (err) {
       setError(t('register.error.generic'));
       console.error(err);
@@ -77,8 +84,8 @@ export default function Register() {
           <Heading>{t('register.title')}</Heading>
           <Select
             w="120px"
-            onChange={(e) => changeLanguage(e.target.value)}
-            defaultValue="en"
+            onChange={(e) => handleLanguageChange(e.target.value)}
+            value={i18n.language}
           >
             <option value="en">English</option>
             <option value="hi">Hindi</option>

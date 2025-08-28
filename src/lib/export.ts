@@ -1,23 +1,22 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import ExcelJS from 'exceljs';
-
 interface Log {
   id: number;
   product_name: string;
   color: string;
-  model: string;
+  design: string;
   produced: number;
   created_at: string;
   username?: string;
 }
 
 
-export const exportToPdf = (logs: Log[], allLogs: boolean) => {
+export const exportToPdf = async (logs: Log[], allLogs: boolean) => {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+  
   const doc = new jsPDF();
-  const tableColumn = allLogs 
-    ? ["Product Name", "Color", "Model", "User", "Quantity Change", "Date"]
-    : ["Product Name", "Color", "Model", "Quantity Change", "Date"];
+  const tableColumn = allLogs
+    ? ["Product Name", "Color", "Design", "User", "Quantity Change", "Date"]
+    : ["Product Name", "Color", "Design", "Quantity Change", "Date"];
   const tableRows: (string | number)[][] = [];
 
   logs.forEach(log => {
@@ -25,7 +24,7 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
       ? [
           log.product_name,
           log.color,
-          log.model,
+          log.design,
           log.username || '',
           log.produced,
           new Date(log.created_at).toLocaleString(),
@@ -33,7 +32,7 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
       : [
           log.product_name,
           log.color,
-          log.model,
+          log.design,
           log.produced,
           new Date(log.created_at).toLocaleString(),
         ];
@@ -50,6 +49,8 @@ export const exportToPdf = (logs: Log[], allLogs: boolean) => {
 };
 
 export const exportToExcel = async (logs: Log[], allLogs: boolean) => {
+  const { default: ExcelJS } = await import('exceljs');
+  
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Inventory Logs');
 
@@ -58,7 +59,7 @@ export const exportToExcel = async (logs: Log[], allLogs: boolean) => {
     ? [
         { header: 'Product Name', key: 'product_name', width: 30 },
         { header: 'Color', key: 'color', width: 15 },
-        { header: 'Model', key: 'model', width: 15 },
+        { header: 'Design', key: 'design', width: 15 },
         { header: 'User', key: 'username', width: 20 },
         { header: 'Quantity Change', key: 'produced', width: 15 },
         { header: 'Date', key: 'created_at', width: 25 },
@@ -66,7 +67,7 @@ export const exportToExcel = async (logs: Log[], allLogs: boolean) => {
     : [
         { header: 'Product Name', key: 'product_name', width: 30 },
         { header: 'Color', key: 'color', width: 15 },
-        { header: 'Model', key: 'model', width: 15 },
+        { header: 'Design', key: 'design', width: 15 },
         { header: 'Quantity Change', key: 'produced', width: 15 },
         { header: 'Date', key: 'created_at', width: 25 },
       ];

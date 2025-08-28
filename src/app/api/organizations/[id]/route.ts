@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '../../../../lib/auth-utils';
 import sql from '../../../../lib/db';
 import logger from '../../../../lib/logger';
 
-export const GET = withAuth(async (req: AuthenticatedRequest, context: { params: { id: string } }) => {
+export async function GET(req: NextRequest, context: { params: { id: string } }) {
+  const authResult = await verifyAuth(req);
+  if (authResult.error) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+
   try {
     const { id } = context.params;
     const { rows } = await sql`SELECT name FROM organizations WHERE id = ${id}`;
@@ -17,15 +22,20 @@ export const GET = withAuth(async (req: AuthenticatedRequest, context: { params:
     logger.error({ err }, 'Failed to fetch organization');
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
-});
+}
 
-export const PUT = withAuth(async (req: AuthenticatedRequest, context: { params: { id: string } }) => {
+export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+  const authResult = await verifyAuth(req);
+  if (authResult.error || !authResult.user) {
+    return NextResponse.json({ error: authResult.error || 'Authentication failed' }, { status: authResult.status });
+  }
+  
   try {
     const { name } = await req.json();
     const { id } = context.params;
-    const { organization_id, role } = req.user;
+    const { organization_id, role } = authResult.user;
 
-    if (role !== 'factory_admin' || Number(id) !== organization_id) {
+    if (!['super_admin', 'admin'].includes(role as string) || Number(id) !== organization_id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -49,4 +59,4 @@ export const PUT = withAuth(async (req: AuthenticatedRequest, context: { params:
     logger.error({ err }, 'Failed to update organization');
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
-});
+}

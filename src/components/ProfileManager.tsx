@@ -18,10 +18,13 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
+import { usePathname, useRouter } from 'next/navigation';
 
 const ProfileManager = () => {
   const { user, updateUser, organizationName, setOrganizationName } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [name, setName] = useState(user?.name || '');
   const [username, setUsername] = useState(user?.username || '');
   const [language, setLanguage] = useState(user?.language || 'en');
@@ -73,6 +76,7 @@ const ProfileManager = () => {
   };
 
   const handleUpdateDetails = async () => {
+    const currentLanguage = pathname.split('/')[1];
     try {
       const payload = { name, language, username };
       const { data } = await api.patch(`/users/${user?.id}`, payload);
@@ -83,6 +87,11 @@ const ProfileManager = () => {
         duration: 3000,
         isClosable: true,
       });
+
+      if (currentLanguage !== language) {
+        const newPath = pathname.replace(`/${currentLanguage}`, `/${language}`);
+        router.push(newPath);
+      }
     } catch (err) {
       const error = err as AxiosError<{ error: string }>;
       toast({
@@ -118,8 +127,7 @@ const ProfileManager = () => {
 
     try {
       const payload = { currentPassword, newPassword: password };
-      const { data } = await api.put(`/users/${user?.id}/password`, payload);
-      updateUser(data.user);
+      await api.put(`/users/${user?.id}/password`, payload);
       toast({
         title: t('profile_manager.toast.password_updated'),
         status: 'success',
@@ -168,7 +176,7 @@ const ProfileManager = () => {
         </Stack>
       </Box>
 
-      {user?.role === 'factory_admin' && (
+      {(user?.role === 'super_admin' || user?.role === 'admin') && (
         <Box
           as="form"
           onSubmit={handleUpdateOrganization}
