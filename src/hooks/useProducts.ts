@@ -7,7 +7,7 @@ import { Product } from '@/types';
 import api from '@/lib/api';
 
 const useProducts = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('products');
   const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ const useProducts = () => {
       const response = await api.get('/products', { params: filters });
       setProducts(response.data.data);
     } catch {
-      setError(t('products.errors.fetch'));
+      setError(t('errors.fetch'));
     } finally {
       setLoading(false);
     }
@@ -35,16 +35,16 @@ const useProducts = () => {
       await api.post('/products', product);
       fetchProducts({ name: '', category: '', design: '', color: '' });
       toast({
-        title: t('products.success.add_title'),
-        description: t('products.success.add_description'),
+        title: t('success.add_title'),
+        description: t('success.add_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
     } catch {
       toast({
-        title: t('products.errors.add_title'),
-        description: t('products.errors.add_description'),
+        title: t('errors.add_title'),
+        description: t('errors.add_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -57,8 +57,8 @@ const useProducts = () => {
       await api.patch(`/products/${productId}`, product);
       fetchProducts({ name: '', category: '', design: '', color: '' });
       toast({
-        title: t('products.success.update_title'),
-        description: t('products.success.update_description'),
+        title: t('success.update_title'),
+        description: t('success.update_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -69,8 +69,8 @@ const useProducts = () => {
         console.error('Error response:', (error as { response: unknown }).response);
       }
       toast({
-        title: t('products.errors.update_title'),
-        description: t('products.errors.update_description'),
+        title: t('errors.update_title'),
+        description: t('errors.update_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -83,8 +83,8 @@ const useProducts = () => {
       await api.delete(`/products/${productId}`);
       fetchProducts({ name: '', category: '', design: '', color: '' });
       toast({
-        title: t('products.success.archive_title'),
-        description: t('products.success.archive_description'),
+        title: t('success.archive_title'),
+        description: t('success.archive_description'),
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -95,8 +95,8 @@ const useProducts = () => {
         console.error('Error response:', (error as { response: unknown }).response);
       }
       toast({
-        title: t('products.errors.archive_title'),
-        description: t('products.errors.archive_description'),
+        title: t('errors.archive_title'),
+        description: t('errors.archive_description'),
         status: 'error',
         duration: 5000,
         isClosable: true,

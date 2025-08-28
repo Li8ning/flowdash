@@ -22,8 +22,7 @@
     "update_description": "प्रोडक्ट की जानकारी बदल दी गई है।",
     "archive_title": "प्रोडक्ट हटा दिया गया",
     "archive_description": "प्रोडक्ट को हटा दिया गया है।",
-    "image_upload_title": "फोटो लगाई गई।",
-    "image_upload_description": "फोटो सफलतापूर्वक अपलोड हुई"
+    "image_upload_title": "फोटो लगाई गई।"
   },
   "errors": {
     "add_title": "प्रोडक्ट नहीं जोड़ सका",
@@ -32,8 +31,7 @@
     "update_description": "प्रोडक्ट बदलने में गड़बड़ हुई। फिर से कोशिश करो।",
     "archive_title": "प्रोडक्ट नहीं हटा सका",
     "archive_description": "प्रोडक्ट हटाने में गड़बड़ हुई। फिर से कोशिश करो।",
-    "image_upload_title": "फोटो नहीं लग सकी।",
-    "image_upload_description": "फोटो अपलोड नहीं हुई, फिर से कोशिश करें",
-    "fetch": "प्रोडक्ट्स लोड नहीं हो सके"
+    "fetch": "प्रोडक्ट्स लोड नहीं हो सके",
+    "image_upload_title": "फोटो नहीं लग सकी।"
   }
 }

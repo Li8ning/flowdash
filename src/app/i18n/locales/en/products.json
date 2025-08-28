@@ -22,8 +22,7 @@
     "update_description": "The product details have been updated.",
     "archive_title": "Product archived successfully",
     "archive_description": "The product has been archived.",
-    "image_upload_title": "Image uploaded successfully.",
-    "image_upload_description": "The product image has been uploaded successfully."
+    "image_upload_title": "Image uploaded successfully"
   },
   "errors": {
     "add_title": "Failed to add product",
@@ -32,8 +31,7 @@
     "update_description": "There was an error updating the product. Please try again.",
     "archive_title": "Failed to archive product",
     "archive_description": "There was an error archiving the product. Please try again.",
-    "image_upload_title": "Image upload failed.",
-    "image_upload_description": "There was an error uploading the product image. Please try again.",
-    "fetch": "Failed to load products"
+    "fetch": "Failed to load products",
+    "image_upload_title": "Failed to upload image"
   }
 }

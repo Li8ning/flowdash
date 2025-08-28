@@ -1,6 +1,6 @@
 {
-  "add_product": "ઉત્પાદન ઉમેરો",
-  "edit_product": "ઉત્પાદન સંપાદિત કરો",
+  "add_product": "પ્રોડક્ટ ઉમેરો",
+  "edit_product": "પ્રોડક્ટ સંપાદિત કરો",
   "form": {
     "name": "નામ",
     "sku": "SKU",
@@ -16,24 +16,22 @@
     "upload_image": "છબી અપલોડ કરો"
   },
   "success": {
-    "add_title": "ઉત્પાદન ઉમેરી દીધું",
-    "add_description": "નવું ઉત્પાદન યાદીમાં મૂકી દીધું છે.",
-    "update_title": "ઉત્પાદન બદલી દીધું",
-    "update_description": "ઉત્પાદનની માહિતી બદલી દીધી છે.",
-    "archive_title": "ઉત્પાદન કાઢી દીધું",
-    "archive_description": "ઉત્પાદન કાઢી નાખ્યું છે.",
-    "image_upload_title": "ફોટો મૂકી દીધી.",
-    "image_upload_description": "ફોટો સફળતાપૂર્વક અપલોડ થઈ ગઈ"
+    "add_title": "પ્રોડક્ટ ઉમેરી દીધું",
+    "add_description": "નવું પ્રોડક્ટ યાદીમાં મૂકી દીધું છે.",
+    "update_title": "પ્રોડક્ટ બદલી દીધું",
+    "update_description": "પ્રોડક્ટની માહિતી બદલી દીધી છે.",
+    "archive_title": "પ્રોડક્ટ કાઢી દીધું",
+    "archive_description": "પ્રોડક્ટ કાઢી નાખ્યું છે.",
+    "image_upload_title": "ફોટો મૂકી દીધી."
   },
   "errors": {
-    "add_title": "ઉત્પાદન ઉમેરી ન શક્યા",
-    "add_description": "ઉત્પાદન ઉમેરવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
-    "update_title": "ઉત્પાદન બદલી ન શક્યા",
-    "update_description": "ઉત્પાદન બદલવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
-    "archive_title": "ઉત્પાદન કાઢી ન શક્યા",
-    "archive_description": "ઉત્પાદન કાઢવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
-    "image_upload_title": "ફોટો મૂકી ન શકી.",
-    "image_upload_description": "ફોટો અપલોડ નહીં થઈ, ફરી પ્રયાસ કરો",
-    "fetch": "પ્રોડક્ટ્સ લોડ નહીં થઈ શક્યા"
+    "add_title": "પ્રોડક્ટ ઉમેરી ન શક્યા",
+    "add_description": "પ્રોડક્ટ ઉમેરવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "update_title": "પ્રોડક્ટ બદલી ન શક્યા",
+    "update_description": "પ્રોડક્ટ બદલવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "archive_title": "પ્રોડક્ટ કાઢી ન શક્યા",
+    "archive_description": "પ્રોડક્ટ કાઢવામાં ગડબડ થઈ. ફરી પ્રયાસ કરો.",
+    "fetch": "પ્રોડક્ટ્સ લોડ નહીં થઈ શક્યા",
+    "image_upload_title": "ફોટો મૂકી ન શકી."
   }
 }
