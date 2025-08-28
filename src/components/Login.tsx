@@ -13,26 +13,30 @@ import {
   useToast,
   Select,
   HStack,
+  Checkbox,
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { AxiosError } from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import NextLink from 'next/link';
-import { useTranslation } from 'react-i18next';
-import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from '@/app/i18n/client';
+import { useRouter } from 'next/navigation';
 
-const Login = () => {
-  const { t } = useTranslation();
-  const { language, changeLanguage } = useLanguage();
+const Login = ({ lng }: { lng: string }) => {
+const { t } = useTranslation(lng, 'common');
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoggingIn(true);
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
       toast({
         title: t('login.success.title'),
         description: t('login.success.description'),
@@ -49,6 +53,8 @@ const Login = () => {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -75,8 +81,8 @@ const Login = () => {
           </Heading>
           <Select
             w="120px"
-            onChange={(e) => changeLanguage(e.target.value)}
-            value={language}
+            onChange={(e) => router.push(`/${e.target.value}`)}
+            value={lng}
           >
             <option value="en">English</option>
             <option value="hi">Hindi</option>
@@ -101,12 +107,17 @@ const Login = () => {
             required
           />
         </FormControl>
-        <Button type="submit" colorScheme="blue" width="full">
+        <FormControl>
+          <Checkbox isChecked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>
+            {t('login.remember_me')}
+          </Checkbox>
+        </FormControl>
+        <Button type="submit" width="full" isLoading={isLoggingIn} colorScheme="blue">
           {t('login.button')}
         </Button>
         <Text>
           {t('login.no_account')}{' '}
-          <Link as={NextLink} href="/register" color="blue.500">
+          <Link as={NextLink} href="/register" color="brand.primary">
             {t('login.signup_link')}
           </Link>
         </Text>

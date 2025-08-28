@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
 import {
   Box,
   Button,
@@ -12,7 +11,6 @@ import {
   Input,
   Select,
   Stack,
-  useToast,
   Table,
   Thead,
   Tbody,
@@ -40,25 +38,19 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Spinner,
 } from '@chakra-ui/react';
-import { AxiosError } from 'axios';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
 import { useTranslation } from 'react-i18next';
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
-  is_active: boolean | null;
-}
+import { useDebounce } from '@/hooks/useDebounce';
+import { useCrud } from '@/hooks/useCrud';
+import { User, Role } from '@/types';
 
 const UserManager: React.FC = () => {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
-  const toast = useToast();
-  const [users, setUsers] = useState<User[]>([]);
+  
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
@@ -68,110 +60,57 @@ const UserManager: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const [alertAction, setAlertAction] = useState<{ type: 'remove' | 'reactivate'; userId: number } | null>(null);
   const cancelRef = useRef(null);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({
-        status: statusFilter,
-        search: searchQuery,
-      });
-      const { data } = await api.get(`/users?${params.toString()}`);
-      if (Array.isArray(data)) {
-        setUsers(data);
-      } else {
-        console.error("API did not return an array for users:", data);
-        setUsers([]);
-      }
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_fetching_users'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_fetching_users_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  }, [toast, statusFilter, searchQuery, t]);
+  const {
+    data: users,
+    loading: isLoading,
+    fetchData,
+    createItem,
+    deleteItem,
+    updateItem,
+    reactivateItem,
+  } = useCrud<User>({
+    endpoint: '/users',
+    messages: {
+      createSuccess: t('user_manager.toast.user_created_description'),
+      updateSuccess: t('user_manager.toast.user_updated_description'),
+      deleteSuccess: t('user_manager.toast.user_removed_description'),
+      archiveSuccess: t('user_manager.toast.user_removed_description'),
+      reactivateSuccess: t('user_manager.toast.user_reactivated_description'),
+    },
+  });
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const filters = {
+      status: statusFilter,
+      search: debouncedSearchQuery,
+    };
+    fetchData(undefined, filters);
+  }, [fetchData, statusFilter, debouncedSearchQuery]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/users', { username: newUsername, name: newName, password: newPassword, role: newRole });
-      toast({
-        title: t('user_manager.toast.user_invited'),
-        description: t('user_manager.toast.user_invited_description', { username: newUsername }),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
+      if (currentUser?.organization_id) {
+        await createItem({
+          username: newUsername,
+          name: newName,
+          role: newRole as Role,
+          password: newPassword,
+          organization_id: currentUser.organization_id,
+          is_active: true,
+        });
+      }
       setNewUsername('');
       setNewName('');
       setNewPassword('');
       onClose();
-      fetchUsers();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.invitation_failed'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.invitation_failed_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  };
-
-  const handleRemoveUser = async (userId: number) => {
-    try {
-      await api.delete(`/users/${userId}`);
-      toast({
-        title: t('user_manager.toast.user_removed'),
-        description: t('user_manager.toast.user_removed_description'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      fetchUsers();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_removing_user'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_removing_user_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
-    }
-  };
-
-  const handleReactivateUser = async (userId: number) => {
-    try {
-      await api.put(`/users/${userId}/reactivate`);
-      toast({
-        title: t('user_manager.toast.user_reactivated'),
-        description: t('user_manager.toast.user_reactivated_description'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      fetchUsers();
-    } catch (err) {
-      toast({
-        title: t('user_manager.toast.error_reactivating_user'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('user_manager.toast.error_reactivating_user_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error(err);
+    } catch {
+      // Error is handled by the hook
     }
   };
 
@@ -183,9 +122,9 @@ const UserManager: React.FC = () => {
   const confirmAction = () => {
     if (!alertAction) return;
     if (alertAction.type === 'remove') {
-      handleRemoveUser(alertAction.userId);
+      deleteItem(alertAction.userId);
     } else if (alertAction.type === 'reactivate') {
-      handleReactivateUser(alertAction.userId);
+      reactivateItem(alertAction.userId);
     }
     onAlertClose();
   };
@@ -195,16 +134,23 @@ const UserManager: React.FC = () => {
     onEditOpen();
   };
 
-  const handleUserUpdate = (updatedUser: User) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+  const handleUserUpdate = (updatedUser: Partial<User>) => {
+    if (updatedUser.id) {
+      updateItem(updatedUser.id, updatedUser);
+    }
+    onEditClose();
   };
 
-  const filteredUsers = users.filter(user => user.id !== currentUser?.id);
-
-  return (
-    <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      {selectedUser && (
-        <UserProfileForm
+  const filteredUsers = users.filter(user => {
+    if (user.id === currentUser?.id) return false; // Exclude self
+    if (currentUser?.role === 'admin' && user.role === 'super_admin') return false; // Admins cannot see super_admins
+    return true;
+  });
+ 
+   return (
+     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
+       {selectedUser && (
+         <UserProfileForm
           isOpen={isEditOpen}
           onClose={onEditClose}
           user={selectedUser}
@@ -213,7 +159,9 @@ const UserManager: React.FC = () => {
       )}
       <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }}>
         <Heading as="h2" size={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 0 }}>{t('user_manager.title')}</Heading>
-        <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
+        {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+          <Button onClick={onOpen} colorScheme="blue">{t('user_manager.invite_new_user')}</Button>
+        )}
       </Flex>
       <Divider mb={6} />
 
@@ -275,14 +223,14 @@ const UserManager: React.FC = () => {
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                 >
-                  <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>
-                  <option value="factory_admin">{t('user_manager.invite_modal.role.factory_admin')}</option>
+                  {currentUser?.role === 'super_admin' && <option value="admin">{t('user_manager.invite_modal.role.admin')}</option>}
+                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>}
                 </Select>
               </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button type="submit" colorScheme="green" mr={3}>
+            <Button type="submit" colorScheme="green" mr={3} isLoading={isLoading}>
               {t('user_manager.invite_modal.invite_button')}
             </Button>
             <Button variant="ghost" onClick={onClose}>{t('user_manager.invite_modal.cancel_button')}</Button>
@@ -291,100 +239,108 @@ const UserManager: React.FC = () => {
       </Modal>
 
       <Box overflowX="auto">
-        <TableContainer>
-          <Table variant="simple" colorScheme="teal" sx={{
-            '@media (max-width: 768px)': {
-              thead: {
-                display: 'none',
-              },
-              tr: {
-                display: 'block',
-                marginBottom: '1rem',
-                border: '1px solid',
-                borderColor: 'gray.200',
-                borderRadius: 'md',
-                padding: '1rem',
-              },
-              td: {
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid',
-                borderColor: 'gray.200',
-                padding: '0.75rem 0',
-                '&:last-child': {
-                  borderBottom: 'none',
+        {isLoading ? (
+          <Flex justify="center" align="center" h="200px">
+            <Spinner size="xl" />
+          </Flex>
+        ) : (
+          <TableContainer>
+            <Table variant="simple" colorScheme="teal" sx={{
+              '@media (max-width: 768px)': {
+                thead: {
+                  display: 'none',
                 },
-                '&::before': {
-                  content: 'attr(data-label)',
-                  fontWeight: 'bold',
-                  marginRight: '1rem',
+                tr: {
+                  display: 'block',
+                  marginBottom: '1rem',
+                  border: '1px solid',
+                  borderColor: 'gray.200',
+                  borderRadius: 'md',
+                  padding: '1rem',
+                },
+                td: {
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid',
+                  borderColor: 'gray.200',
+                  padding: '0.75rem 0',
+                  '&:last-child': {
+                    borderBottom: 'none',
+                  },
+                  '&::before': {
+                    content: 'attr(data-label)',
+                    fontWeight: 'bold',
+                    marginRight: '1rem',
+                  },
                 },
               },
-            },
-          }}>
-            <Thead bg="brand.background">
-              <Tr>
-                <Th>{t('user_manager.table.name')}</Th>
-                <Th>{t('user_manager.table.username')}</Th>
-                <Th>{t('user_manager.table.role')}</Th>
-                <Th>{t('user_manager.table.status')}</Th>
-                <Th>{t('user_manager.table.actions')}</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredUsers.map((user) => (
-                <Tr key={user.id}
-                    sx={{
-                        '@media (min-width: 769px)': {
-                            '&:hover': {
-                                backgroundColor: 'gray.50',
-                                cursor: 'pointer'
-                            }
-                        }
-                    }}
-                >
-                  <Td data-label={t('user_manager.table.name')}><Text noOfLines={1}>{user.name}</Text></Td>
-                  <Td data-label={t('user_manager.table.username')}><Text noOfLines={1}>{user.username}</Text></Td>
-                  <Td data-label={t('user_manager.table.role')}><Text noOfLines={1}>{user.role}</Text></Td>
-                  <Td data-label={t('user_manager.table.status')}>
-                    <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
-                      {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
-                    </Text>
-                  </Td>
-                  <Td data-label={t('user_manager.table.actions')}>
-                    <Flex gap={2}>
-                      <IconButton
-                        aria-label={t('user_manager.actions.edit')}
-                        icon={<EditIcon />}
-                        colorScheme="blue"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      />
-                      {user.is_active !== false ? (
-                        <IconButton
-                          aria-label={t('user_manager.actions.deactivate')}
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          size="sm"
-                          onClick={() => openAlert('remove', user.id)}
-                        />
-                      ) : (
-                        <IconButton
-                          aria-label={t('user_manager.actions.reactivate')}
-                          icon={<RepeatIcon />}
-                          colorScheme="green"
-                          size="sm"
-                          onClick={() => openAlert('reactivate', user.id)}
-                        />
-                      )}
-                    </Flex>
-                  </Td>
+            }}>
+              <Thead bg="brand.background">
+                <Tr>
+                  <Th>{t('user_manager.table.name')}</Th>
+                  <Th>{t('user_manager.table.username')}</Th>
+                  <Th>{t('user_manager.table.role')}</Th>
+                  <Th>{t('user_manager.table.status')}</Th>
+                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <Th>{t('user_manager.table.actions')}</Th>}
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </TableContainer>
+              </Thead>
+              <Tbody>
+                {filteredUsers.map((user) => (
+                  <Tr key={user.id}
+                      sx={{
+                          '@media (min-width: 769px)': {
+                              '&:hover': {
+                                  backgroundColor: 'gray.50',
+                                  cursor: 'pointer'
+                              }
+                          }
+                      }}
+                  >
+                    <Td data-label={t('user_manager.table.name')}><Text noOfLines={1}>{user.name}</Text></Td>
+                    <Td data-label={t('user_manager.table.username')}><Text noOfLines={1}>{user.username}</Text></Td>
+                    <Td data-label={t('user_manager.table.role')}><Text noOfLines={1}>{user.role}</Text></Td>
+                    <Td data-label={t('user_manager.table.status')}>
+                      <Text color={user.is_active !== false ? 'green.500' : 'red.500'}>
+                        {user.is_active !== false ? t('user_manager.status.active') : t('user_manager.status.inactive')}
+                      </Text>
+                    </Td>
+                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+                      <Td data-label={t('user_manager.table.actions')}>
+                        <Flex gap={2}>
+                          <IconButton
+                            aria-label={t('user_manager.actions.edit')}
+                            icon={<EditIcon />}
+                            colorScheme="blue"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          />
+                          {user.is_active !== false ? (
+                            <IconButton
+                              aria-label={t('user_manager.actions.deactivate')}
+                              icon={<DeleteIcon />}
+                              colorScheme="red"
+                              size="sm"
+                              onClick={() => openAlert('remove', user.id)}
+                            />
+                          ) : (
+                            <IconButton
+                              aria-label={t('user_manager.actions.reactivate')}
+                              icon={<RepeatIcon />}
+                              colorScheme="green"
+                              size="sm"
+                              onClick={() => openAlert('reactivate', user.id)}
+                            />
+                          )}
+                        </Flex>
+                      </Td>
+                    )}
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        )}
       </Box>
 
       <AlertDialog

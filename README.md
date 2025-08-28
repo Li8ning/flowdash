@@ -1,131 +1,138 @@
 # FlowDash - Inventory Management System
 
-FlowDash is a web-based application designed for small to medium-sized factories to manage their product inventory and track production. It provides a user-friendly interface for floor staff to log their work and for factory admins to oversee operations, manage products, and view reports.
+**Version: 0.1.0**
 
-## Features
+FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
-*   **User Authentication:** Secure registration and login for factory admins and floor staff.
-*   **Role-Based Access Control:** Different permissions for admins (full access) and staff (limited to their own logs).
-*   **Product Management:** Admins can create, view, and update product information.
-*   **Inventory Logging:** Floor staff can log the quantity of products they have produced.
-*   **Dashboard & Reporting:** Admins can view production summaries and generate reports.
-*   **Multi-language Support:** The user interface can be switched between English, Hindi, and Gujarati.
-*   **Error Monitoring:** Integrated with Sentry for real-time error tracking.
-*   **Structured Logging:** Uses Pino for structured, detailed application logs.
+## Key Features
+
+*   **Role-Based Access Control (RBAC):** Three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
+*   **Product Management:** Create, update, and manage products with attributes like color, design, quality, and packaging types. Includes bulk CSV import and image upload capabilities.
+*   **Inventory Logging:** Floor staff can log production quantities with detailed tracking of who made changes and when.
+*   **User Management:** Invite, edit, deactivate, and reactivate user accounts with strict role hierarchy enforcement.
+*   **Multi-language Support:** Full internationalization support for English, Hindi, and Gujarati languages, optimized for factory workers with limited technical literacy.
+*   **Data Export:** Export inventory logs to PDF and Excel formats with comprehensive filtering options.
+*   **Dashboard Analytics:** Production summaries, weekly charts, and real-time inventory tracking.
+*   **Mobile-First Design:** Responsive interface optimized for tablets and smartphones used by floor staff.
+*   **Accessibility:** WCAG-compliant design with proper visual feedback through color-coded buttons (red for destructive actions, green for positive actions, blue for primary actions).
 
 ## Tech Stack
 
-*   **Framework:** [Next.js](https://nextjs.org/) (v14+ with App Router)
-*   **Language:** [TypeScript](https://www.typescriptlang.org/)
-*   **Database:** [Vercel Postgres](https://vercel.com/storage/postgres) (Serverless)
-*   **UI Library:** [Chakra UI](https://chakra-ui.com/)
-*   **Authentication:** [JWT](https://jwt.io/) with the `jose` library
-*   **Validation:** [Zod](https://zod.dev/) for input validation
-*   **Testing:** [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
-*   **CI/CD:** [GitHub Actions](https://github.com/features/actions)
-*   **Error Monitoring:** [Sentry](https://sentry.io/)
-*   **Logging:** [Pino](https://getpino.io/)
+*   **Framework:** Next.js 14+ (App Router)
+*   **Language:** TypeScript
+*   **UI Library:** Chakra UI
+*   **Database:** Vercel Postgres
+*   **File Storage:** Vercel Blob
+*   **Authentication:** JWT with Jose library
+*   **Validation:** Zod
+*   **API:** Next.js API Routes (Serverless Functions)
+*   **Image Processing:** Sharp
+*   **Testing:** Jest, React Testing Library, Playwright
+*   **Error Monitoring:** Sentry
+*   **Logging:** Pino
+*   **Internationalization:** i18next, react-i18next
+*   **Deployment:** Vercel
+*   **CI/CD:** GitHub Actions
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app/
+│   │   ├── api/                    # API routes (serverless functions)
+│   │   ├── (pages)/[lng]/          # Language-aware pages
+│   │   │   └── dashboard/          # Main application pages (protected)
+│   │   ├── i18n/                   # Internationalization configuration
+│   │   │   └── locales/            # Translation files (en, hi, gu)
+│   │   └── globals.css             # Global styles
+│   ├── components/                 # Reusable React components
+│   │   ├── layout/                 # Layout components (Header, Sidebar)
+│   │   └── __tests__/              # Component tests
+│   ├── context/                    # React context providers (Auth, Language)
+│   ├── hooks/                      # Custom React hooks (useCrud, useDebounce)
+│   ├── lib/                        # Core libraries (API, auth, db, migrations)
+│   ├── schemas/                    # Zod validation schemas
+│   ├── theme/                      # Chakra UI theme configuration
+│   └── types/                      # TypeScript type definitions
+├── .kilocode/                      # Memory bank and project documentation
+├── public/                         # Static assets
+├── .env.local                      # Environment variables
+├── .github/workflows/              # CI/CD pipeline
+└── README.md                       # This file
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-*   [Node.js](https://nodejs.org/) (v18 or later)
-*   [npm](https://www.npmjs.com/)
-*   A Vercel Postgres database
+*   Node.js (v18 or later)
+*   npm or yarn
+*   A PostgreSQL database
 
 ### Installation
 
-1.  Clone the repository:
+1.  **Clone the repository:**
     ```bash
-    git clone <your-repository-url>
-    cd flowdash
+    git clone <repository-url>
+    cd <repository-name>
     ```
 
-2.  Install the dependencies:
+2.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-### Environment Variables
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root of the project and add the following variables:
 
-Create a `.env.local` file in the root of the project and add the following environment variables:
+    ```
+    POSTGRES_URL="your_vercel_postgres_connection_string"
+    JWT_SECRET="your_jwt_secret_key"
+    BLOB_READ_WRITE_TOKEN="your_vercel_blob_token"
+    SENTRY_DSN="your_sentry_dsn" (optional)
+    ```
 
-```
-# Vercel Postgres connection string
-POSTGRES_URL="your_postgres_connection_string"
+4.  **Run the database migrations:**
+    Execute the SQL migration files in the `src/lib/migrations` directory against your Vercel Postgres database to set up the schema.
 
-# Secret for signing JWTs (must be at least 32 characters long)
-JWT_SECRET="your_super_secret_and_long_jwt_secret"
+5.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-# Sentry DSN for error reporting
-NEXT_PUBLIC_SENTRY_DSN="your_sentry_dsn"
-```
+    The application will be available at `http://localhost:3000`.
 
-## Running the Application
+## Recent Updates (v0.1.0)
 
-To start the development server, run:
+### Toast Message System Refactor
+- Implemented a comprehensive localized toast message system
+- Eliminated hardcoded translations in the generic useCrud hook
+- Each component now provides its own contextually appropriate messages
+- Full support for English, Hindi, and Gujarati languages
 
-```bash
-npm run dev
-```
+### Button Color Scheme Implementation
+- Fixed theme configuration that was preventing proper colorScheme functionality
+- Implemented consistent color coding across all components:
+  - **Red**: Destructive actions (delete, archive, logout)
+  - **Green**: Positive actions (save, reactivate)
+  - **Blue**: Primary actions (login, add, update)
+  - **Default**: Neutral actions (edit, cancel)
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+### Security & Performance
+- Fixed SQL injection vulnerability in distinct value endpoints
+- Implemented proper input validation with Zod schemas
+- Added comprehensive error monitoring with Sentry
+- Optimized for serverless deployment on Vercel
 
-## Running Tests
+## CI/CD
 
-To run the test suite, use the following command:
+The project includes a GitHub Actions workflow that performs:
+*   **Linting:** Code style enforcement
+*   **Testing:** Unit and integration tests
+*   **Security Scanning:** Vulnerability detection
+*   **Type Checking:** TypeScript validation
 
-```bash
-npm test
-```
+## Contributing
 
-This will run all tests using Jest and provide a coverage report.
-
-## API Endpoints
-
-The following is a summary of the available API endpoints. All endpoints require authentication unless otherwise noted.
-
-### Auth
-
-*   `POST /api/auth/register`: (Public) Register a new organization and factory admin.
-*   `POST /api/auth/login`: (Public) Log in to the application.
-*   `GET /api/auth/me`: Get the currently authenticated user's information.
-
-### Users
-
-*   `GET /api/users`: Get a list of users in the admin's organization.
-*   `POST /api/users`: Invite a new "Floor Staff" user.
-*   `PATCH /api/users/{id}`: Update a user's information.
-*   `PUT /api/users/{id}/password`: Change a user's password.
-*   `PUT /api/users/{id}/reactivate`: Reactivate an inactive user.
-*   `GET /api/users/check-username`: Check if a username is available.
-
-### Products
-
-*   `GET /api/products`: Get a paginated list of products.
-*   `POST /api/products`: Create a new product.
-*   `GET /api/products/{id}`: Get a single product by its ID.
-*   `PATCH /api/products/{id}`: Update a product's information.
-
-### Inventory
-
-*   `POST /api/inventory/logs`: Create a new inventory log entry.
-*   `GET /api/inventory/logs/me`: Get the authenticated user's inventory logs.
-*   `PUT /api/inventory/logs/{id}`: Update an inventory log entry.
-*   `DELETE /api/inventory/logs/{id}`: Delete an inventory log entry.
-*   `GET /api/inventory/summary/dashboard`: Get a summary of production for the dashboard.
-*   `GET /api/inventory/summary/weekly-production`: Get a summary of production for the last week.
-
-### Reports
-
-*   `GET /api/reports/production`: Get a production report.
-
-### Organizations
-
-*   `GET /api/organizations/{id}`: Get an organization's information.
-*   `PUT /api/organizations/{id}`: Update an organization's name.
-
-### Utility
-
-*   `GET /api/distinct/{entity}/{field}`: Get a list of distinct values for a given field and entity.
+The application uses a Memory Bank system (`.kilocode/rules/memory-bank/`) to maintain project knowledge and context for developers. Please review the memory bank files before making significant changes.

@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import api from '../lib/api';
+import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { exportToPdf, exportToExcel } from '../lib/export';
 import EditLogModal from '@/components/EditLogModal';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useCrud } from '@/hooks/useCrud';
+import { InventoryLog } from '@/types';
 import {
   Table,
   Thead,
@@ -24,7 +26,9 @@ import {
   Divider,
   TableContainer,
   Input,
-  HStack,
+  InputGroup,
+  InputLeftElement,
+  Stack,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -41,21 +45,10 @@ import {
   AccordionIcon,
   Text,
   VStack,
+  Spinner,
 } from '@chakra-ui/react';
-
-interface InventoryLog {
-  id: number;
-  product_id: number;
-  product_name: string;
-  color: string;
-  model: string;
-  produced: number;
-  created_at: string;
-  username?: string;
-  image_url?: string;
-  quality: string;
-  packaging_type: string;
-}
+import { SearchIcon } from '@chakra-ui/icons';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface InventoryLogsProps {
   allLogs?: boolean;
@@ -64,19 +57,17 @@ interface InventoryLogsProps {
 interface LogFilters {
   user: string;
   product: string;
+  search: string;
   color: string;
-  model: string;
+  design: string;
   startDate: string;
   endDate: string;
   quality: string;
   packaging_type: string;
+  [key: string]: string | number | undefined;
 }
 
 const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
-  const [logs, setLogs] = useState<InventoryLog[]>([]);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [logsPerPage] = useState(50);
   const [editingLog, setEditingLog] = useState<InventoryLog | null>(null);
   const toast = useToast();
   const { user } = useAuth();
@@ -86,37 +77,56 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [logToDelete, setLogToDelete] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState('today');
 
-  const getInitialFilters = () => {
+  const getInitialFilters = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     return {
       user: '',
       product: '',
+      search: '',
       color: '',
-      model: '',
+      design: '',
       startDate: today,
       endDate: today,
       quality: '',
       packaging_type: '',
     };
-  };
+  }, []);
 
   const [filters, setFilters] = useState<LogFilters>(getInitialFilters());
-  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [pendingFilters, setPendingFilters] = useState<LogFilters>(getInitialFilters());
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const [distinctUsers, setDistinctUsers] = useState<string[]>([]);
-  const [distinctProducts, setDistinctProducts] = useState<string[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
-  const [distinctModels, setDistinctModels] = useState<string[]>([]);
+  const [distinctDesigns, setDistinctDesigns] = useState<string[]>([]);
   const [distinctQualities, setDistinctQualities] = useState<string[]>([]);
   const [distinctPackagingTypes, setDistinctPackagingTypes] = useState<string[]>([]);
+  const [isFetchingDistinctValues, setIsFetchingDistinctValues] = useState(true);
+
+  const {
+    data: logs,
+    total: totalLogs,
+    loading,
+    fetchData,
+    deleteItem,
+    updateItem,
+  } = useCrud<InventoryLog>({
+    endpoint: allLogs ? '/inventory/logs' : '/inventory/logs/me',
+    initialFetch: false,
+    messages: {
+      deleteSuccess: t('inventory.logs.toast.log_deleted_description'),
+      updateSuccess: t('edit_log_modal.toast.log_updated_description'),
+    },
+  });
+
 
   const fetchDistinctValues = useCallback(async () => {
     try {
       const endpoints = [
-        api.get('/distinct/inventory/product_name'),
         api.get('/distinct/products/color'),
-        api.get('/distinct/products/model'),
+        api.get('/distinct/products/design'),
         api.get('/distinct/inventory/quality'),
         api.get('/distinct/inventory/packaging_type'),
       ];
@@ -125,11 +135,10 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         endpoints.push(api.get('/distinct/inventory/users'));
       }
 
-      const [productsRes, colorsRes, modelsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
+      const [colorsRes, designsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
       
-      setDistinctProducts(productsRes.data);
       setDistinctColors(colorsRes.data);
-      setDistinctModels(modelsRes.data);
+      setDistinctDesigns(designsRes.data);
       setDistinctQualities(qualitiesRes.data);
       setDistinctPackagingTypes(packagingTypesRes.data);
 
@@ -137,7 +146,6 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         setDistinctUsers(usersRes.data);
       }
     } catch (err) {
-      console.error('Failed to fetch distinct filter values', err);
       toast({
         title: t('inventory.logs.toast.error_loading_filters'),
         description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_loading_filters_description'),
@@ -145,6 +153,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsFetchingDistinctValues(false);
     }
   }, [allLogs, toast, t]);
 
@@ -152,46 +162,13 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     fetchDistinctValues();
   }, [fetchDistinctValues]);
 
-  const fetchLogs = useCallback(async () => {
-    if (!user) return;
-    try {
-      const url = allLogs ? '/inventory/logs' : '/inventory/logs/me';
-      const offset = (currentPage - 1) * logsPerPage;
-      const params = {
-        ...appliedFilters,
-        limit: logsPerPage,
-        offset,
-      };
-      const { data } = await api.get(url, { params });
-      const newLogs = data.data || [];
-      if (currentPage === 1) {
-        setLogs(newLogs);
-      } else {
-        setLogs((prevLogs: InventoryLog[]) => [...prevLogs, ...newLogs]);
-      }
-      setTotalLogs(data.totalCount || 0);
-    } catch (err) {
-      console.error(err);
-      if (err instanceof AxiosError && err.response?.status === 401) {
-        // This is an auth error, handled by the global interceptor
-        return;
-      }
-      toast({
-        title: t('inventory.logs.toast.error_fetching_logs'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_fetching_logs_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }, [allLogs, appliedFilters, toast, user, t, currentPage, logsPerPage]);
-
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    fetchData(1, { ...filters, search: debouncedSearchQuery }, 50);
+  }, [fetchData, debouncedSearchQuery, filters]);
+
 
   const handleFilterClick = () => {
-    if (dateRange === 'custom' && (!filters.startDate || !filters.endDate)) {
+    if (dateRange === 'custom' && (!pendingFilters.startDate || !pendingFilters.endDate)) {
       toast({
         title: t('inventory.logs.toast.invalid_date_range'),
         description: t('inventory.logs.toast.invalid_date_range_description'),
@@ -201,23 +178,25 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       });
       return;
     }
-    setCurrentPage(1);
-    setAppliedFilters(filters);
+    setFilters(pendingFilters);
+    fetchData(1, pendingFilters, 50);
   };
 
   const handleClearFilters = () => {
     const initialFilters = getInitialFilters();
     setFilters(initialFilters);
-    setAppliedFilters(initialFilters);
+    setPendingFilters(initialFilters);
     setDateRange('today');
-    setCurrentPage(1);
+    fetchData(1, initialFilters, 50);
   };
 
   useEffect(() => {
+    if (dateRange === 'custom') return;
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    let newStartDate = filters.startDate;
-    let newEndDate = filters.endDate;
+    let newStartDate = '';
+    let newEndDate = '';
 
     if (dateRange === 'today') {
       newStartDate = todayStr;
@@ -232,17 +211,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       newStartDate = firstDay.toISOString().split('T')[0];
       newEndDate = todayStr;
     }
-    
-    setFilters((prevFilters: LogFilters) => ({
-        ...prevFilters,
-        startDate: newStartDate,
-        endDate: newEndDate,
-    }));
 
-  }, [dateRange, filters.endDate, filters.startDate]);
+    setPendingFilters((prevFilters) => ({
+      ...prevFilters,
+      startDate: newStartDate,
+      endDate: newEndDate,
+    }));
+  }, [dateRange]);
 
   const isEditable = (createdAt: string) => {
-    if (user?.role === 'factory_admin') {
+    if (user?.role === 'super_admin' || user?.role === 'admin') {
       return true;
     }
     const logTime = new Date(createdAt).getTime();
@@ -250,29 +228,6 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     return currentTime - logTime < 24 * 60 * 60 * 1000;
   };
 
-  const handleDelete = async (logId: number) => {
-    try {
-      await api.delete(`/inventory/logs/${logId}`);
-      // After deleting, refetch the current page to get fresh data
-      fetchLogs();
-      toast({
-        title: t('inventory.logs.toast.log_deleted'),
-        description: t('inventory.logs.toast.log_deleted_description'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-    } catch (err) {
-      toast({
-        title: t('inventory.logs.toast.error_deleting_log'),
-        description: (err as AxiosError<{ error: string }>)?.response?.data?.error || t('inventory.logs.toast.error_deleting_log_description'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      console.error('Failed to delete log:', err);
-    }
-  };
 
   const openDeleteDialog = (logId: number) => {
     setLogToDelete(logId);
@@ -281,145 +236,183 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   const confirmDelete = () => {
     if (logToDelete) {
-      handleDelete(logToDelete);
+      deleteItem(logToDelete);
     }
     onClose();
   };
 
   const handleUpdate = (updatedLog: InventoryLog) => {
-    setLogs(
-      logs.map((log: InventoryLog) =>
-        log.id === updatedLog.id ? { ...log, ...updatedLog } : log
-      )
-    );
+    updateItem(updatedLog.id, updatedLog);
   };
 
   const isExportDisabled = dateRange === 'custom' && (!filters.startDate || !filters.endDate);
 
   return (
     <Box bg="brand.surface" p={{ base: 4, md: 6 }} borderRadius="xl" shadow="md" borderWidth="1px" borderColor="brand.lightBorder">
-      <Flex justify="space-between" align="center" mb={4} wrap="wrap" gap={4}>
-        <Heading as="h2" size={{ base: 'sm', md: 'lg' }}>{t('inventory.logs.title')}</Heading>
-        <Flex
-          direction={{ base: 'column', md: 'row' }}
-          align={{ base: 'stretch', md: 'center' }}
-          gap={{ base: 2, md: 4 }}
+      <Flex
+        justify="space-between"
+        align={{ base: 'stretch', md: 'center' }}
+        mb={6}
+        direction={{ base: 'column', md: 'row' }}
+        gap={4}
+      >
+        <Heading as="h2" size={{ base: 'md', md: 'lg' }}>
+          {t('inventory.logs.title')}
+        </Heading>
+        <Stack
+          direction={{ base: 'column', sm: 'row' }}
+          spacing={2}
+          align="stretch"
           width={{ base: '100%', md: 'auto' }}
         >
-            {allLogs && (
-              <>
-                <Button colorScheme="blue" onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_pdf')}</Button>
-                <Button colorScheme="green" onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled}>{t('inventory.logs.export_excel')}</Button>
-              </>
-            )}
-            <Button colorScheme="blue" onClick={handleFilterClick}>{t('inventory.logs.filter')}</Button>
-            <Button onClick={handleClearFilters} colorScheme="gray">
-              {t('inventory.logs.clear_filters')}
-            </Button>
-        </Flex>
+          {allLogs && (
+            <>
+              <Button onClick={() => exportToPdf(logs, allLogs)} isDisabled={isExportDisabled} colorScheme="blue">
+                {t('inventory.logs.export_pdf')}
+              </Button>
+              <Button onClick={() => exportToExcel(logs, allLogs)} isDisabled={isExportDisabled} colorScheme="blue">
+                {t('inventory.logs.export_excel')}
+              </Button>
+            </>
+          )}
+        </Stack>
       </Flex>
       <Divider mb={6} />
       <Box>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: allLogs ? 7 : 6 }} spacing={4} mb={4}>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: allLogs ? 4 : 3, xl: allLogs ? 7 : 6 }} spacing={4} mb={4}>
+          <InputGroup>
+            <InputLeftElement pointerEvents="none">
+              <SearchIcon color="gray.300" />
+            </InputLeftElement>
+            <Input
+              placeholder={t('inventory.logs.search_by_product')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </InputGroup>
           {allLogs && (
-            <Select
-              placeholder={t('inventory.logs.filter_by_user')}
-              value={filters.user}
-              onChange={(e) => setFilters({ ...filters, user: e.target.value })}
-            >
-              {distinctUsers.map((u: string) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </Select>
-          )}
-          <Select
-            placeholder={t('inventory.logs.filter_by_product')}
-            value={filters.product}
-            onChange={(e) =>
-              setFilters({ ...filters, product: e.target.value })
-            }
-          >
-            {distinctProducts.map((p: string) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('inventory.logs.filter_by_color')}
-            value={filters.color}
-            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
-          >
-            {distinctColors.map((c: string) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('inventory.logs.filter_by_model')}
-            value={filters.model}
-            onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-          >
-            {distinctModels.map((m: string) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('inventory.logs.filter_by_quality')}
-            value={filters.quality}
-            onChange={(e) => setFilters({ ...filters, quality: e.target.value })}
-          >
-            {distinctQualities.map((q: string) => (
-              <option key={q} value={q}>
-                {t(`product_manager.quality.${q.toLowerCase()}`)}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('inventory.logs.filter_by_packaging_type')}
-            value={filters.packaging_type}
-            onChange={(e) =>
-              setFilters({ ...filters, packaging_type: e.target.value })
-            }
-          >
-            {distinctPackagingTypes.map((p: string) => (
-              <option key={p} value={p}>
-                {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
-              </option>
-            ))}
-          </Select>
-          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+            <Flex align="center">
+              <Select
+                  placeholder={t('inventory.logs.filter_by_user')}
+                  value={pendingFilters.user}
+                  onChange={(e) => setPendingFilters({ ...pendingFilters, user: e.target.value })}
+                  focusBorderColor="blue.500"
+                  isDisabled={isFetchingDistinctValues}
+                >
+                  {distinctUsers.map((u: string) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </Select>
+                {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+              </Flex>
+            )}
+            <Flex align="center">
+              <Select
+                placeholder={t('inventory.logs.filter_by_color')}
+                value={pendingFilters.color}
+                onChange={(e) => setPendingFilters({ ...pendingFilters, color: e.target.value })}
+                focusBorderColor="blue.500"
+                isDisabled={isFetchingDistinctValues}
+              >
+                {distinctColors.map((c: string) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+            </Flex>
+            <Flex align="center">
+              <Select
+                placeholder={t('inventory.logs.filter_by_design')}
+                value={pendingFilters.design}
+                onChange={(e) => setPendingFilters({ ...pendingFilters, design: e.target.value })}
+                focusBorderColor="blue.500"
+                isDisabled={isFetchingDistinctValues}
+              >
+                {distinctDesigns.map((d: string) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </Select>
+              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+            </Flex>
+            <Flex align="center">
+              <Select
+                placeholder={t('inventory.logs.filter_by_quality')}
+                value={pendingFilters.quality}
+                onChange={(e) => setPendingFilters({ ...pendingFilters, quality: e.target.value })}
+                focusBorderColor="blue.500"
+                isDisabled={isFetchingDistinctValues}
+              >
+                {distinctQualities.map((q: string) => (
+                  <option key={q} value={q}>
+                    {t(`product_manager.quality.${q.toLowerCase()}`)}
+                  </option>
+                ))}
+              </Select>
+              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+            </Flex>
+            <Flex align="center">
+              <Select
+                placeholder={t('inventory.logs.filter_by_packaging_type')}
+                value={pendingFilters.packaging_type}
+                onChange={(e) =>
+                  setPendingFilters({ ...pendingFilters, packaging_type: e.target.value })
+                }
+               focusBorderColor="blue.500"
+               isDisabled={isFetchingDistinctValues}
+             >
+                {distinctPackagingTypes.map((p: string) => (
+                  <option key={p} value={p}>
+                    {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
+                  </option>
+                ))}
+              </Select>
+              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+            </Flex>
+          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} focusBorderColor="blue.500">
             <option value="today">{t('inventory.logs.date_range.today')}</option>
             <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
             <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
             <option value="custom">{t('inventory.logs.date_range.custom')}</option>
           </Select>
         </SimpleGrid>
-        
-        {dateRange === 'custom' && (
-          <HStack spacing={4} mb={6}>
-            <Input
-              type="date"
-              placeholder={t('inventory.logs.start_date')}
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            />
-            <Input
-              type="date"
-              placeholder={t('inventory.logs.end_date')}
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            />
-          </HStack>
-        )}
+
+        <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} mb={6}>
+            {dateRange === 'custom' && (
+                <>
+                    <Input
+                        type="date"
+                        placeholder={t('inventory.logs.start_date')}
+                        value={pendingFilters.startDate}
+                        onChange={(e) => setPendingFilters({ ...pendingFilters, startDate: e.target.value })}
+                    />
+                    <Input
+                        type="date"
+                        placeholder={t('inventory.logs.end_date')}
+                        value={pendingFilters.endDate}
+                        onChange={(e) => setPendingFilters({ ...pendingFilters, endDate: e.target.value })}
+                    />
+                </>
+            )}
+            <Button onClick={handleFilterClick} colorScheme="blue" flexShrink={0}>
+                {t('inventory.logs.filter')}
+            </Button>
+            <Button onClick={handleClearFilters} colorScheme="gray" flexShrink={0}>
+                {t('inventory.logs.clear_filters')}
+            </Button>
+        </Stack>
       </Box>
       <Box>
-        {isMobile ? (
+        {loading ? (
+          <Flex justify="center" align="center" h="200px">
+            <Spinner size="xl" />
+          </Flex>
+        ) : isMobile ? (
           <Accordion allowMultiple>
             {logs.length > 0 ? (
               logs.map((log: InventoryLog) => (
@@ -429,7 +422,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       <Box flex="1" textAlign="left">
                         <Flex align="center" w="100%">
                           <Image
-                            src={log.image_url || 'https://via.placeholder.com/50'}
+                            src={log.image_url || 'https://placehold.co/50'}
                             alt={log.product_name}
                             boxSize="50px"
                             objectFit="cover"
@@ -462,8 +455,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                         <Text>{log.color}</Text>
                       </Flex>
                       <Flex justify="space-between">
-                        <Text fontWeight="bold">{t('inventory.logs.table.model')}:</Text>
-                        <Text>{log.model}</Text>
+                        <Text fontWeight="bold">{t('inventory.logs.table.design')}:</Text>
+                        <Text>{log.design}</Text>
                       </Flex>
                       <Flex justify="space-between">
                         <Text fontWeight="bold">{t('inventory.logs.table.quality')}:</Text>
@@ -496,7 +489,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                         >
                           {t('inventory.logs.edit')}
                         </Button>
-                        {(user?.role === 'factory_admin' || user?.role === 'floor_staff') && (
+                        {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'floor_staff') && (
                           <Button
                             size="sm"
                             colorScheme="red"
@@ -519,13 +512,13 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
           </Accordion>
         ) : (
           <TableContainer>
-            <Table variant="simple" colorScheme="teal">
+            <Table variant="simple" colorScheme="blue">
               <Thead bg="brand.background">
                 <Tr>
                   <Th>{t('inventory.logs.table.image')}</Th>
                   <Th>{t('inventory.logs.table.product_name')}</Th>
                   <Th>{t('inventory.logs.table.color')}</Th>
-                  <Th>{t('inventory.logs.table.model')}</Th>
+                  <Th>{t('inventory.logs.table.design')}</Th>
                   {allLogs && <Th>{t('inventory.logs.table.user')}</Th>}
                   <Th>{t('inventory.logs.table.quality')}</Th>
                   <Th>{t('inventory.logs.table.packaging_type')}</Th>
@@ -549,7 +542,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                     >
                       <Td>
                         <Image
-                          src={log.image_url || 'https://via.placeholder.com/50'}
+                          src={log.image_url || 'https://placehold.co/50'}
                           alt={log.product_name}
                           boxSize="50px"
                           objectFit="cover"
@@ -558,7 +551,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                       </Td>
                       <Td>{log.product_name}</Td>
                       <Td>{log.color}</Td>
-                      <Td>{log.model}</Td>
+                      <Td>{log.design}</Td>
                       {allLogs && <Td>{log.username}</Td>}
                       <Td>{log.quality ? t(`product_manager.quality.${log.quality.toLowerCase()}`) : ''}</Td>
                       <Td>{log.packaging_type ? t(`product_manager.packaging_type.${log.packaging_type.toLowerCase()}`) : ''}</Td>
@@ -574,7 +567,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                           >
                             {t('inventory.logs.edit')}
                           </Button>
-                          {(user?.role === 'factory_admin' || user?.role === 'floor_staff') && (
+                          {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'floor_staff') && (
                             <Button
                               size="sm"
                               colorScheme="red"
@@ -604,8 +597,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       <Flex justify="center" mt={6}>
         {logs.length > 0 && logs.length < totalLogs && (
           <Button
-            onClick={() => setCurrentPage((prev: number) => prev + 1)}
-            isDisabled={logs.length >= totalLogs}
+            onClick={() => fetchData((logs.length / 50) + 1, filters, 50)}
+            isDisabled={loading || logs.length >= totalLogs}
           >
             {t('pagination.load_more')}
           </Button>
