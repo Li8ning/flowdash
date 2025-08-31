@@ -1,8 +1,0 @@
-attributes.types.${attributeType}
-attributes.types.${type}
-product_manager.packaging_type.${log.packaging_type.toLowerCase()}
-product_manager.packaging_type.${option.toLowerCase()}
-product_manager.packaging_type.${p.toLowerCase()}
-product_manager.quality.${log.quality.toLowerCase()}
-product_manager.quality.${option.toLowerCase()}
-product_manager.quality.${q.toLowerCase()}
