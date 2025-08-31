@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.2.1**
+**Version: 0.3.0**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -8,6 +8,7 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
 *   **Role-Based Access Control (RBAC):** Three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
 *   **Product Management:** Create, update, and manage products with attributes like color, design, quality, and packaging types. Includes bulk CSV import and image upload capabilities.
+*   **Stock Management:** Comprehensive finished goods inventory tracking with separate rows for each product variant (quality + packaging combination). Features advanced filtering, pagination, and zero stock visibility toggle.
 *   **Inventory Logging:** Floor staff can log production quantities with detailed tracking of who made changes and when.
 *   **User Management:** Invite, edit, deactivate, and reactivate user accounts with strict role hierarchy enforcement.
 *   **Multi-language Support:** Full internationalization support for English, Hindi, and Gujarati languages, optimized for factory workers with limited technical literacy.
@@ -75,7 +76,23 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.2.0)
+## Recent Updates (v0.3.0)
+
+### Stock Management System
+- **New Stock Page**: Dedicated stock management interface with separate rows for each product variant
+- **Advanced Filtering**: Filter by product name, category, design, color, quality, and packaging type
+- **Zero Stock Toggle**: Option to show/hide products with zero inventory
+- **Pagination**: Efficient handling of large inventories with 50 items per page
+- **Mobile Accordions**: Collapsible interface optimized for mobile devices
+- **Enhanced Stock Badges**: Large, color-coded quantity indicators (32px+ height)
+- **Real-time Updates**: Stock levels automatically updated when production is logged
+
+### Database Architecture
+- **New `inventory_summary` Table**: Optimized for fast stock queries with product variant tracking
+- **Automated UPSERT Operations**: Real-time stock updates when inventory logs are created
+- **Data Migration**: Seamless migration from existing inventory logs to new summary structure
+
+## Previous Updates (v0.2.0)
 
 ### Toast Message System Refactor
 - Implemented a comprehensive localized toast message system

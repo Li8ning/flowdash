@@ -110,12 +110,6 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                             {product.category}
                           </Text>
                         </VStack>
-                        <Text
-                          fontWeight="bold"
-                          color="blue.500"
-                        >
-                          Qty: {product.quantity_on_hand}
-                        </Text>
                       </Flex>
                     </Flex>
                   </Box>
@@ -135,10 +129,6 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                   <Flex justify="space-between">
                     <Text fontWeight="bold">{t('table.color')}:</Text>
                     <Text>{product.color}</Text>
-                  </Flex>
-                  <Flex justify="space-between">
-                    <Text fontWeight="bold">{t('table.quantity')}:</Text>
-                    <Text>{product.quantity_on_hand}</Text>
                   </Flex>
                   <Flex mt={4}>
                     <Button
@@ -171,7 +161,6 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                 <Th>{t('create_modal.category_label')}</Th>
                 <Th>{t('table.design')}</Th>
                 <Th>{t('table.color')}</Th>
-                <Th>{t('table.quantity')}</Th>
                 <Th>{t('table.actions')}</Th>
               </Tr>
             </Thead>
@@ -200,7 +189,6 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                   <Td>{product.category}</Td>
                   <Td>{product.design}</Td>
                   <Td>{product.color}</Td>
-                  <Td>{product.quantity_on_hand}</Td>
                   <Td>
                     <HStack spacing={2}>
                       <Button size="sm" onClick={() => onEdit(product)}>

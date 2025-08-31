@@ -65,11 +65,9 @@ export const GET = handleError(async (req: NextRequest) => {
   const productsPromise = sql.query(
     `SELECT
         p.*,
-        i.quantity_on_hand,
         COALESCE(qualities.list, '{}') AS available_qualities,
         COALESCE(packaging.list, '{}') AS available_packaging_types
       FROM products p
-      LEFT JOIN inventory i ON p.id = i.product_id
       LEFT JOIN (
         SELECT
           ptq.product_id,
@@ -87,7 +85,7 @@ export const GET = handleError(async (req: NextRequest) => {
         GROUP BY ptpt.product_id
       ) AS packaging ON p.id = packaging.product_id
       WHERE ${whereString}
-      GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list
+      GROUP BY p.id, qualities.list, packaging.list
       ORDER BY p.created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
     [...queryParams, limit, offset]
@@ -208,11 +206,6 @@ export const POST = handleError(
         }
       }
 
-      // 4. Create inventory entry
-      await client.query(
-        `INSERT INTO inventory (product_id, quantity_on_hand) VALUES ($1, 0)`,
-        [newProductId]
-      );
 
       await client.query('COMMIT');
 
@@ -220,11 +213,9 @@ export const POST = handleError(
       const { rows: [finalProduct] } = await client.query(
         `SELECT
           p.*,
-          i.quantity_on_hand,
           COALESCE(qualities.list, '{}') AS available_qualities,
           COALESCE(packaging.list, '{}') AS available_packaging_types
         FROM products p
-        LEFT JOIN inventory i ON p.id = i.product_id
         LEFT JOIN (
           SELECT
             ptq.product_id,
@@ -242,7 +233,7 @@ export const POST = handleError(
           GROUP BY ptpt.product_id
         ) AS packaging ON p.id = packaging.product_id
         WHERE p.id = $1
-        GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list`,
+        GROUP BY p.id, qualities.list, packaging.list`,
         [newProductId]
       );
 
