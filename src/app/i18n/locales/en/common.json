@@ -311,6 +311,7 @@
     "inventory_logs": "Inventory Logs",
     "products": "Products",
     "manage_products": "Manage Products",
+    "stock_management": "Stock Management",
     "bulk_import": "Bulk Import",
     "bulk_image_upload": "Bulk Image Upload",
     "product_settings": "Settings",

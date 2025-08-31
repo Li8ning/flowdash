@@ -15,6 +15,10 @@ const validationConfig = {
     tableName: 'inventory_logs',
     allowedFields: ['product_name', 'quality', 'packaging_type', 'users'],
   },
+  inventory_logs: {
+    tableName: 'inventory_logs',
+    allowedFields: ['quality', 'packaging_type'],
+  },
 };
 
 type ValidEntity = keyof typeof validationConfig;
@@ -73,7 +77,7 @@ export const GET = handleError(
             ORDER BY p.name;
         `;
         rows = result.rows as { value: string }[];
-    } else if (validEntity === 'inventory') {
+    } else if (validEntity === 'inventory' || validEntity === 'inventory_logs') {
         const columnName = field;
         const result = await sql.query(
             `

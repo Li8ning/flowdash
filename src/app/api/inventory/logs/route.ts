@@ -135,16 +135,20 @@ export const POST = handleError(async (req: NextRequest) => {
       [productIds, userIds, producedValues, qualityValues, packagingValues]
     );
 
-    // 2. Prepare and execute bulk update on inventory table
-    const inventoryUpdateQuery = `
-      UPDATE inventory i
-      SET
-        quantity_on_hand = i.quantity_on_hand + d.produced,
-        last_updated_at = NOW()
-      FROM (SELECT UNNEST($1::int[]) as product_id, UNNEST($2::int[]) as produced) AS d
-      WHERE i.product_id = d.product_id
-    `;
-    await client.query(inventoryUpdateQuery, [productIds, producedValues]);
+    // 2. Update inventory_summary table with UPSERT for each product/quality/packaging combination
+    for (const log of logsToCreate) {
+      await client.query(
+        `
+        INSERT INTO inventory_summary (product_id, quality, packaging_type, quantity, last_updated_at)
+        VALUES ($1, $2, $3, $4, NOW())
+        ON CONFLICT (product_id, quality, packaging_type)
+        DO UPDATE SET
+          quantity = inventory_summary.quantity + EXCLUDED.quantity,
+          last_updated_at = NOW()
+        `,
+        [log.product_id, log.quality, log.packaging_type, log.produced]
+      );
+    }
     
     await client.query('COMMIT');
     return NextResponse.json(insertedLogs, { status: 201 });

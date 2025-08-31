@@ -19,7 +19,6 @@ export interface Product {
   image_url: string;
   available_qualities: string[];
   available_packaging_types: string[];
-  quantity_on_hand?: number | null;
 }
 
 export interface ProductAttribute {

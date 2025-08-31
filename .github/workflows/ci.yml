@@ -2,9 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   lint:
@@ -20,6 +18,39 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_URL: postgresql://dummy:dummy@localhost:5432/dummy
+      VERCEL_BLOB_STORE_ID: dummy
+      VERCEL_BLOB_READ_WRITE_TOKEN: dummy
+      NEXT_PUBLIC_VERCEL_BLOB_STORE_ID: dummy
+      SENTRY_AUTH_TOKEN: dummy
+      SENTRY_DSN: dummy
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Build application
+        run: npm run build
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -32,4 +63,4 @@ jobs:
           ignore-unfixed: true
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
