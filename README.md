@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.2.0**
+**Version: 0.2.1**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -33,34 +33,6 @@ FlowDash is a web-based inventory management system designed specifically for sm
 *   **Internationalization:** i18next, react-i18next
 *   **Deployment:** Vercel
 *   **CI/CD:** GitHub Actions
-
-## Project Structure
-
-```
-.
-├── src/
-│   ├── app/
-│   │   ├── api/                    # API routes (serverless functions)
-│   │   ├── (pages)/[lng]/          # Language-aware pages
-│   │   │   └── dashboard/          # Main application pages (protected)
-│   │   ├── i18n/                   # Internationalization configuration
-│   │   │   └── locales/            # Translation files (en, hi, gu)
-│   │   └── globals.css             # Global styles
-│   ├── components/                 # Reusable React components
-│   │   ├── layout/                 # Layout components (Header, Sidebar)
-│   │   └── __tests__/              # Component tests
-│   ├── context/                    # React context providers (Auth, Language)
-│   ├── hooks/                      # Custom React hooks (useCrud, useDebounce)
-│   ├── lib/                        # Core libraries (API, auth, db, migrations)
-│   ├── schemas/                    # Zod validation schemas
-│   ├── theme/                      # Chakra UI theme configuration
-│   └── types/                      # TypeScript type definitions
-├── .kilocode/                      # Memory bank and project documentation
-├── public/                         # Static assets
-├── .env.local                      # Environment variables
-├── .github/workflows/              # CI/CD pipeline
-└── README.md                       # This file
-```
 
 ## Getting Started
 
