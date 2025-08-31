@@ -29,14 +29,17 @@ const { t } = useTranslation(lng, 'common');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const { login } = useAuth();
   const toast = useToast();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     try {
       await login(username, password, rememberMe);
+      setRemainingAttempts(null); // Reset on successful login
       toast({
         title: t('login.success.title'),
         description: t('login.success.description'),
@@ -45,12 +48,44 @@ const { t } = useTranslation(lng, 'common');
         isClosable: true,
       });
     } catch (err) {
-      const error = err as AxiosError<{ msg: string }>;
+      const error = err as AxiosError<{ error: string; details?: { code: string; data?: { remaining: number; resetIn: number } } }>;
+      const errorData = error.response?.data;
+
+      let description = t('login.error.description');
+
+      if (errorData?.details?.code) {
+        const { code, data } = errorData.details;
+
+        switch (code) {
+          case 'RATE_LIMIT_EXCEEDED':
+            description = t('login.error.rate_limit', {
+              seconds: data?.resetIn || 60
+            });
+            setRemainingAttempts(0); // Account is locked
+            break;
+          case 'ACCOUNT_INACTIVE':
+            description = t('login.error.inactive_account');
+            setRemainingAttempts(null); // Don't show remaining attempts for inactive accounts
+            break;
+          case 'INVALID_CREDENTIALS':
+            description = t('login.error.invalid_credentials');
+            // Only show remaining attempts for invalid credentials (failed login attempts)
+            const currentRemaining = data?.remaining ?? 10;
+            setRemainingAttempts(currentRemaining > 0 ? currentRemaining : null);
+            break;
+          default:
+            description = errorData.error || t('login.error.description');
+            setRemainingAttempts(null);
+        }
+      } else {
+        description = errorData?.error || t('login.error.description');
+      }
+
       toast({
         title: t('login.error.title'),
-        description: error.response?.data?.msg || t('login.error.description'),
+        description,
         status: 'error',
-        duration: 5000,
+        duration: 8000, // Longer duration for rate limit messages
         isClosable: true,
       });
     } finally {
@@ -112,6 +147,11 @@ const { t } = useTranslation(lng, 'common');
             {t('login.remember_me')}
           </Checkbox>
         </FormControl>
+        {remainingAttempts !== null && remainingAttempts > 0 && (
+          <Text fontSize="sm" color="orange.500" textAlign="center">
+            {t('login.attempts_remaining', { remaining: remainingAttempts })}
+          </Text>
+        )}
         <Button type="submit" width="full" isLoading={isLoggingIn} colorScheme="blue">
           {t('login.button')}
         </Button>

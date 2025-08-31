@@ -16,7 +16,18 @@ export const withRateLimiter = <P>(
       await rateLimiter.consume(ip);
       return await handler(req, context);
     } catch {
-      throw new TooManyRequestsError('Too many requests');
+      // Get remaining attempts and reset time
+      const limiterRes = await rateLimiter.get(ip);
+      const remaining = limiterRes?.remainingPoints ?? 0;
+      const resetInSeconds = limiterRes ? Math.ceil(limiterRes.msBeforeNext / 1000) : 60;
+
+      throw new TooManyRequestsError('Too many login attempts', {
+        code: 'RATE_LIMIT_EXCEEDED',
+        data: {
+          remaining,
+          resetIn: resetInSeconds
+        }
+      });
     }
   };
 };
