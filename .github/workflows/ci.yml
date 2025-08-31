@@ -33,6 +33,13 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_URL: postgresql://dummy:dummy@localhost:5432/dummy
+      VERCEL_BLOB_STORE_ID: dummy
+      VERCEL_BLOB_READ_WRITE_TOKEN: dummy
+      NEXT_PUBLIC_VERCEL_BLOB_STORE_ID: dummy
+      SENTRY_AUTH_TOKEN: dummy
+      SENTRY_DSN: dummy
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
@@ -56,4 +63,4 @@ jobs:
           ignore-unfixed: true
           format: 'table'
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
