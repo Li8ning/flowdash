@@ -60,6 +60,14 @@ const ProductFilter = ({ onFilter }: ProductFilterProps) => {
     onFilter({ name, category, design, color });
   };
 
+  const handleClear = () => {
+    setName('');
+    setCategory('');
+    setDesign('');
+    setColor('');
+    onFilter({ name: '', category: '', design: '', color: '' });
+  };
+
   return (
     <Box p={4} borderWidth={1} borderRadius="lg" boxShadow="sm" mb={4}>
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
@@ -114,8 +122,11 @@ const ProductFilter = ({ onFilter }: ProductFilterProps) => {
           </Select>
         </FormControl>
       </SimpleGrid>
-      <Button mt={4} onClick={handleFilter}>
+      <Button mt={4} mr={2} colorScheme="blue" onClick={handleFilter}>
         {t('filter')}
+      </Button>
+      <Button mt={4} colorScheme="gray" onClick={handleClear}>
+        {t('clear_filters')}
       </Button>
     </Box>
   );
