@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.1.0**
+**Version: 0.2.0**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -103,7 +103,7 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.1.0)
+## Recent Updates (v0.2.0)
 
 ### Toast Message System Refactor
 - Implemented a comprehensive localized toast message system
@@ -124,6 +124,13 @@ FlowDash is a web-based inventory management system designed specifically for sm
 - Implemented proper input validation with Zod schemas
 - Added comprehensive error monitoring with Sentry
 - Optimized for serverless deployment on Vercel
+
+### Login Security Enhancements (v0.2.0)
+- Added user-specific login attempt tracking using IP+username composite keys
+- Implemented remaining login attempts display for better user feedback
+- Added structured error codes (RATE_LIMIT_EXCEEDED, ACCOUNT_INACTIVE, INVALID_CREDENTIALS)
+- Enhanced rate limiter to return structured error data with localized messages
+- Improved security with better error handling and user feedback
 
 ## CI/CD
 
