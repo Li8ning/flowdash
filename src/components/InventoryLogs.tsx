@@ -8,7 +8,7 @@ import EditLogModal from '@/components/EditLogModal';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
-import { InventoryLog } from '@/types';
+import { InventoryLog, User } from '@/types';
 import {
   Table,
   Thead,
@@ -48,14 +48,13 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
-import { useDebounce } from '@/hooks/useDebounce';
 
 interface InventoryLogsProps {
   allLogs?: boolean;
 }
 
 interface LogFilters {
-  user: string;
+  userId: string;
   product: string;
   search: string;
   color: string;
@@ -80,7 +79,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const getInitialFilters = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     return {
-      user: '',
+      userId: '',
       product: '',
       search: '',
       color: '',
@@ -95,10 +94,9 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [filters, setFilters] = useState<LogFilters>(getInitialFilters());
   const [pendingFilters, setPendingFilters] = useState<LogFilters>(getInitialFilters());
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const isMobile = useBreakpointValue({ base: true, md: false });
 
-  const [distinctUsers, setDistinctUsers] = useState<string[]>([]);
+  const [distinctUsers, setDistinctUsers] = useState<{id: number, name: string}[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
   const [distinctDesigns, setDistinctDesigns] = useState<string[]>([]);
   const [distinctQualities, setDistinctQualities] = useState<string[]>([]);
@@ -131,19 +129,42 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         api.get('/distinct/inventory/packaging_type'),
       ];
 
+      let usersPromise = null;
       if (allLogs) {
-        endpoints.push(api.get('/distinct/inventory/users'));
+        // Fetch only floor_staff users (both active and inactive) for the filter
+        usersPromise = api.get('/users?status=all');
       }
 
-      const [colorsRes, designsRes, qualitiesRes, packagingTypesRes, usersRes] = await Promise.all(endpoints);
+      const [colorsRes, designsRes, qualitiesRes, packagingTypesRes] = await Promise.all(endpoints);
       
       setDistinctColors(colorsRes.data);
       setDistinctDesigns(designsRes.data);
       setDistinctQualities(qualitiesRes.data);
       setDistinctPackagingTypes(packagingTypesRes.data);
 
-      if (allLogs && usersRes) {
-        setDistinctUsers(usersRes.data);
+      if (allLogs && usersPromise) {
+        try {
+          const usersRes = await usersPromise;
+          // Filter to only show floor_staff users and use name instead of username
+          const floorStaffUsers = usersRes.data
+            .filter((user: User) => user.role === 'floor_staff')
+            .map((user: User) => ({
+              id: user.id,
+              name: user.name
+            }));
+          setDistinctUsers(floorStaffUsers);
+        } catch {
+          // If users API fails (e.g., insufficient permissions), fall back to distinct API
+          try {
+            const fallbackUsersRes = await api.get('/distinct/inventory/users');
+            setDistinctUsers(fallbackUsersRes.data.map((username: string) => ({
+              id: username, // Use username as fallback ID
+              name: username // Use username as fallback name
+            })));
+          } catch (fallbackErr) {
+            console.warn('Failed to fetch users for filter:', fallbackErr);
+          }
+        }
       }
     } catch (err) {
       toast({
@@ -163,8 +184,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   }, [fetchDistinctValues]);
 
   useEffect(() => {
-    fetchData(1, { ...filters, search: debouncedSearchQuery }, 50);
-  }, [fetchData, debouncedSearchQuery, filters]);
+    fetchData(1, filters, 50);
+  }, [fetchData, filters]);
 
 
   const handleFilterClick = () => {
@@ -178,14 +199,16 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       });
       return;
     }
-    setFilters(pendingFilters);
-    fetchData(1, pendingFilters, 50);
+    const filtersWithSearch = { ...pendingFilters, search: searchQuery };
+    setFilters(filtersWithSearch);
+    fetchData(1, filtersWithSearch, 50);
   };
 
   const handleClearFilters = () => {
     const initialFilters = getInitialFilters();
     setFilters(initialFilters);
     setPendingFilters(initialFilters);
+    setSearchQuery('');
     setDateRange('today');
     fetchData(1, initialFilters, 50);
   };
@@ -294,14 +317,14 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
             <Flex align="center">
               <Select
                   placeholder={t('inventory.logs.filter_by_user')}
-                  value={pendingFilters.user}
-                  onChange={(e) => setPendingFilters({ ...pendingFilters, user: e.target.value })}
+                  value={pendingFilters.userId}
+                  onChange={(e) => setPendingFilters({ ...pendingFilters, userId: e.target.value })}
                   focusBorderColor="blue.500"
                   isDisabled={isFetchingDistinctValues}
                 >
-                  {distinctUsers.map((u: string) => (
-                    <option key={u} value={u}>
-                      {u}
+                  {distinctUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
                     </option>
                   ))}
                 </Select>
@@ -597,7 +620,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       <Flex justify="center" mt={6}>
         {logs.length > 0 && logs.length < totalLogs && (
           <Button
-            onClick={() => fetchData((logs.length / 50) + 1, filters, 50)}
+            onClick={() => fetchData((logs.length / 50) + 1, { ...filters, search: searchQuery }, 50)}
             isDisabled={loading || logs.length >= totalLogs}
           >
             {t('pagination.load_more')}

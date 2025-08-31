@@ -39,14 +39,14 @@ export class BadRequestError extends ApiError {
 }
 
 export class UnauthorizedError extends ApiError {
-  constructor(message = 'Unauthorized') {
-    super(401, message);
+  constructor(message = 'Unauthorized', details?: unknown) {
+    super(401, message, details);
   }
 }
 
 export class ForbiddenError extends ApiError {
-  constructor(message = 'Forbidden') {
-    super(403, message);
+  constructor(message = 'Forbidden', details?: unknown) {
+    super(403, message, details);
   }
 }
 
@@ -63,8 +63,8 @@ export class ConflictError extends ApiError {
 }
 
 export class TooManyRequestsError extends ApiError {
-  constructor(message = 'Too Many Requests') {
-    super(429, message);
+  constructor(message = 'Too Many Requests', details?: unknown) {
+    super(429, message, details);
   }
 }
 
