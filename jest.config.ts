@@ -12,6 +12,8 @@ const config: Config = {
   testEnvironment: 'jsdom',
   // Add more setup options before each test is run
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  // Ignore Playwright E2E tests
+  testPathIgnorePatterns: ['<rootDir>/tests/'],
   moduleNameMapper: {
     // Handle module aliases
     '^@/components/(.*)$': '<rootDir>/src/components/$1',

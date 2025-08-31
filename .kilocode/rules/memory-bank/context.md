@@ -33,6 +33,9 @@ The application has undergone comprehensive bug fixes and improvements, addressi
 - **Fixed Login Error Notices**: Resolved inconsistency between local and Vercel deployment where login error notices were not displaying correctly on Vercel. Modified `src/lib/errors.ts` to always include error details for client errors (4xx status codes) in both development and production environments, ensuring consistent error messaging across all deployment targets.
 - **Version Update**: Updated application version from 0.2.0 to 0.2.1 to reflect the bug fix release.
 - **README Cleanup**: Removed the Project Structure section from README.md for cleaner documentation.
+- **CI/CD Workflow Enhancement**: Updated GitHub Actions workflow to include comprehensive testing and build verification. Added `test` and `build` jobs to ensure code quality across all branches. Expanded workflow triggers to run on all pushes and pull requests, providing CI coverage for the entire development process.
+- **Jest Configuration Fix**: Fixed Jest configuration to properly ignore Playwright E2E tests by adding `testPathIgnorePatterns` for the `tests/` directory, preventing test execution conflicts between unit and E2E test frameworks.
+- **Login Component Test Fixes**: Resolved test failures by removing incorrect mocks for non-existent `LanguageContext`, adding required `lng` prop, and implementing proper mocks for `next/navigation` router to ensure reliable unit testing.
 
 ## 🚀 **Next Steps**
-The application is now in a stable state with key filtering functionalities fixed, API validation issues resolved, and improved. The codebase is clean with no linting errors and prepared for future development. Future work will proceed based on the project roadmap.
+The application is now in a stable state with key filtering functionalities fixed, API validation issues resolved, and improved CI/CD pipeline. The codebase is clean with no linting errors, comprehensive test coverage, and automated build verification. Future work will proceed based on the project roadmap.

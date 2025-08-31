@@ -20,20 +20,18 @@ jest.mock('react-i18next', () => ({
   },
 }));
 
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+}));
+
 // Mock the AuthContext to provide a dummy login function
 jest.mock('@/context/AuthContext', () => ({
   ...jest.requireActual('@/context/AuthContext'),
   useAuth: () => ({
     login: jest.fn(),
-  }),
-}));
-
-// Mock the LanguageContext
-jest.mock('@/context/LanguageContext', () => ({
-  ...jest.requireActual('@/context/LanguageContext'),
-  useLanguage: () => ({
-    language: 'en',
-    changeLanguage: jest.fn(),
   }),
 }));
 
@@ -43,7 +41,7 @@ describe('Login Component', () => {
     render(
       <ChakraProvider theme={theme}>
         <AuthProvider>
-          <Login />
+          <Login lng="en" />
         </AuthProvider>
       </ChakraProvider>
     );
