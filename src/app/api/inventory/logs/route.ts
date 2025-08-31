@@ -18,7 +18,8 @@ export const GET = handleError(async (req: NextRequest) => {
   }
   const { searchParams } = new URL(req.url);
   
-  const user = searchParams.get('user');
+  const search = searchParams.get('search');
+  const userId = searchParams.get('userId');
   const product = searchParams.get('product');
   const color = searchParams.get('color');
   const design = searchParams.get('design');
@@ -34,7 +35,17 @@ export const GET = handleError(async (req: NextRequest) => {
   const params: (string | number)[] = [organization_id as number];
   let paramIndex = 2;
 
-  if (user) { conditions.push(`u.name = $${paramIndex++}`); params.push(user); }
+  if (search) {
+    conditions.push(`(p.name || ' ' || p.color || ' ' || p.design) ILIKE $${paramIndex++}`);
+    params.push(`%${search}%`);
+  }
+  if (userId) {
+    const parsedUserId = parseInt(userId, 10);
+    if (!isNaN(parsedUserId)) {
+      conditions.push(`l.user_id = $${paramIndex++}`);
+      params.push(parsedUserId);
+    }
+  }
   if (product) { conditions.push(`p.name = $${paramIndex++}`); params.push(product); }
   if (color) { conditions.push(`p.color = $${paramIndex++}`); params.push(color); }
   if (design) { conditions.push(`p.design = $${paramIndex++}`); params.push(design); }

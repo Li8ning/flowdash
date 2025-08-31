@@ -1,9 +1,18 @@
 # FlowDash - Context
 
 ## 🎯 **Current Work Focus**
-The application has completed a comprehensive button color scheme implementation to ensure proper visual feedback for different action types. The focus was on fixing theme configuration overrides that were preventing Chakra UI's colorScheme props from working correctly, ensuring destructive actions appear red, positive actions appear green, and primary actions appear blue.
+The application has undergone comprehensive bug fixes and improvements, addressing both filtering functionality and API validation issues. Recent work has focused on resolving 400 Bad Request errors in user management operations while maintaining security best practices.
 
 ## 🔄 **Recent Changes**
+- **Fixed 400 Bad Request Error in User Management**: Resolved a critical issue where updating user names in the user management page was failing with a 400 error. The problem was caused by the client sending an `id` field in the request body that the API's Zod schema rejected due to `.strict()` validation. Modified the `useCrud` hook to exclude the `id` from the request body, following REST API best practices where the resource ID is provided in the URL path. Also fixed an ESLint warning for unused variables.
+- **Fixed Inventory Log Filters**: Resolved multiple bugs in the inventory logs page. The general search and "Filter by user" functionalities are now working correctly. The API endpoint at `src/app/api/inventory/logs/route.ts` was fixed to properly apply `search` and `userId` query parameters.
+- **Fixed Product Search Filter**: Corrected the search functionality on the product management page. The API endpoint at `src/app/api/products/route.ts` now properly filters products by name.
+- **Improved Inventory Log Search UX**: Changed the search behavior on the inventory logs page. The search is no longer triggered on every keystroke but only when the "Filter" button is clicked, providing a more controlled user experience.
+- **Enhanced "Filter by user" on Inventory Logs**:
+    - The filter now correctly sends the `userId` instead of the username to the API.
+    - The dropdown now exclusively lists users with the `floor_staff` role.
+    - The filter now includes both active and inactive floor staff to allow searching of historical logs.
+    - The dropdown displays the user's full name instead of their username for better readability.
 - **Fixed Critical Race Condition**: Resolved a complex client-side race condition between Next.js App Router parameter hydration, `AuthContext` initialization, and `i18next` language loading. This fix stabilized the application on page refresh.
 - **Eliminated Infinite API Loop**: By fixing the underlying i18n and authentication race condition, the infinite API call loop that was occurring on all authenticated pages has been eliminated.
 - **Corrected URL Generation**: Fixed a bug where navigation links would be generated with `/undefined/...` in the URL path on page refresh. The fix ensures the language parameter (`lng`) is correctly passed from the page `params` to the layout components.
@@ -19,4 +28,4 @@ The application has completed a comprehensive button color scheme implementation
 - **Enhanced User Experience**: All buttons now display appropriate colors based on their action types: red for destructive actions (delete, archive, logout), green for positive actions (save, reactivate), blue for primary actions (login, add, update), and default gray for neutral actions (edit, cancel). This provides clear visual feedback that helps factory workers understand the impact of their actions.
 
 ## 🚀 **Next Steps**
-The application is now in a stable and clean state with both a properly implemented localized toast message system and correct button color schemes. All critical bugs have been resolved, the codebase has been prepared for production, the toast messaging system provides contextually appropriate feedback in all supported languages, and the user interface now provides clear visual feedback through proper button coloring. The theme configuration has been optimized to allow Chakra UI's colorScheme functionality to work correctly while maintaining consistent styling. Future work will proceed based on the project roadmap.
+The application is now in a stable state with key filtering functionalities fixed, API validation issues resolved, and improved. The codebase is clean with no linting errors and prepared for future development. Future work will proceed based on the project roadmap.

@@ -130,7 +130,9 @@ export function useCrud<T>({
 
   const updateItem = async (id: number | string, item: Partial<T>) => {
     try {
-      const response = await api.patch<T>(`${endpoint}/${id}`, item);
+      // Exclude the id field from the request body since it's in the URL
+      const { [idKey]: _excludedId, ...updateData } = item;
+      const response = await api.patch<T>(`${endpoint}/${id}`, updateData);
       setState(prevState => ({
         ...prevState,
         data: prevState.data.map(d => (d[idKey] === id ? response.data : d)),
