@@ -30,6 +30,9 @@ The application has undergone comprehensive bug fixes and improvements, addressi
 - **Improved Login Error Messages**: Enhanced error handling with structured error codes and localized messages. Added support for different error types (RATE_LIMIT_EXCEEDED, ACCOUNT_INACTIVE, INVALID_CREDENTIALS) with appropriate user feedback and remaining attempt display.
 - **Translation System Enhancement**: Added new translation keys for login error messages across all supported languages (English, Hindi, Gujarati) with dynamic variable interpolation for remaining attempts and reset times.
 - **Code Quality Improvements**: Fixed linting warnings, removed unused imports, and ensured clean, maintainable codebase with proper TypeScript types and error handling.
+- **Fixed Login Error Notices**: Resolved inconsistency between local and Vercel deployment where login error notices were not displaying correctly on Vercel. Modified `src/lib/errors.ts` to always include error details for client errors (4xx status codes) in both development and production environments, ensuring consistent error messaging across all deployment targets.
+- **Version Update**: Updated application version from 0.2.0 to 0.2.1 to reflect the bug fix release.
+- **README Cleanup**: Removed the Project Structure section from README.md for cleaner documentation.
 
 ## 🚀 **Next Steps**
 The application is now in a stable state with key filtering functionalities fixed, API validation issues resolved, and improved. The codebase is clean with no linting errors and prepared for future development. Future work will proceed based on the project roadmap.

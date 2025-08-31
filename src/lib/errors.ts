@@ -22,9 +22,10 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 
-  public toResponse(isProduction = false): NextResponse<ErrorResponse> {
+  public toResponse(_isProduction = false): NextResponse<ErrorResponse> {
     const body: ErrorResponse = { error: this.message };
-    if (!isProduction && this.details) {
+    // Always include details for client errors (4xx), never for server errors (5xx)
+    if (this.details && this.statusCode < 500) {
       body.details = this.details;
     }
     return NextResponse.json(body, { status: this.statusCode });

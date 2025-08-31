@@ -77,6 +77,7 @@ Memory Bank updates occur when:
 2. After implementing significant changes
 3. When user explicitly requests with the phrase **update memory bank** (MUST review ALL files)
 4. When context needs clarification
+5. Whenever you update version number of app, make sure to update the version in readme.md file too
 
 If I notice significant changes that should be preserved but the user hasn't explicitly requested an update, I should suggest: "Would you like me to update the memory bank to reflect these changes?"
 
