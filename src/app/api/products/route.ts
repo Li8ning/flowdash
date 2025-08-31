@@ -34,7 +34,7 @@ export const GET = handleError(async (req: NextRequest) => {
   const category = searchParams.get('category');
   const design = searchParams.get('design');
 
-  const search = searchParams.get('search');
+  const name = searchParams.get('name');
  
   const whereClauses = [
     'organization_id = $1',
@@ -43,9 +43,9 @@ export const GET = handleError(async (req: NextRequest) => {
   const queryParams: (string | number)[] = [organization_id as number];
   let paramIndex = 2;
  
-  if (search) {
+  if (name) {
     whereClauses.push(`p.name ILIKE $${paramIndex++}`);
-    queryParams.push(`%${search}%`);
+    queryParams.push(`%${name}%`);
   }
   if (color) {
     whereClauses.push(`color = $${paramIndex++}`);
