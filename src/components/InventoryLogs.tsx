@@ -96,6 +96,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [pendingFilters, setPendingFilters] = useState<LogFilters>(getInitialFilters());
   const [searchQuery, setSearchQuery] = useState('');
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const isDesktop = useBreakpointValue({ base: false, md: true });
 
   const [distinctUsers, setDistinctUsers] = useState<{id: number, name: string}[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
@@ -315,133 +316,277 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
       </Flex>
       <Divider mb={6} />
       <Box>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: allLogs ? 4 : 3, xl: allLogs ? 7 : 6 }} spacing={4} mb={4}>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <SearchIcon color="gray.300" />
-            </InputLeftElement>
-            <Input
-              placeholder={t('inventory.logs.search_by_product')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </InputGroup>
-          {allLogs && (
-            <Flex align="center">
-              <Select
-                  placeholder={t('inventory.logs.filter_by_user')}
-                  value={pendingFilters.userId}
-                  onChange={(e) => setPendingFilters({ ...pendingFilters, userId: e.target.value })}
-                  focusBorderColor="blue.500"
-                  isDisabled={isFetchingDistinctValues}
-                >
-                  {distinctUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </Select>
-                {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
-              </Flex>
-            )}
-            <Flex align="center">
-              <Select
-                placeholder={t('inventory.logs.filter_by_color')}
-                value={pendingFilters.color}
-                onChange={(e) => setPendingFilters({ ...pendingFilters, color: e.target.value })}
-                focusBorderColor="blue.500"
-                isDisabled={isFetchingDistinctValues}
-              >
-                {distinctColors.map((c: string) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
+        {isMobile ? (
+          <Accordion allowToggle mb={4}>
+            <AccordionItem>
+              <AccordionButton>
+                <Box flex="1" textAlign="left" fontWeight="bold">
+                  {t('inventory.logs.filters')}
+                </Box>
+                <AccordionIcon />
+              </AccordionButton>
+              <AccordionPanel pb={4}>
+                        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: allLogs ? 4 : 3, xl: allLogs ? 7 : 6 }} spacing={4} mb={4}>
+                          <InputGroup>
+                            <InputLeftElement pointerEvents="none">
+                              <SearchIcon color="gray.300" />
+                            </InputLeftElement>
+                            <Input
+                              placeholder={t('inventory.logs.search_by_product')}
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </InputGroup>
+                          {allLogs && (
+                            <Flex align="center">
+                              <Select
+                                  placeholder={t('inventory.logs.filter_by_user')}
+                                  value={pendingFilters.userId}
+                                  onChange={(e) => setPendingFilters({ ...pendingFilters, userId: e.target.value })}
+                                  focusBorderColor="blue.500"
+                                  isDisabled={isFetchingDistinctValues}
+                                >
+                                  {distinctUsers.map((u) => (
+                                    <option key={u.id} value={u.id}>
+                                      {u.name}
+                                    </option>
+                                  ))}
+                                </Select>
+                                {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                              </Flex>
+                            )}
+                            <Flex align="center">
+                              <Select
+                                placeholder={t('inventory.logs.filter_by_color')}
+                                value={pendingFilters.color}
+                                onChange={(e) => setPendingFilters({ ...pendingFilters, color: e.target.value })}
+                                focusBorderColor="blue.500"
+                                isDisabled={isFetchingDistinctValues}
+                              >
+                                {distinctColors.map((c: string) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </Select>
+                              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                            </Flex>
+                            <Flex align="center">
+                              <Select
+                                placeholder={t('inventory.logs.filter_by_design')}
+                                value={pendingFilters.design}
+                                onChange={(e) => setPendingFilters({ ...pendingFilters, design: e.target.value })}
+                                focusBorderColor="blue.500"
+                                isDisabled={isFetchingDistinctValues}
+                              >
+                                {distinctDesigns.map((d: string) => (
+                                  <option key={d} value={d}>
+                                    {d}
+                                  </option>
+                                ))}
+                              </Select>
+                              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                            </Flex>
+                            <Flex align="center">
+                              <Select
+                                placeholder={t('inventory.logs.filter_by_quality')}
+                                value={pendingFilters.quality}
+                                onChange={(e) => setPendingFilters({ ...pendingFilters, quality: e.target.value })}
+                                focusBorderColor="blue.500"
+                                isDisabled={isFetchingDistinctValues}
+                              >
+                                {distinctQualities.map((q: string) => (
+                                  <option key={q} value={q}>
+                                    {t(`product_manager.quality.${q.toLowerCase()}`)}
+                                  </option>
+                                ))}
+                              </Select>
+                              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                            </Flex>
+                            <Flex align="center">
+                              <Select
+                                placeholder={t('inventory.logs.filter_by_packaging_type')}
+                                value={pendingFilters.packaging_type}
+                                onChange={(e) =>
+                                  setPendingFilters({ ...pendingFilters, packaging_type: e.target.value })
+                                }
+                               focusBorderColor="blue.500"
+                               isDisabled={isFetchingDistinctValues}
+                             >
+                                {distinctPackagingTypes.map((p: string) => (
+                                  <option key={p} value={p}>
+                                    {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
+                                  </option>
+                                ))}
+                              </Select>
+                              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                            </Flex>
+                          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} focusBorderColor="blue.500">
+                            <option value="today">{t('inventory.logs.date_range.today')}</option>
+                            <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
+                            <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
+                            <option value="custom">{t('inventory.logs.date_range.custom')}</option>
+                          </Select>
+                        </SimpleGrid>
+        
+                        <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} mb={6}>
+                            {dateRange === 'custom' && (
+                                <>
+                                    <Input
+                                        type="date"
+                                        placeholder={t('inventory.logs.start_date')}
+                                        value={pendingFilters.startDate}
+                                        onChange={(e) => setPendingFilters({ ...pendingFilters, startDate: e.target.value })}
+                                    />
+                                    <Input
+                                        type="date"
+                                        placeholder={t('inventory.logs.end_date')}
+                                        value={pendingFilters.endDate}
+                                        onChange={(e) => setPendingFilters({ ...pendingFilters, endDate: e.target.value })}
+                                    />
+                                </>
+                            )}
+                            <Button onClick={handleFilterClick} colorScheme="blue" flexShrink={0}>
+                                {t('inventory.logs.filter')}
+                            </Button>
+                            <Button onClick={handleClearFilters} colorScheme="gray" flexShrink={0}>
+                                {t('inventory.logs.clear_filters')}
+                            </Button>
+                        </Stack>
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <>
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: allLogs ? 4 : 3, xl: allLogs ? 7 : 6 }} spacing={4} mb={4}>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <SearchIcon color="gray.300" />
+                </InputLeftElement>
+                <Input
+                  placeholder={t('inventory.logs.search_by_product')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </InputGroup>
+              {allLogs && (
+                <Flex align="center">
+                  <Select
+                      placeholder={t('inventory.logs.filter_by_user')}
+                      value={pendingFilters.userId}
+                      onChange={(e) => setPendingFilters({ ...pendingFilters, userId: e.target.value })}
+                      focusBorderColor="blue.500"
+                      isDisabled={isFetchingDistinctValues}
+                    >
+                      {distinctUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </Select>
+                    {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                  </Flex>
+                )}
+                <Flex align="center">
+                  <Select
+                    placeholder={t('inventory.logs.filter_by_color')}
+                    value={pendingFilters.color}
+                    onChange={(e) => setPendingFilters({ ...pendingFilters, color: e.target.value })}
+                    focusBorderColor="blue.500"
+                    isDisabled={isFetchingDistinctValues}
+                  >
+                    {distinctColors.map((c: string) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </Select>
+                  {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                </Flex>
+                <Flex align="center">
+                  <Select
+                    placeholder={t('inventory.logs.filter_by_design')}
+                    value={pendingFilters.design}
+                    onChange={(e) => setPendingFilters({ ...pendingFilters, design: e.target.value })}
+                    focusBorderColor="blue.500"
+                    isDisabled={isFetchingDistinctValues}
+                  >
+                    {distinctDesigns.map((d: string) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </Select>
+                  {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                </Flex>
+                <Flex align="center">
+                  <Select
+                    placeholder={t('inventory.logs.filter_by_quality')}
+                    value={pendingFilters.quality}
+                    onChange={(e) => setPendingFilters({ ...pendingFilters, quality: e.target.value })}
+                    focusBorderColor="blue.500"
+                    isDisabled={isFetchingDistinctValues}
+                  >
+                    {distinctQualities.map((q: string) => (
+                      <option key={q} value={q}>
+                        {t(`product_manager.quality.${q.toLowerCase()}`)}
+                      </option>
+                    ))}
+                  </Select>
+                  {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                </Flex>
+                <Flex align="center">
+                  <Select
+                    placeholder={t('inventory.logs.filter_by_packaging_type')}
+                    value={pendingFilters.packaging_type}
+                    onChange={(e) =>
+                      setPendingFilters({ ...pendingFilters, packaging_type: e.target.value })
+                    }
+                   focusBorderColor="blue.500"
+                   isDisabled={isFetchingDistinctValues}
+                 >
+                    {distinctPackagingTypes.map((p: string) => (
+                      <option key={p} value={p}>
+                        {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
+                      </option>
+                    ))}
+                  </Select>
+                  {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
+                </Flex>
+              <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} focusBorderColor="blue.500">
+                <option value="today">{t('inventory.logs.date_range.today')}</option>
+                <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
+                <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
+                <option value="custom">{t('inventory.logs.date_range.custom')}</option>
               </Select>
-              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
-            </Flex>
-            <Flex align="center">
-              <Select
-                placeholder={t('inventory.logs.filter_by_design')}
-                value={pendingFilters.design}
-                onChange={(e) => setPendingFilters({ ...pendingFilters, design: e.target.value })}
-                focusBorderColor="blue.500"
-                isDisabled={isFetchingDistinctValues}
-              >
-                {distinctDesigns.map((d: string) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </Select>
-              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
-            </Flex>
-            <Flex align="center">
-              <Select
-                placeholder={t('inventory.logs.filter_by_quality')}
-                value={pendingFilters.quality}
-                onChange={(e) => setPendingFilters({ ...pendingFilters, quality: e.target.value })}
-                focusBorderColor="blue.500"
-                isDisabled={isFetchingDistinctValues}
-              >
-                {distinctQualities.map((q: string) => (
-                  <option key={q} value={q}>
-                    {t(`product_manager.quality.${q.toLowerCase()}`)}
-                  </option>
-                ))}
-              </Select>
-              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
-            </Flex>
-            <Flex align="center">
-              <Select
-                placeholder={t('inventory.logs.filter_by_packaging_type')}
-                value={pendingFilters.packaging_type}
-                onChange={(e) =>
-                  setPendingFilters({ ...pendingFilters, packaging_type: e.target.value })
-                }
-               focusBorderColor="blue.500"
-               isDisabled={isFetchingDistinctValues}
-             >
-                {distinctPackagingTypes.map((p: string) => (
-                  <option key={p} value={p}>
-                    {t(`product_manager.packaging_type.${p.toLowerCase()}`)}
-                  </option>
-                ))}
-              </Select>
-              {isFetchingDistinctValues && <Spinner size="sm" ml={2} />}
-            </Flex>
-          <Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} focusBorderColor="blue.500">
-            <option value="today">{t('inventory.logs.date_range.today')}</option>
-            <option value="last7days">{t('inventory.logs.date_range.last7days')}</option>
-            <option value="thisMonth">{t('inventory.logs.date_range.thisMonth')}</option>
-            <option value="custom">{t('inventory.logs.date_range.custom')}</option>
-          </Select>
-        </SimpleGrid>
+            </SimpleGrid>
 
-        <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} mb={6}>
-            {dateRange === 'custom' && (
-                <>
-                    <Input
-                        type="date"
-                        placeholder={t('inventory.logs.start_date')}
-                        value={pendingFilters.startDate}
-                        onChange={(e) => setPendingFilters({ ...pendingFilters, startDate: e.target.value })}
-                    />
-                    <Input
-                        type="date"
-                        placeholder={t('inventory.logs.end_date')}
-                        value={pendingFilters.endDate}
-                        onChange={(e) => setPendingFilters({ ...pendingFilters, endDate: e.target.value })}
-                    />
-                </>
-            )}
-            <Button onClick={handleFilterClick} colorScheme="blue" flexShrink={0}>
-                {t('inventory.logs.filter')}
-            </Button>
-            <Button onClick={handleClearFilters} colorScheme="gray" flexShrink={0}>
-                {t('inventory.logs.clear_filters')}
-            </Button>
-        </Stack>
+            <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} mb={6}>
+                {dateRange === 'custom' && (
+                    <>
+                        <Input
+                            type="date"
+                            placeholder={t('inventory.logs.start_date')}
+                            value={pendingFilters.startDate}
+                            onChange={(e) => setPendingFilters({ ...pendingFilters, startDate: e.target.value })}
+                        />
+                        <Input
+                            type="date"
+                            placeholder={t('inventory.logs.end_date')}
+                            value={pendingFilters.endDate}
+                            onChange={(e) => setPendingFilters({ ...pendingFilters, endDate: e.target.value })}
+                        />
+                    </>
+                )}
+                <Button onClick={handleFilterClick} colorScheme="blue" flexShrink={0}>
+                    {t('inventory.logs.filter')}
+                </Button>
+                <Button onClick={handleClearFilters} colorScheme="gray" flexShrink={0}>
+                    {t('inventory.logs.clear_filters')}
+                </Button>
+            </Stack>
+          </>
+        )}
       </Box>
       <Box>
         {loading ? (

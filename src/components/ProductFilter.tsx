@@ -8,6 +8,12 @@ import {
   FormLabel,
   Select,
   SimpleGrid,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +33,7 @@ const ProductFilter = ({ onFilter }: ProductFilterProps) => {
   const [categories, setCategories] = useState<ProductAttribute[]>([]);
   const [designs, setDesigns] = useState<ProductAttribute[]>([]);
   const [colors, setColors] = useState<ProductAttribute[]>([]);
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -68,8 +75,8 @@ const ProductFilter = ({ onFilter }: ProductFilterProps) => {
     onFilter({ name: '', category: '', design: '', color: '' });
   };
 
-  return (
-    <Box p={4} borderWidth={1} borderRadius="lg" boxShadow="sm" mb={4}>
+  const filterContent = (
+    <>
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
         <FormControl>
           <FormLabel>{t('create_modal.name')}</FormLabel>
@@ -128,6 +135,28 @@ const ProductFilter = ({ onFilter }: ProductFilterProps) => {
       <Button mt={4} colorScheme="gray" onClick={handleClear}>
         {t('clear_filters')}
       </Button>
+    </>
+  );
+
+  return (
+    <Box p={4} borderWidth={1} borderRadius="lg" boxShadow="sm" mb={4}>
+      {isMobile ? (
+        <Accordion allowToggle>
+          <AccordionItem>
+            <AccordionButton>
+              <Box flex="1" textAlign="left" fontWeight="bold">
+                {t('filters')}
+              </Box>
+              <AccordionIcon />
+            </AccordionButton>
+            <AccordionPanel pb={4}>
+              {filterContent}
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      ) : (
+        filterContent
+      )}
     </Box>
   );
 };

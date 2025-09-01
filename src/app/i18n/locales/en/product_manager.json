@@ -1,5 +1,6 @@
 {
   "title": "Product Management",
+  "filters": "Filters",
   "search_placeholder": "Search products...",
   "add_new_product": "Add New Product",
   "filter_by_color": "Filter by Color",

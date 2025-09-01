@@ -34,6 +34,7 @@
   "unassigned.role.description": "You are not assigned a role. Please contact an administrator.",
 
   "inventory.logs.title": "Inventory Logs",
+  "inventory.logs.filters": "Filters",
   "inventory.logs.export_pdf": "Export to PDF",
   "inventory.logs.export_excel": "Export to Excel",
   "inventory.logs.filter": "Filter",
@@ -308,7 +309,7 @@
   "common.product.name": "Product Name",
   "pagination": {
     "first": "First",
-    "previous": "Previous",
+    "previous": "Prev",
     "next": "Next",
     "last": "Last",
     "page": "Page",

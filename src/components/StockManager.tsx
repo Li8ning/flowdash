@@ -261,7 +261,17 @@ const StockManager = () => {
 
       {/* Filters */}
       <Box mb={6}>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={4}>
+        {isMobile ? (
+          <Accordion allowToggle mb={4}>
+            <AccordionItem>
+              <AccordionButton>
+                <Box flex="1" textAlign="left" fontWeight="bold">
+                  Filters
+                </Box>
+                <AccordionIcon />
+              </AccordionButton>
+              <AccordionPanel pb={4}>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={4}>
           <Input
             placeholder="Search by product name..."
             value={filters.search}
@@ -352,6 +362,104 @@ const StockManager = () => {
             Clear Filters
           </Button>
         </HStack>
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={4}>
+              <Input
+                placeholder="Search by product name..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                focusBorderColor="blue.500"
+              />
+
+              <Select
+                placeholder="All Categories"
+                value={filters.category}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+                focusBorderColor="blue.500"
+              >
+                {distinctValues.categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="All Designs"
+                value={filters.design}
+                onChange={(e) => handleFilterChange('design', e.target.value)}
+                focusBorderColor="blue.500"
+              >
+                {distinctValues.designs.map((design) => (
+                  <option key={design} value={design}>
+                    {design}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="All Colors"
+                value={filters.color}
+                onChange={(e) => handleFilterChange('color', e.target.value)}
+                focusBorderColor="blue.500"
+              >
+                {distinctValues.colors.map((color) => (
+                  <option key={color} value={color}>
+                    {color}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="All Qualities"
+                value={filters.quality}
+                onChange={(e) => handleFilterChange('quality', e.target.value)}
+                focusBorderColor="blue.500"
+              >
+                {distinctValues.qualities.map((quality) => (
+                  <option key={quality} value={quality}>
+                    {quality}
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="All Packaging Types"
+                value={filters.packaging_type}
+                onChange={(e) => handleFilterChange('packaging_type', e.target.value)}
+                focusBorderColor="blue.500"
+              >
+                {distinctValues.packaging_types.map((packaging) => (
+                  <option key={packaging} value={packaging}>
+                    {packaging}
+                  </option>
+                ))}
+              </Select>
+
+              <Flex align="center">
+                <Text fontSize="sm" mr={3}>Show Zero Stock:</Text>
+                <Switch
+                  isChecked={filters.showZeroStock}
+                  onChange={(e) => handleFilterChange('showZeroStock', e.target.checked)}
+                  colorScheme="blue"
+                />
+              </Flex>
+            </SimpleGrid>
+
+            <HStack spacing={2}>
+              <Button colorScheme="blue" onClick={handleApplyFilters}>
+                Filter
+              </Button>
+              <Button onClick={handleClearFilters}>
+                Clear Filters
+              </Button>
+            </HStack>
+          </>
+        )}
       </Box>
 
       {/* Stock Data Display */}

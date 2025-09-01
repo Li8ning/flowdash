@@ -34,6 +34,7 @@
   "unassigned.role.description": "તમને કોઈ રોલ નથી મળ્યો. એડમિન સાથે વાત કરો.",
 
   "inventory.logs.title": "સ્ટોકની માહિતી",
+  "inventory.logs.filters": "ફિલ્ટર",
   "inventory.logs.export_pdf": "PDF ડાઉનલોડ કરો",
   "inventory.logs.export_excel": "Excel ડાઉનલોડ કરો",
   "inventory.logs.filter": "ફિલ્ટર",

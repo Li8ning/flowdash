@@ -39,6 +39,12 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Spinner,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { DeleteIcon, SearchIcon, RepeatIcon, EditIcon } from '@chakra-ui/icons';
 import UserProfileForm from '@/components/UserProfileForm';
@@ -52,6 +58,7 @@ import { useState } from 'react';
 const UserManager: React.FC = () => {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
+  const isMobile = useBreakpointValue({ base: true, md: false });
   
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -186,26 +193,61 @@ const UserManager: React.FC = () => {
       </Flex>
       <Divider mb={6} />
 
-      <Flex mb={4} direction={['column', 'row']} gap={4}>
-        <InputGroup>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.300" />
-          </InputLeftElement>
-          <Input
-            placeholder={t('user_manager.search_placeholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </InputGroup>
-        <Select value={statusFilter} onChange={(e) => {
-          setStatusFilter(e.target.value);
-          setCurrentPage(1); // Reset to first page when changing status filter
-        }}>
-          <option value="all">{t('user_manager.status_filter.all')}</option>
-          <option value="active">{t('user_manager.status_filter.active')}</option>
-          <option value="inactive">{t('user_manager.status_filter.inactive')}</option>
-        </Select>
-      </Flex>
+      {isMobile ? (
+        <Accordion allowToggle mb={4}>
+          <AccordionItem>
+            <AccordionButton>
+              <Box flex="1" textAlign="left" fontWeight="bold">
+                Filters
+              </Box>
+              <AccordionIcon />
+            </AccordionButton>
+            <AccordionPanel pb={4}>
+              <Flex direction="column" gap={4}>
+                <InputGroup>
+                  <InputLeftElement pointerEvents="none">
+                    <SearchIcon color="gray.300" />
+                  </InputLeftElement>
+                  <Input
+                    placeholder={t('user_manager.search_placeholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </InputGroup>
+                <Select value={statusFilter} onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1); // Reset to first page when changing status filter
+                }}>
+                  <option value="all">{t('user_manager.status_filter.all')}</option>
+                  <option value="active">{t('user_manager.status_filter.active')}</option>
+                  <option value="inactive">{t('user_manager.status_filter.inactive')}</option>
+                </Select>
+              </Flex>
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      ) : (
+        <Flex mb={4} direction={['column', 'row']} gap={4}>
+          <InputGroup>
+            <InputLeftElement pointerEvents="none">
+              <SearchIcon color="gray.300" />
+            </InputLeftElement>
+            <Input
+              placeholder={t('user_manager.search_placeholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </InputGroup>
+          <Select value={statusFilter} onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1); // Reset to first page when changing status filter
+          }}>
+            <option value="all">{t('user_manager.status_filter.all')}</option>
+            <option value="active">{t('user_manager.status_filter.active')}</option>
+            <option value="inactive">{t('user_manager.status_filter.inactive')}</option>
+          </Select>
+        </Flex>
+      )}
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
