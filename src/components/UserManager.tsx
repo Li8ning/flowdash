@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   Box,
@@ -45,7 +45,9 @@ import UserProfileForm from '@/components/UserProfileForm';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useCrud } from '@/hooks/useCrud';
+import Pagination from '@/components/Pagination';
 import { User, Role } from '@/types';
+import { useState } from 'react';
 
 const UserManager: React.FC = () => {
   const { t } = useTranslation();
@@ -65,8 +67,13 @@ const UserManager: React.FC = () => {
   const [alertAction, setAlertAction] = useState<{ type: 'remove' | 'reactivate'; userId: number } | null>(null);
   const cancelRef = useRef(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
   const {
     data: users,
+    total: totalUsers,
     loading: isLoading,
     fetchData,
     createItem,
@@ -89,8 +96,22 @@ const UserManager: React.FC = () => {
       status: statusFilter,
       search: debouncedSearchQuery,
     };
-    fetchData(undefined, filters);
-  }, [fetchData, statusFilter, debouncedSearchQuery]);
+    fetchData(currentPage, filters, itemsPerPage);
+  }, [fetchData, statusFilter, debouncedSearchQuery, currentPage, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+    const filters = {
+      status: statusFilter,
+      search: debouncedSearchQuery,
+    };
+    fetchData(1, filters, newItemsPerPage);
+  };
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +197,10 @@ const UserManager: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </InputGroup>
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <Select value={statusFilter} onChange={(e) => {
+          setStatusFilter(e.target.value);
+          setCurrentPage(1); // Reset to first page when changing status filter
+        }}>
           <option value="all">{t('user_manager.status_filter.all')}</option>
           <option value="active">{t('user_manager.status_filter.active')}</option>
           <option value="inactive">{t('user_manager.status_filter.inactive')}</option>
@@ -342,6 +366,19 @@ const UserManager: React.FC = () => {
           </TableContainer>
         )}
       </Box>
+
+      {/* Pagination Controls */}
+      {totalUsers > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalUsers / itemsPerPage)}
+          totalItems={totalUsers}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={isLoading}
+        />
+      )}
 
       <AlertDialog
         isOpen={isAlertOpen}

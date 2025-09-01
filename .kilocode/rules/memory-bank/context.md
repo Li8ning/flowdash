@@ -4,6 +4,10 @@
 The application has successfully implemented a comprehensive stock management system for finished goods inventory. This major feature addition provides factory managers with detailed visibility into their inventory levels across all product variants, with advanced filtering, pagination, and mobile-optimized interfaces.
 
 ## 🔄 **Recent Changes**
+- **Enhanced Pagination System (v0.4.0)**: Implemented dynamic items per page selector allowing users to choose 25, 50, or 100 items per page (default: 25). Updated all components (ProductManager, InventoryLogs, UserManager, StockManager) to support dynamic pagination. Fixed pagination visibility issue where controls would disappear when there were fewer items than the selected page size.
+- **Always Visible Pagination Controls**: Modified Pagination component to always show controls when there are items, regardless of whether multiple pages are needed. This provides consistent UX across all data tables.
+- **Updated CI Workflow**: Modified GitHub Actions workflow to only run tests on `feature/system-improvements` branch, optimizing CI performance by skipping unnecessary test runs on main branch.
+- **Version Update**: Bumped application version from 0.3.0 to 0.4.0 to reflect the major pagination enhancements.
 - **Fixed 400 Bad Request Error in User Management**: Resolved a critical issue where updating user names in the user management page was failing with a 400 error. The problem was caused by the client sending an `id` field in the request body that the API's Zod schema rejected due to `.strict()` validation. Modified the `useCrud` hook to exclude the `id` from the request body, following REST API best practices where the resource ID is provided in the URL path. Also fixed an ESLint warning for unused variables.
 - **Fixed Inventory Log Filters**: Resolved multiple bugs in the inventory logs page. The general search and "Filter by user" functionalities are now working correctly. The API endpoint at `src/app/api/inventory/logs/route.ts` was fixed to properly apply `search` and `userId` query parameters.
 - **Fixed Product Search Filter**: Corrected the search functionality on the product management page. The API endpoint at `src/app/api/products/route.ts` now properly filters products by name.
@@ -42,7 +46,16 @@ The application has successfully implemented a comprehensive stock management sy
 ## 🚀 **Next Steps**
 The application now features a complete stock management system alongside the existing inventory logging functionality. The codebase is stable with comprehensive filtering, pagination, and mobile-optimized interfaces. Future development can focus on order management integration and advanced reporting features.
 
-## 📅 **Recent Updates (2025-08-31)**
+## 📅 **Recent Updates (2025-09-01)**
+
+### Enhanced Pagination System Implementation (v0.4.0)
+- **Dynamic Items Per Page**: Added dropdown selector allowing users to choose 25, 50, or 100 items per page (default: 25)
+- **Always Visible Controls**: Pagination controls now remain visible even when there's only one page of data
+- **Consistent UX**: Items per page selector and page information always accessible across all data tables
+- **Improved Performance**: Better handling of large datasets with user-controlled pagination limits
+- **Code Quality**: Fixed all linting warnings and ensured clean, maintainable codebase
+
+### Previous Updates (v0.3.0)
 
 ### Stock Management System Implementation (v0.3.0)
 - **Complete Stock Management Feature**: Implemented a comprehensive finished goods inventory system with separate rows for each product variant (quality + packaging combination).

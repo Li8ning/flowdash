@@ -16,24 +16,41 @@ import useProducts from '@/hooks/useProducts';
 import ProductTable from './ProductTable';
 import ProductFilter from './ProductFilter';
 import ProductFormModal from './ProductFormModal';
+import Pagination from './Pagination';
 import { Product } from '@/types';
 
 const ProductManager = () => {
   const { t } = useTranslation(['product_manager', 'common']);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const {
     products,
     loading,
     error,
+    totalCount,
     fetchProducts,
     addProduct,
     updateProduct,
     archiveProduct,
-  } = useProducts();
+  } = useProducts(itemsPerPage);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
   const handleFilter = (filters: { name: string; category: string; design: string; color: string }) => {
-    fetchProducts(filters);
+    setCurrentPage(1); // Reset to first page when applying filters
+    fetchProducts(filters, 1, itemsPerPage);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchProducts({ name: '', category: '', design: '', color: '' }, page, itemsPerPage);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const handleEdit = (product: Product) => {
@@ -85,6 +102,20 @@ const ProductManager = () => {
         loading={loading}
         error={error}
       />
+
+      {/* Pagination Controls */}
+      {totalCount > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalCount / itemsPerPage)}
+          totalItems={totalCount}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={loading}
+        />
+      )}
+
       <ProductFormModal
         isOpen={isOpen}
         onClose={() => {

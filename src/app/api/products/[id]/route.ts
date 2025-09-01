@@ -19,11 +19,15 @@ export const GET = handleError(async (req: NextRequest, { params }: HandlerConte
   const { rows: [product] } = await sql`
     SELECT
         p.*,
-        i.quantity_on_hand,
+        COALESCE(i.quantity_on_hand, 0) as quantity_on_hand,
         COALESCE(qualities.list, '{}') AS available_qualities,
         COALESCE(packaging.list, '{}') AS available_packaging_types
       FROM products p
-      LEFT JOIN inventory i ON p.id = i.product_id
+      LEFT JOIN (
+        SELECT product_id, SUM(quantity) as quantity_on_hand
+        FROM inventory_summary
+        GROUP BY product_id
+      ) i ON p.id = i.product_id
       LEFT JOIN (
         SELECT
           ptq.product_id,
@@ -158,11 +162,15 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
     const { rows: [updatedProduct] } = await client.query(
       `SELECT
           p.*,
-          i.quantity_on_hand,
+          COALESCE(i.quantity_on_hand, 0) as quantity_on_hand,
           COALESCE(qualities.list, '{}') AS available_qualities,
           COALESCE(packaging.list, '{}') AS available_packaging_types
         FROM products p
-        LEFT JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN (
+          SELECT product_id, SUM(quantity) as quantity_on_hand
+          FROM inventory_summary
+          GROUP BY product_id
+        ) i ON p.id = i.product_id
         LEFT JOIN (
           SELECT ptq.product_id, ARRAY_AGG(pa.value) as list
           FROM product_to_quality ptq

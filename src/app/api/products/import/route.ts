@@ -156,12 +156,8 @@ export const POST = handleError(async (req: NextRequest) => {
             );
           }
         }
-        
-        // 4. Create inventory entry
-        await client.query(
-          `INSERT INTO inventory (product_id, quantity_on_hand) VALUES ($1, 0)`,
-          [newProductId]
-        );
+
+        // Note: inventory_summary entries will be created automatically when production logs are added
       }
     }
     

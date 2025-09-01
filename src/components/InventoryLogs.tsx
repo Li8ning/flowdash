@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { exportToPdf, exportToExcel } from '../lib/export';
 import EditLogModal from '@/components/EditLogModal';
+import Pagination from '@/components/Pagination';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
@@ -103,6 +104,10 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [distinctPackagingTypes, setDistinctPackagingTypes] = useState<string[]>([]);
   const [isFetchingDistinctValues, setIsFetchingDistinctValues] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
   const {
     data: logs,
     total: totalLogs,
@@ -115,7 +120,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     initialFetch: false,
     messages: {
       deleteSuccess: t('inventory.logs.toast.log_deleted_description'),
-      updateSuccess: t('edit_log_modal.toast.log_updated_description'),
+      // Remove updateSuccess to prevent duplicate toast with EditLogModal
     },
   });
 
@@ -184,8 +189,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   }, [fetchDistinctValues]);
 
   useEffect(() => {
-    fetchData(1, filters, 50);
-  }, [fetchData, filters]);
+    fetchData(currentPage, filters, itemsPerPage);
+  }, [fetchData, filters, currentPage, itemsPerPage]);
 
 
   const handleFilterClick = () => {
@@ -201,7 +206,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     }
     const filtersWithSearch = { ...pendingFilters, search: searchQuery };
     setFilters(filtersWithSearch);
-    fetchData(1, filtersWithSearch, 50);
+    setCurrentPage(1); // Reset to first page when applying filters
+    fetchData(1, filtersWithSearch, itemsPerPage);
   };
 
   const handleClearFilters = () => {
@@ -210,7 +216,8 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
     setPendingFilters(initialFilters);
     setSearchQuery('');
     setDateRange('today');
-    fetchData(1, initialFilters, 50);
+    setCurrentPage(1); // Reset to first page when clearing filters
+    fetchData(1, initialFilters, itemsPerPage);
   };
 
   useEffect(() => {
@@ -266,6 +273,12 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
 
   const handleUpdate = (updatedLog: InventoryLog) => {
     updateItem(updatedLog.id, updatedLog);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+    fetchData(1, filters, newItemsPerPage);
   };
 
   const isExportDisabled = dateRange === 'custom' && (!filters.startDate || !filters.endDate);
@@ -617,16 +630,18 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
         )}
       </Box>
 
-      <Flex justify="center" mt={6}>
-        {logs.length > 0 && logs.length < totalLogs && (
-          <Button
-            onClick={() => fetchData((logs.length / 50) + 1, { ...filters, search: searchQuery }, 50)}
-            isDisabled={loading || logs.length >= totalLogs}
-          >
-            {t('pagination.load_more')}
-          </Button>
-        )}
-      </Flex>
+      {/* Pagination Controls */}
+      {totalLogs > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalLogs / itemsPerPage)}
+          totalItems={totalLogs}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={loading}
+        />
+      )}
 
       {editingLog && (
         <EditLogModal

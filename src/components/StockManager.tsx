@@ -32,6 +32,7 @@ import {
   AccordionIcon,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
+import Pagination from '@/components/Pagination';
 
 interface StockEntry {
   quality: string;
@@ -96,7 +97,7 @@ const StockManager = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const [distinctValues, setDistinctValues] = useState({
     categories: [] as string[],
@@ -106,7 +107,7 @@ const StockManager = () => {
     packaging_types: [] as string[],
   });
 
-  const fetchStockData = useCallback(async (currentFilters = appliedFilters, page = currentPage) => {
+  const fetchStockData = useCallback(async (currentFilters = appliedFilters, page = currentPage, limit = itemsPerPage) => {
     try {
       setLoading(true);
       setError(null);
@@ -119,10 +120,10 @@ const StockManager = () => {
       if (currentFilters.quality) params.append('quality', currentFilters.quality);
       if (currentFilters.packaging_type) params.append('packaging_type', currentFilters.packaging_type);
       if (currentFilters.showZeroStock) params.append('showZeroStock', 'true');
-      
+
       // Add pagination parameters
-      params.append('limit', itemsPerPage.toString());
-      params.append('offset', ((page - 1) * itemsPerPage).toString());
+      params.append('limit', limit.toString());
+      params.append('offset', ((page - 1) * limit).toString());
 
       const response = await fetch(`/api/inventory/stock?${params.toString()}`);
       if (!response.ok) {
@@ -143,7 +144,7 @@ const StockManager = () => {
     } finally {
       setLoading(false);
     }
-  }, [appliedFilters, currentPage, toast]);
+  }, [appliedFilters, currentPage, itemsPerPage, toast]);
 
   const fetchDistinctValues = async () => {
     try {
@@ -178,7 +179,7 @@ const StockManager = () => {
   useEffect(() => {
     fetchStockData();
     fetchDistinctValues();
-  }, [fetchStockData]);
+  }, [fetchStockData, itemsPerPage]);
 
   const handleFilterChange = (key: string, value: string | boolean) => {
     const newFilters = { ...filters, [key]: value };
@@ -210,6 +211,12 @@ const StockManager = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchStockData(appliedFilters, page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+    fetchStockData(appliedFilters, 1);
   };
 
   const totalPages = Math.ceil((stockData?.totalStockEntries || 0) / itemsPerPage);
@@ -634,55 +641,16 @@ const StockManager = () => {
       )}
 
       {/* Pagination Controls */}
-      {stockData && totalPages > 1 && (
-        <Flex justify="space-between" align="center" mt={6}>
-          <Text fontSize="sm" color="gray.600">
-            Page {currentPage} of {totalPages} • Showing {stockData.data.length} entries
-          </Text>
-          <HStack spacing={2}>
-            <Button
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              isDisabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            
-            {/* Page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <Button
-                  key={pageNum}
-                  size="sm"
-                  variant={currentPage === pageNum ? "solid" : "outline"}
-                  colorScheme={currentPage === pageNum ? "blue" : "gray"}
-                  onClick={() => handlePageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              );
-            })}
-            
-            <Button
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              isDisabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </HStack>
-        </Flex>
+      {stockData && stockData.totalStockEntries > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={stockData.totalStockEntries}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={loading}
+        />
       )}
     </Box>
   );
