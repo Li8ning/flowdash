@@ -34,6 +34,7 @@
   "unassigned.role.description": "તમને કોઈ રોલ નથી મળ્યો. એડમિન સાથે વાત કરો.",
 
   "inventory.logs.title": "સ્ટોકની માહિતી",
+  "inventory.logs.filters": "ફિલ્ટર",
   "inventory.logs.export_pdf": "PDF ડાઉનલોડ કરો",
   "inventory.logs.export_excel": "Excel ડાઉનલોડ કરો",
   "inventory.logs.filter": "ફિલ્ટર",
@@ -232,11 +233,20 @@
   "product_manager.packaging_type.plastic": "પ્લાસ્ટિક",
   "product_manager.packaging_type.bag": "બેગ",
   "product_manager.packaging_type.carton": "કાર્ટન",
-  "pagination.previous": "પહેલાં",
-  "pagination.next": "પછી",
-  "pagination.page": "પેજ",
-  "pagination.of": "/",
-  "pagination.load_more": "વધુ લોડ કરો",
+  "pagination": {
+    "first": "પહેલું",
+    "previous": "પહેલાં",
+    "next": "પછી",
+    "last": "છેલ્લું",
+    "page": "પેજ",
+    "of": "/",
+    "load_more": "વધુ લોડ કરો",
+    "showing_entries": "{{count}} એન્ટ્રીઓ બતાવી રહ્યું છે",
+    "items_per_page": "પ્રતિ પેજ આઇટમ્સ",
+    "items_per_page_25": "25",
+    "items_per_page_50": "50",
+    "items_per_page_100": "100"
+  },
 
   "attributes.title": "પ્રોડક્ટની માહિતી",
   "attributes.add_new_label": "નવું {{type}} ઉમેરો",

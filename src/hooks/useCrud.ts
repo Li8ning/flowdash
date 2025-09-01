@@ -74,9 +74,7 @@ export function useCrud<T>({
       const params: Record<string, unknown> = { ...filters };
       if (page) {
         params.page = page;
-        if (page === 1) {
-          params.getTotal = true;
-        }
+        params.getTotal = true; // Always get total count for accurate pagination
       }
       if (limit) {
         params.limit = limit;
@@ -98,7 +96,7 @@ export function useCrud<T>({
         
         return {
           ...prevState,
-          data: page && page > 1 ? [...prevState.data, ...newData] : newData,
+          data: newData, // Always replace data for proper pagination
           total: response.data.totalCount !== undefined ? response.data.totalCount : prevState.total,
           loading: false,
           error: null,

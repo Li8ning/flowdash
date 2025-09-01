@@ -23,6 +23,12 @@ import {
   HStack,
   IconButton,
   Select,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '@/lib/api';
@@ -62,6 +68,7 @@ const LogEntryForm = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { t } = useTranslation();
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -170,7 +177,9 @@ const LogEntryForm = () => {
   const filteredProducts = products.filter((product) => {
     const searchMatch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.design.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.color.toLowerCase().includes(searchQuery.toLowerCase());
 
     const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
     const designMatch = activeFilters.design ? product.design === activeFilters.design : true;
@@ -189,58 +198,125 @@ const LogEntryForm = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           size="lg"
         />
-       <SimpleGrid columns={{ base: 2, md: 5 }} spacing={2} mb={4}>
-          <Select
-            placeholder={t('product_selector.filter_by_category')}
-            value={filters.category}
-            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            size="sm"
-            focusBorderColor="blue.500"
-          >
-            {distinctCategories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('product_selector.filter_by_design')}
-            value={filters.design}
-            onChange={(e) => setFilters({ ...filters, design: e.target.value })}
-            size="sm"
-            focusBorderColor="blue.500"
-          >
-            {distinctDesigns.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </Select>
-          <Select
-            placeholder={t('product_selector.filter_by_color')}
-            value={filters.color}
-            onChange={(e) => setFilters({ ...filters, color: e.target.value })}
-            size="sm"
-            focusBorderColor="blue.500"
-          >
-            {distinctColors.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
-          <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
-          <Button
-            onClick={() => {
-              setFilters({ color: '', design: '', category: '' });
-              setActiveFilters({ color: '', design: '', category: '' });
-            }}
-            colorScheme="gray"
-            size="sm"
-          >
-            {t('product_selector.clear_filters')}
-          </Button>
-        </SimpleGrid>
+        {isMobile ? (
+          <Accordion allowToggle mb={4}>
+            <AccordionItem>
+              <AccordionButton>
+                <Box flex="1" textAlign="left" fontWeight="bold">
+                  Filters
+                </Box>
+                <AccordionIcon />
+              </AccordionButton>
+              <AccordionPanel pb={4}>
+                <SimpleGrid columns={{ base: 1, md: 5 }} spacing={2}>
+                  <Select
+                    placeholder={t('product_selector.filter_by_category')}
+                    value={filters.category}
+                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                    size="sm"
+                    focusBorderColor="blue.500"
+                  >
+                    {distinctCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder={t('product_selector.filter_by_design')}
+                    value={filters.design}
+                    onChange={(e) => setFilters({ ...filters, design: e.target.value })}
+                    size="sm"
+                    focusBorderColor="blue.500"
+                  >
+                    {distinctDesigns.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder={t('product_selector.filter_by_color')}
+                    value={filters.color}
+                    onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+                    size="sm"
+                    focusBorderColor="blue.500"
+                  >
+                    {distinctColors.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
+                  <Button
+                    onClick={() => {
+                      setFilters({ color: '', design: '', category: '' });
+                      setActiveFilters({ color: '', design: '', category: '' });
+                    }}
+                    colorScheme="gray"
+                    size="sm"
+                  >
+                    {t('product_selector.clear_filters')}
+                  </Button>
+                </SimpleGrid>
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <SimpleGrid columns={{ base: 2, md: 5 }} spacing={2} mb={4}>
+            <Select
+              placeholder={t('product_selector.filter_by_category')}
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              size="sm"
+              focusBorderColor="blue.500"
+            >
+              {distinctCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <Select
+              placeholder={t('product_selector.filter_by_design')}
+              value={filters.design}
+              onChange={(e) => setFilters({ ...filters, design: e.target.value })}
+              size="sm"
+              focusBorderColor="blue.500"
+            >
+              {distinctDesigns.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Select>
+            <Select
+              placeholder={t('product_selector.filter_by_color')}
+              value={filters.color}
+              onChange={(e) => setFilters({ ...filters, color: e.target.value })}
+              size="sm"
+              focusBorderColor="blue.500"
+            >
+              {distinctColors.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <Button onClick={handleFilter} colorScheme="blue" size="sm">{t('product_selector.filter')}</Button>
+            <Button
+              onClick={() => {
+                setFilters({ color: '', design: '', category: '' });
+                setActiveFilters({ color: '', design: '', category: '' });
+              }}
+              colorScheme="gray"
+              size="sm"
+            >
+              {t('product_selector.clear_filters')}
+            </Button>
+          </SimpleGrid>
+        )}
        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing={{ base: 6, md: 5 }}>
           {filteredProducts.map((product) => (
             <Box

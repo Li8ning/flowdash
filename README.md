@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.3.0**
+**Version: 0.4.1**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -76,7 +76,15 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.3.0)
+## Recent Updates (v0.4.0)
+
+### Enhanced Pagination System
+- **Dynamic Items Per Page**: Added dropdown selector allowing users to choose 25, 50, or 100 items per page (default: 25)
+- **Always Visible Controls**: Pagination controls now remain visible even when there's only one page of data
+- **Consistent UX**: Items per page selector and page information always accessible across all data tables
+- **Improved Performance**: Better handling of large datasets with user-controlled pagination limits
+
+### Previous Updates (v0.3.0)
 
 ### Stock Management System
 - **New Stock Page**: Dedicated stock management interface with separate rows for each product variant

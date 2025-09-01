@@ -28,7 +28,8 @@ export const GET = handleError(async (req: NextRequest) => {
   const quality = searchParams.get('quality');
   const packaging_type = searchParams.get('packaging_type');
   const limit = parseInt(searchParams.get('limit') || '20', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const offset = (page - 1) * limit;
   const getTotal = searchParams.get('getTotal') === 'true';
 
   const conditions = [`p.organization_id = $1`];

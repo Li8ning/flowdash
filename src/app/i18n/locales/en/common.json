@@ -34,6 +34,7 @@
   "unassigned.role.description": "You are not assigned a role. Please contact an administrator.",
 
   "inventory.logs.title": "Inventory Logs",
+  "inventory.logs.filters": "Filters",
   "inventory.logs.export_pdf": "Export to PDF",
   "inventory.logs.export_excel": "Export to Excel",
   "inventory.logs.filter": "Filter",
@@ -306,6 +307,20 @@
   "bulk_import_page.results.table.error_details": "Error Details",
   "bulk_import_page.results.import_another": "Import Another File",
   "common.product.name": "Product Name",
+  "pagination": {
+    "first": "First",
+    "previous": "Prev",
+    "next": "Next",
+    "last": "Last",
+    "page": "Page",
+    "of": "of",
+    "load_more": "Load More",
+    "showing_entries": "Showing {{count}} entries",
+    "items_per_page": "Items per page",
+    "items_per_page_25": "25",
+    "items_per_page_50": "50",
+    "items_per_page_100": "100"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "inventory_logs": "Inventory Logs",
