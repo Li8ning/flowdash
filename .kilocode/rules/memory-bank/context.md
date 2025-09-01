@@ -4,6 +4,8 @@
 The application has successfully implemented a comprehensive stock management system for finished goods inventory. This major feature addition provides factory managers with detailed visibility into their inventory levels across all product variants, with advanced filtering, pagination, and mobile-optimized interfaces.
 
 ## 🔄 **Recent Changes**
+- **Fixed Production Log Search Bar (v0.4.1)**: Enhanced the search functionality on the production log page for floor staff. The search bar now includes design and color fields in addition to the existing product name and SKU search, allowing floor staff to find products more easily by searching across multiple attributes.
+- **Version Update**: Updated application version from 0.4.0 to 0.4.1 to reflect the search bar enhancement.
 - **Enhanced Pagination System (v0.4.0)**: Implemented dynamic items per page selector allowing users to choose 25, 50, or 100 items per page (default: 25). Updated all components (ProductManager, InventoryLogs, UserManager, StockManager) to support dynamic pagination. Fixed pagination visibility issue where controls would disappear when there were fewer items than the selected page size.
 - **Always Visible Pagination Controls**: Modified Pagination component to always show controls when there are items, regardless of whether multiple pages are needed. This provides consistent UX across all data tables.
 - **Updated CI Workflow**: Modified GitHub Actions workflow to only run tests on `feature/system-improvements` branch, optimizing CI performance by skipping unnecessary test runs on main branch.
@@ -47,6 +49,13 @@ The application has successfully implemented a comprehensive stock management sy
 The application now features a complete stock management system alongside the existing inventory logging functionality. The codebase is stable with comprehensive filtering, pagination, and mobile-optimized interfaces. Future development can focus on order management integration and advanced reporting features.
 
 ## 📅 **Recent Updates (2025-09-01)**
+
+### Collapsible Filters for Mobile Views Implementation
+- **Mobile-First UX Enhancement**: Implemented collapsible filter sections using Chakra UI Accordion for all pages with filters (ProductManager, InventoryLogs, StockManager, UserManager, ProductSelector)
+- **Improved Mobile Experience**: Filters are now hidden by default on mobile devices and can be expanded when needed, making important content visible in the first fold of the screen
+- **Responsive Design**: Desktop views maintain the original filter layout while mobile views use accordion-style collapsible sections
+- **Consistent Implementation**: All filter components now follow the same pattern for mobile responsiveness
+- **Accessibility**: Proper ARIA labels and keyboard navigation support maintained
 
 ### Enhanced Pagination System Implementation (v0.4.0)
 - **Dynamic Items Per Page**: Added dropdown selector allowing users to choose 25, 50, or 100 items per page (default: 25)
