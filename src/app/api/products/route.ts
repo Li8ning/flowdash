@@ -28,8 +28,10 @@ export const GET = handleError(async (req: NextRequest) => {
   }
 
   const { searchParams } = new URL(req.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const limit = parseInt(searchParams.get('limit') || '25', 10);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const offset = (page - 1) * limit;
+  const getTotal = searchParams.get('getTotal') === 'true';
   const color = searchParams.get('color');
   const category = searchParams.get('category');
   const design = searchParams.get('design');
@@ -44,8 +46,8 @@ export const GET = handleError(async (req: NextRequest) => {
   let paramIndex = 2;
  
   if (name) {
-    whereClauses.push(`p.name ILIKE $${paramIndex++}`);
-    queryParams.push(`%${name}%`);
+    whereClauses.push(`(p.name ILIKE $${paramIndex++} OR p.category ILIKE $${paramIndex++} OR p.design ILIKE $${paramIndex++} OR p.color ILIKE $${paramIndex++})`);
+    queryParams.push(`%${name}%`, `%${name}%`, `%${name}%`, `%${name}%`);
   }
   if (color) {
     whereClauses.push(`color = $${paramIndex++}`);
@@ -91,20 +93,20 @@ export const GET = handleError(async (req: NextRequest) => {
     [...queryParams, limit, offset]
   );
 
-  const countPromise = sql.query(
-    `SELECT COUNT(p.*) FROM products p WHERE ${whereString}`,
-    queryParams
-  );
+  const productsResult = await productsPromise;
 
-  const [productsResult, countResult] = await Promise.all([
-    productsPromise,
-    countPromise,
-  ]);
-  const totalCount = parseInt(countResult.rows[0].count, 10);
+  let totalCount = 0;
+  if (getTotal) {
+    const countResult = await sql.query(
+      `SELECT COUNT(p.*) FROM products p WHERE ${whereString}`,
+      queryParams
+    );
+    totalCount = parseInt(countResult.rows[0].count, 10);
+  }
 
   return NextResponse.json({
     data: productsResult.rows,
-    totalCount,
+    totalCount: getTotal ? totalCount : undefined,
   });
 });
 

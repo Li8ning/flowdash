@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.4.1**
+**Version: 0.5.2**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -76,7 +76,29 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.4.0)
+## Recent Updates (v0.5.2)
+
+### Code Quality Improvements
+- **ESLint Compliance**: Fixed all ESLint warnings and errors across the codebase
+- **TypeScript Enhancements**: Replaced explicit 'any' types with proper type definitions
+- **React Hooks Optimization**: Fixed dependency warnings in useEffect hooks
+- **Code Cleanup**: Removed unused variables and imports for better maintainability
+- **Performance Improvements**: Optimized component re-renders and API calls
+
+### Previous Updates (v0.5.0)
+
+### Enhanced Username Validations
+- **Comprehensive Validation Rules**: Implemented robust username validation across all user-facing forms
+- **Length Restrictions**: Usernames must be 3-20 characters long
+- **Character Validation**: Only letters, numbers, dots, underscores, and hyphens allowed
+- **Format Rules**: No leading/trailing/consecutive special characters
+- **Reserved Words Blocking**: Prevents use of common system words (admin, root, system, etc.)
+- **Case-Insensitive Uniqueness**: Usernames are unique within organizations regardless of case
+- **Real-time Validation**: Immediate feedback as users type with clear error messages
+- **Multi-language Support**: Validation messages available in English, Hindi, and Gujarati
+- **Consistent Implementation**: Applied to UserManager, Register, and UserProfileForm components
+
+### Previous Updates (v0.4.0)
 
 ### Enhanced Pagination System
 - **Dynamic Items Per Page**: Added dropdown selector allowing users to choose 25, 50, or 100 items per page (default: 25)

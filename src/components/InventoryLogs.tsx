@@ -96,7 +96,6 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
   const [pendingFilters, setPendingFilters] = useState<LogFilters>(getInitialFilters());
   const [searchQuery, setSearchQuery] = useState('');
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const isDesktop = useBreakpointValue({ base: false, md: true });
 
   const [distinctUsers, setDistinctUsers] = useState<{id: number, name: string}[]>([]);
   const [distinctColors, setDistinctColors] = useState<string[]>([]);
