@@ -484,7 +484,7 @@ const StockManager = () => {
                               src={product.image_url || '/next.svg'}
                               alt={product.product_name}
                               boxSize="50px"
-                              objectFit="cover"
+                              objectFit="contain"
                               borderRadius="md"
                               mr={4}
                             />
@@ -554,7 +554,7 @@ const StockManager = () => {
                             src={product.image_url || '/next.svg'}
                             alt={product.product_name}
                             boxSize="50px"
-                            objectFit="cover"
+                            objectFit="contain"
                             borderRadius="md"
                             mr={4}
                           />
@@ -653,7 +653,7 @@ const StockManager = () => {
                               src={product.image_url || '/next.svg'}
                               alt={product.product_name}
                               boxSize="50px"
-                              objectFit="cover"
+                              objectFit="contain"
                               borderRadius="md"
                               mr={3}
                             />
@@ -709,7 +709,7 @@ const StockManager = () => {
                           src={product.image_url || '/next.svg'}
                           alt={product.product_name}
                           boxSize="50px"
-                          objectFit="cover"
+                          objectFit="contain"
                           borderRadius="md"
                           mr={3}
                         />

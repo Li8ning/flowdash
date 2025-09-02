@@ -30,16 +30,35 @@ const { t } = useTranslation(lng, 'common');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const { login } = useAuth();
   const toast = useToast();
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({}); // Clear previous validation errors
     setIsLoggingIn(true);
+
+    // Client-side validation
+    const errors: {[key: string]: string} = {};
+    if (!username.trim()) {
+      errors.username = t('validation.required', { field: t('login.email') });
+    }
+    if (!password.trim()) {
+      errors.password = t('validation.required', { field: t('login.password') });
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setIsLoggingIn(false);
+      return;
+    }
+
     try {
       await login(username, password, rememberMe);
       setRemainingAttempts(null); // Reset on successful login
+      setValidationErrors({}); // Clear validation errors on success
       toast({
         title: t('login.success.title'),
         description: t('login.success.description'),
@@ -48,8 +67,19 @@ const { t } = useTranslation(lng, 'common');
         isClosable: true,
       });
     } catch (err) {
-      const error = err as AxiosError<{ error: string; details?: { code: string; data?: { remaining: number; resetIn: number } } }>;
+      const error = err as AxiosError<{ error: string; details?: { code: string; data?: { remaining: number; resetIn: number } }; errors?: {[key: string]: string[]} }>;
       const errorData = error.response?.data;
+
+      // Handle field-specific validation errors from server
+      if (errorData?.errors) {
+        const fieldErrors: {[key: string]: string} = {};
+        Object.entries(errorData.errors).forEach(([field, messages]) => {
+          if (messages && messages.length > 0) {
+            fieldErrors[field] = messages[0]; // Take first error message
+          }
+        });
+        setValidationErrors(fieldErrors);
+      }
 
       let description = t('login.error.description');
 
@@ -124,23 +154,43 @@ const { t } = useTranslation(lng, 'common');
             <option value="gu">Gujarati</option>
           </Select>
         </HStack>
-        <FormControl id="username">
+        <FormControl id="username" isInvalid={!!validationErrors.username}>
           <FormLabel>{t('login.email')}</FormLabel>
           <Input
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              if (validationErrors.username) {
+                setValidationErrors(prev => ({ ...prev, username: '' }));
+              }
+            }}
             required
           />
+          {validationErrors.username && (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {validationErrors.username}
+            </Text>
+          )}
         </FormControl>
-        <FormControl id="password">
+        <FormControl id="password" isInvalid={!!validationErrors.password}>
           <FormLabel>{t('login.password')}</FormLabel>
           <Input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (validationErrors.password) {
+                setValidationErrors(prev => ({ ...prev, password: '' }));
+              }
+            }}
             required
           />
+          {validationErrors.password && (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {validationErrors.password}
+            </Text>
+          )}
         </FormControl>
         <FormControl>
           <Checkbox isChecked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>

@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { AxiosError } from 'axios';
 import { useAuth } from '../context/AuthContext';
 import {
   Box,
   Button,
   FormControl,
   FormLabel,
+  FormErrorMessage,
   Heading,
   Input,
   Select,
@@ -64,6 +66,7 @@ const UserManager: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('floor_staff');
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -122,6 +125,54 @@ const UserManager: React.FC = () => {
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({}); // Clear previous validation errors
+
+    // Client-side validation
+    const errors: {[key: string]: string} = {};
+
+    // Username validation
+    if (!newUsername.trim()) {
+      errors.username = t('validation.required', { field: t('user_manager.invite_modal.username') });
+    } else {
+      // Length validation
+      if (newUsername.length < 3) {
+        errors.username = t('validation.min_length', { field: t('user_manager.invite_modal.username'), count: 3 });
+      } else if (newUsername.length > 20) {
+        errors.username = t('validation.max_length', { field: t('user_manager.invite_modal.username'), count: 20 });
+      }
+      // Character validation
+      else if (!/^[a-zA-Z0-9._-]+$/.test(newUsername)) {
+        errors.username = t('validation.invalid_format', { field: t('user_manager.invite_modal.username') });
+      }
+      // Format validation
+      else if (/^[._-]/.test(newUsername)) {
+        errors.username = t('validation.username_no_special_start', { field: t('user_manager.invite_modal.username') });
+      }
+      else if (/[._-]$/.test(newUsername)) {
+        errors.username = t('validation.username_no_special_end', { field: t('user_manager.invite_modal.username') });
+      }
+      else if (/[._-]{2,}/.test(newUsername)) {
+        errors.username = t('validation.username_no_consecutive_special', { field: t('user_manager.invite_modal.username') });
+      }
+      // Reserved words validation
+      else if (['admin', 'root', 'system', 'superuser', 'administrator', 'support', 'help', 'info', 'contact', 'webmaster', 'api', 'test', 'demo', 'guest', 'user', 'null', 'undefined'].includes(newUsername.toLowerCase())) {
+        errors.username = t('validation.username_reserved', { field: t('user_manager.invite_modal.username') });
+      }
+    }
+    if (!newName.trim()) {
+      errors.name = t('validation.required', { field: t('user_manager.invite_modal.full_name') });
+    }
+    if (!newPassword.trim()) {
+      errors.password = t('validation.required', { field: t('user_manager.invite_modal.password') });
+    } else if (newPassword.length < 8) {
+      errors.password = t('validation.min_length', { field: t('user_manager.invite_modal.password'), count: 8 });
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
     try {
       if (currentUser?.organization_id) {
         await createItem({
@@ -136,9 +187,23 @@ const UserManager: React.FC = () => {
       setNewUsername('');
       setNewName('');
       setNewPassword('');
+      setValidationErrors({}); // Clear validation errors on success
       onClose();
-    } catch {
-      // Error is handled by the hook
+    } catch (err) {
+      const error = err as AxiosError<{ error: string; errors?: {[key: string]: string[]} }>;
+      const errorData = error.response?.data;
+
+      // Handle field-specific validation errors from server
+      if (errorData?.errors) {
+        const fieldErrors: {[key: string]: string} = {};
+        Object.entries(errorData.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages) && messages.length > 0) {
+            fieldErrors[field] = messages[0]; // Take first error message
+          }
+        });
+        setValidationErrors(fieldErrors);
+      }
+      // Error toast is handled by the useCrud hook
     }
   };
 
@@ -256,16 +321,19 @@ const UserManager: React.FC = () => {
           <ModalCloseButton />
           <ModalBody>
             <Stack spacing={4}>
-              <FormControl isRequired>
+              <FormControl isRequired isInvalid={!!validationErrors.username}>
                 <FormLabel>{t('user_manager.invite_modal.username')}</FormLabel>
                 <Input
                   type="text"
                   placeholder={t('user_manager.invite_modal.username_placeholder')}
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
+                  minLength={3}
+                  maxLength={20}
                 />
+                <FormErrorMessage>{validationErrors.username}</FormErrorMessage>
               </FormControl>
-              <FormControl isRequired>
+              <FormControl isRequired isInvalid={!!validationErrors.name}>
                <FormLabel>{t('user_manager.invite_modal.full_name')}</FormLabel>
                <Input
                  type="text"
@@ -273,26 +341,30 @@ const UserManager: React.FC = () => {
                  value={newName}
                  onChange={(e) => setNewName(e.target.value)}
                />
-             </FormControl>
-             <FormControl isRequired>
-               <FormLabel>{t('user_manager.invite_modal.password')}</FormLabel>
-               <Input
-                 type="password"
-                 placeholder={t('user_manager.invite_modal.password_placeholder')}
-                 value={newPassword}
-                 onChange={(e) => setNewPassword(e.target.value)}
-               />
-             </FormControl>
-              <FormControl isRequired>
-                <FormLabel>{t('user_manager.invite_modal.role')}</FormLabel>
-                <Select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                >
-                  {currentUser?.role === 'super_admin' && <option value="admin">{t('user_manager.invite_modal.role.admin')}</option>}
-                  {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>}
-                </Select>
+               <FormErrorMessage>{validationErrors.name}</FormErrorMessage>
               </FormControl>
+              <FormControl isRequired isInvalid={!!validationErrors.password}>
+                <FormLabel>{t('user_manager.invite_modal.password')}</FormLabel>
+                <Input
+                  type="password"
+                  placeholder={t('user_manager.invite_modal.password_placeholder')}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={8}
+                />
+                <FormErrorMessage>{validationErrors.password}</FormErrorMessage>
+              </FormControl>
+               <FormControl isRequired isInvalid={!!validationErrors.role}>
+                 <FormLabel>{t('user_manager.invite_modal.role')}</FormLabel>
+                 <Select
+                   value={newRole}
+                   onChange={(e) => setNewRole(e.target.value)}
+                 >
+                   {currentUser?.role === 'super_admin' && <option value="admin">{t('user_manager.invite_modal.role.admin')}</option>}
+                   {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && <option value="floor_staff">{t('user_manager.invite_modal.role.floor_staff')}</option>}
+                 </Select>
+                 <FormErrorMessage>{validationErrors.role}</FormErrorMessage>
+               </FormControl>
             </Stack>
           </ModalBody>
           <ModalFooter>

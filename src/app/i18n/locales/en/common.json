@@ -336,5 +336,17 @@
     "my_logs": "My Logs"
   },
   "access_denied.title": "Access Denied",
-  "access_denied.description": "You do not have permission to view this page."
+  "access_denied.description": "You do not have permission to view this page.",
+  "validation": {
+    "required": "{{field}} is required.",
+    "min_length": "{{field}} must be at least {{count}} characters long.",
+    "max_length": "{{field}} must not exceed {{count}} characters.",
+    "invalid_format": "{{field}} can only contain letters, numbers, dots, underscores, and hyphens.",
+    "username_no_special_start": "{{field}} cannot start with special characters.",
+    "username_no_special_end": "{{field}} cannot end with special characters.",
+    "username_no_consecutive_special": "{{field}} cannot have consecutive special characters.",
+    "username_reserved": "{{field}} is not allowed.",
+    "username_taken": "This username is already taken.",
+    "password_too_short": "Password must be at least 8 characters long."
+  }
 }

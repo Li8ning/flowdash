@@ -344,5 +344,17 @@
     "my_logs": "मेरे लॉग्स"
   },
   "access_denied.title": "एक्सेस नहीं है",
-  "access_denied.description": "आपको यह पेज देखने की अनुमति नहीं है।"
+  "access_denied.description": "आपको यह पेज देखने की अनुमति नहीं है।",
+  "validation": {
+    "required": "{{field}} जरूरी है।",
+    "min_length": "{{field}} कम से कम {{count}} अक्षर का होना चाहिए।",
+    "max_length": "{{field}} {{count}} अक्षर से ज्यादा नहीं हो सकता।",
+    "invalid_format": "{{field}} में सिर्फ अक्षर, संख्या, डॉट, अंडरस्कोर और हाइफन ही इस्तेमाल किए जा सकते हैं।",
+    "username_no_special_start": "{{field}} विशेष अक्षरों से शुरू नहीं हो सकता।",
+    "username_no_special_end": "{{field}} विशेष अक्षरों पर खत्म नहीं हो सकता।",
+    "username_no_consecutive_special": "{{field}} में लगातार विशेष अक्षर नहीं हो सकते।",
+    "username_reserved": "{{field}} इस्तेमाल नहीं किया जा सकता।",
+    "username_taken": "यह यूज़रनेम पहले से लिया गया है।",
+    "password_too_short": "पासवर्ड कम से कम 8 अक्षर का होना चाहिए।"
+  }
 }
