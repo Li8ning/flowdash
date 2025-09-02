@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -34,6 +34,8 @@ import { AddIcon, DeleteIcon, MinusIcon } from '@chakra-ui/icons';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
+import Pagination from '@/components/Pagination';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Product {
   id: number;
@@ -65,37 +67,69 @@ const LogEntryForm = () => {
   const [distinctColors, setDistinctColors] = useState([]);
   const [distinctDesigns, setDistinctDesigns] = useState([]);
   const [distinctCategories, setDistinctCategories] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { t } = useTranslation();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const [productsRes, colorsRes, designsRes, categoriesRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/distinct/products/color'),
-          api.get('/distinct/products/design'),
-          api.get('/distinct/products/category'),
-        ]);
-        setProducts(productsRes.data.data || []);
-        setDistinctColors(colorsRes.data);
-        setDistinctDesigns(designsRes.data);
-        setDistinctCategories(categoriesRes.data);
-      } catch (error) {
-        console.error('Failed to fetch product data', error);
-        toast({
-          title: t('product_selector.toast.error_fetching_products'),
-          description: (error as AxiosError<{ error: string }>)?.response?.data?.error || t('product_selector.toast.error_fetching_products_description'),
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
+  // Debounce search query to prevent excessive API calls
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  const fetchProducts = useCallback(async (page = 1, limit = 25) => {
+    try {
+      setLoading(true);
+      const params: Record<string, string | number | boolean> = {
+        page,
+        limit,
+        getTotal: true,
+      };
+
+      // Add search and filter parameters
+      if (debouncedSearchQuery) {
+        params.name = debouncedSearchQuery;
       }
-    };
-    fetchProducts();
-  }, [toast, t]);
+      if (activeFilters.color) {
+        params.color = activeFilters.color;
+      }
+      if (activeFilters.design) {
+        params.design = activeFilters.design;
+      }
+      if (activeFilters.category) {
+        params.category = activeFilters.category;
+      }
+
+      const [productsRes, colorsRes, designsRes, categoriesRes] = await Promise.all([
+        api.get('/products', { params }),
+        api.get('/distinct/products/color'),
+        api.get('/distinct/products/design'),
+        api.get('/distinct/products/category'),
+      ]);
+
+      setProducts(productsRes.data.data || []);
+      setTotalProducts(productsRes.data.totalCount || 0);
+      setDistinctColors(colorsRes.data);
+      setDistinctDesigns(designsRes.data);
+      setDistinctCategories(categoriesRes.data);
+    } catch (error) {
+      console.error('Failed to fetch product data', error);
+      toast({
+        title: t('product_selector.toast.error_fetching_products'),
+        description: (error as AxiosError<{ error: string }>)?.response?.data?.error || t('product_selector.toast.error_fetching_products_description'),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearchQuery, activeFilters, toast, t]);
+
+  useEffect(() => {
+    fetchProducts(currentPage, itemsPerPage);
+  }, [fetchProducts, currentPage, itemsPerPage]);
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -172,21 +206,16 @@ const LogEntryForm = () => {
 
   const handleFilter = () => {
     setActiveFilters(filters);
+    setCurrentPage(1); // Reset to first page when applying filters
   };
 
-  const filteredProducts = products.filter((product) => {
-    const searchMatch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.design.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.color.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
-    const colorMatch = activeFilters.color ? product.color === activeFilters.color : true;
-    const designMatch = activeFilters.design ? product.design === activeFilters.design : true;
-    const categoryMatch = activeFilters.category ? product.category === activeFilters.category : true;
-
-    return searchMatch && colorMatch && designMatch && categoryMatch;
-  });
+  // Products are now filtered server-side, so we use them directly
+  const filteredProducts = products;
 
   return (
     <Box p={{ base: 2, md: 4 }} bg="brand.surface">
@@ -253,6 +282,7 @@ const LogEntryForm = () => {
                     onClick={() => {
                       setFilters({ color: '', design: '', category: '' });
                       setActiveFilters({ color: '', design: '', category: '' });
+                      setCurrentPage(1); // Reset to first page when clearing filters
                     }}
                     colorScheme="gray"
                     size="sm"
@@ -309,6 +339,7 @@ const LogEntryForm = () => {
               onClick={() => {
                 setFilters({ color: '', design: '', category: '' });
                 setActiveFilters({ color: '', design: '', category: '' });
+                setCurrentPage(1); // Reset to first page when clearing filters
               }}
               colorScheme="gray"
               size="sm"
@@ -342,6 +373,19 @@ const LogEntryForm = () => {
           ))}
         </SimpleGrid>
       </Stack>
+
+      {/* Pagination Controls */}
+      {totalProducts > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalProducts / itemsPerPage)}
+          totalItems={totalProducts}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={loading}
+        />
+      )}
 
       {selectedProduct && (
         <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">

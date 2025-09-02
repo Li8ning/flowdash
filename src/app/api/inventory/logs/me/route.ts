@@ -15,6 +15,9 @@ export const GET = handleError(async (req: NextRequest) => {
   }
 
   const { searchParams } = new URL(req.url);
+
+  const search = searchParams.get('search');
+  const userId = searchParams.get('userId');
   const product = searchParams.get('product');
   const color = searchParams.get('color');
   const design = searchParams.get('design');
@@ -22,13 +25,26 @@ export const GET = handleError(async (req: NextRequest) => {
   const endDate = searchParams.get('endDate');
   const quality = searchParams.get('quality');
   const packaging_type = searchParams.get('packaging_type');
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const limit = parseInt(searchParams.get('limit') || '25', 10);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const offset = (page - 1) * limit;
+  const getTotal = searchParams.get('getTotal') === 'true';
 
   const conditions = [`l.user_id = $1`, `p.organization_id = $2`];
   const params: (string | number)[] = [user_id as number, organization_id as number];
   let paramIndex = 3;
 
+  if (search) {
+    conditions.push(`(p.name || ' ' || p.color || ' ' || p.design) ILIKE $${paramIndex++}`);
+    params.push(`%${search}%`);
+  }
+  if (userId) {
+    const parsedUserId = parseInt(userId, 10);
+    if (!isNaN(parsedUserId)) {
+      conditions.push(`l.user_id = $${paramIndex++}`);
+      params.push(parsedUserId);
+    }
+  }
   if (product) { conditions.push(`p.name = $${paramIndex++}`); params.push(product); }
   if (color) { conditions.push(`p.color = $${paramIndex++}`); params.push(color); }
   if (design) { conditions.push(`p.design = $${paramIndex++}`); params.push(design); }
@@ -59,12 +75,13 @@ export const GET = handleError(async (req: NextRequest) => {
     WHERE ${whereClause}
   `;
 
-  const [logsResult, countResult] = await Promise.all([
-    sql.query(logsQuery, [...params, limit, offset]),
-    sql.query(countQuery, params)
-  ]);
+  const logsResult = await sql.query(logsQuery, [...params, limit, offset]);
 
-  const totalCount = parseInt(countResult.rows[0].count, 10);
+  let totalCount = 0;
+  if (getTotal) {
+    const countResult = await sql.query(countQuery, params);
+    totalCount = parseInt(countResult.rows[0].count, 10);
+  }
 
-  return NextResponse.json({ data: logsResult.rows, totalCount });
+  return NextResponse.json({ data: logsResult.rows, totalCount: getTotal ? totalCount : undefined });
 });
