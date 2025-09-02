@@ -4,9 +4,24 @@ import { verifyAuth } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { handleError, ForbiddenError, BadRequestError, NotFoundError, ConflictError } from '@/lib/errors';
 
+// Reserved words that cannot be used as usernames
+const RESERVED_WORDS = [
+  'admin', 'root', 'system', 'superuser', 'administrator',
+  'support', 'help', 'info', 'contact', 'webmaster',
+  'api', 'test', 'demo', 'guest', 'user', 'null', 'undefined'
+];
+
 const baseUpdateUserSchema = z.object({
   name: z.string().min(1, "Name cannot be empty.").optional(),
-  username: z.string().min(3, "Username must be at least 3 characters.").optional(),
+  username: z.string()
+    .min(3, "Username must be at least 3 characters.")
+    .max(20, "Username cannot exceed 20 characters.")
+    .regex(/^[a-zA-Z0-9._-]+$/, "Username can only contain letters, numbers, dots, underscores, and hyphens.")
+    .refine((username) => !/^[._-]/.test(username), "Username cannot start with special characters.")
+    .refine((username) => !/[._-]$/.test(username), "Username cannot end with special characters.")
+    .refine((username) => !/[._-]{2,}/.test(username), "Username cannot have consecutive special characters.")
+    .refine((username) => !RESERVED_WORDS.includes(username.toLowerCase()), "This username is not allowed.")
+    .optional(),
   language: z.string().optional(),
 });
 

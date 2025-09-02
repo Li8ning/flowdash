@@ -2,6 +2,7 @@ import {
   Button,
   FormControl,
   FormLabel,
+  FormErrorMessage,
   Input,
   Modal,
   ModalBody,
@@ -19,6 +20,7 @@ import {
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { User } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface UserProfileFormProps {
   isOpen: boolean;
@@ -28,23 +30,62 @@ interface UserProfileFormProps {
 }
 
 const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFormProps) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(true);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const toast = useToast();
 
   useEffect(() => {
     if (user) {
       setName(user.name || '');
       setUsername(user.username || '');
+      setValidationErrors({}); // Clear validation errors when user changes
     }
   }, [user]);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUsername = e.target.value;
     setUsername(newUsername);
+
+    // Clear previous validation errors
+    setValidationErrors({});
+
+    // Client-side validation
+    const errors: {[key: string]: string} = {};
+
+    if (newUsername.trim()) {
+      // Length validation
+      if (newUsername.length < 3) {
+        errors.username = t('validation.min_length', { field: t('user_manager.table.username'), count: 3 });
+      } else if (newUsername.length > 20) {
+        errors.username = t('validation.max_length', { field: t('user_manager.table.username'), count: 20 });
+      }
+      // Character validation
+      else if (!/^[a-zA-Z0-9._-]+$/.test(newUsername)) {
+        errors.username = t('validation.invalid_format', { field: t('user_manager.table.username') });
+      }
+      // Format validation
+      else if (/^[._-]/.test(newUsername)) {
+        errors.username = t('validation.username_no_special_start', { field: t('user_manager.table.username') });
+      }
+      else if (/[._-]$/.test(newUsername)) {
+        errors.username = t('validation.username_no_special_end', { field: t('user_manager.table.username') });
+      }
+      else if (/[._-]{2,}/.test(newUsername)) {
+        errors.username = t('validation.username_no_consecutive_special', { field: t('user_manager.table.username') });
+      }
+      // Reserved words validation
+      else if (['admin', 'root', 'system', 'superuser', 'administrator', 'support', 'help', 'info', 'contact', 'webmaster', 'api', 'test', 'demo', 'guest', 'user', 'null', 'undefined'].includes(newUsername.toLowerCase())) {
+        errors.username = t('validation.username_reserved', { field: t('user_manager.table.username') });
+      }
+    }
+
+    setValidationErrors(errors);
+
     if (newUsername !== user.username) {
       setIsDirty(true);
     } else {
@@ -78,6 +119,17 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
   }, [username, user.username, user.id]);
 
   const handleSubmit = () => {
+    // Check for validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      toast({
+        title: 'Please fix the validation errors.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     if (!isUsernameAvailable) {
       toast({
         title: 'Username is not available.',
@@ -101,17 +153,26 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
             <FormLabel>Name</FormLabel>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </FormControl>
-          <FormControl mt={4} isInvalid={!isUsernameAvailable}>
+          <FormControl mt={4} isInvalid={!isUsernameAvailable || !!validationErrors.username}>
             <FormLabel>Username</FormLabel>
             <InputGroup>
-              <Input value={username} onChange={handleUsernameChange} pr="4.5rem" />
+              <Input
+                value={username}
+                onChange={handleUsernameChange}
+                pr="4.5rem"
+                maxLength={20}
+                isInvalid={!!validationErrors.username}
+              />
               {isCheckingUsername && (
                 <InputRightElement>
                   <Spinner size="sm" />
                 </InputRightElement>
               )}
             </InputGroup>
-            {!isCheckingUsername && !isDirty && username !== user.username && (
+            {validationErrors.username && (
+              <FormErrorMessage>{validationErrors.username}</FormErrorMessage>
+            )}
+            {!validationErrors.username && !isCheckingUsername && !isDirty && username !== user.username && (
               isUsernameAvailable ? (
                 <Text color="green.500" fontSize="sm" mt={1}>Username is available.</Text>
               ) : (
@@ -125,7 +186,7 @@ const UserProfileForm = ({ isOpen, onClose, user, onUserUpdate }: UserProfileFor
             colorScheme="green"
             mr={3}
             onClick={handleSubmit}
-            isDisabled={isDirty || isCheckingUsername || !isUsernameAvailable}
+            isDisabled={isDirty || isCheckingUsername || !isUsernameAvailable || Object.keys(validationErrors).length > 0}
           >
             Save Changes
           </Button>

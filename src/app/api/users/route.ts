@@ -74,9 +74,9 @@ export const POST = handleError(
     throw new BadRequestError('Password is required when creating a user.');
   }
 
-  // Check if username is already taken
+  // Check if username is already taken (case-insensitive)
   const { rows: existingUsers } = await sql`
-    SELECT id FROM users WHERE username = ${username} AND organization_id = ${organization_id as number}
+    SELECT id FROM users WHERE LOWER(username) = LOWER(${username}) AND organization_id = ${organization_id as number}
   `;
 
   if (existingUsers.length > 0) {

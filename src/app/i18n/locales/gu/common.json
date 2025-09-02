@@ -334,5 +334,17 @@
     "my_logs": "મારા લોગ્સ"
   },
   "access_denied.title": "એક્સેસ નથી",
-  "access_denied.description": "તમને આ પેજ જોવાની પરવાનગી નથી."
+  "access_denied.description": "તમને આ પેજ જોવાની પરવાનગી નથી.",
+  "validation": {
+    "required": "{{field}} જરૂરી છે.",
+    "min_length": "{{field}} ઓછામાં ઓછા {{count}} અક્ષરનું હોવું જોઈએ.",
+    "max_length": "{{field}} {{count}} અક્ષરથી વધુ ન હોઈ શકે.",
+    "invalid_format": "{{field}} માં ફક્ત અક્ષર, સંખ્યાઓ, ડૉટ, અંડરસ્કોર અને હાઇફન જ વાપરી શકાય છે.",
+    "username_no_special_start": "{{field}} વિશેષ અક્ષરોથી શરૂ ન થઈ શકે.",
+    "username_no_special_end": "{{field}} વિશેષ અક્ષરોથી અંત ન થઈ શકે.",
+    "username_no_consecutive_special": "{{field}} માં લગાતાર વિશેષ અક્ષરો ન હોઈ શકે.",
+    "username_reserved": "{{field}} વાપરી ન શકાય.",
+    "username_taken": "આ યુઝરનેમ પહેલેથી લેવામાં આવ્યું છે.",
+    "password_too_short": "પાસવર્ડ ઓછામાં ઓછો 8 અક્ષરનો હોવો જોઈએ."
+  }
 }
