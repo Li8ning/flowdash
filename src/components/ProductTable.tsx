@@ -99,7 +99,7 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                         src={product.image_url || '/next.svg'}
                         alt={product.name}
                         boxSize="50px"
-                        objectFit="cover"
+                        objectFit="contain"
                         borderRadius="md"
                         mr={4}
                       />
@@ -181,7 +181,7 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
                       src={product.image_url || '/next.svg'}
                       alt={product.name}
                       boxSize="50px"
-                      objectFit="cover"
+                      objectFit="contain"
                       borderRadius="md"
                     />
                   </Td>

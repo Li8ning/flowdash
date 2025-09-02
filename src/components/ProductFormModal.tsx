@@ -216,7 +216,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
               </Button>
               {imageUrl && (
                 <Box mt={2}>
-                  <Image src={imageUrl} alt="Product Image" boxSize="100px" objectFit="cover" />
+                  <Image src={imageUrl} alt="Product Image" boxSize="100px" objectFit="contain" />
                 </Box>
               )}
             </FormControl>

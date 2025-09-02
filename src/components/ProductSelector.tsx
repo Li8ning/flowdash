@@ -333,7 +333,7 @@ const LogEntryForm = () => {
               _hover={{ transform: 'scale(1.05)', shadow: 'lg', borderColor: 'blue.500' }}
             >
               <VStack spacing={3}>
-                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="cover" borderRadius="lg" />
+                <Image src={product.image_url || '/file.svg'} alt={product.name} boxSize={{ base: '180px', md: '150px' }} objectFit="contain" borderRadius="lg" />
                 <Text fontWeight="bold" fontSize={{ base: 'xl', md: 'lg' }} noOfLines={2}>{product.name}</Text>
                 <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.600">{product.design}</Text>
                 <Text fontSize={{ base: 'lg', md: 'md' }} color="gray.500">{product.color}</Text>
@@ -351,7 +351,7 @@ const LogEntryForm = () => {
             <ModalCloseButton />
             <ModalBody>
               <VStack>
-                <Image src={selectedProduct.image_url || '/file.svg'} alt={selectedProduct.name} boxSize="100px" objectFit="cover" borderRadius="lg" />
+                <Image src={selectedProduct.image_url || '/file.svg'} alt={selectedProduct.name} boxSize="100px" objectFit="contain" borderRadius="lg" />
                 <Heading size="md">{selectedProduct.name}</Heading>
                 <Text color="gray.500">{selectedProduct.design} - {selectedProduct.color}</Text>
               </VStack>
