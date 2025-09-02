@@ -32,7 +32,9 @@ export const GET = handleError(async (req: NextRequest) => {
 
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get('limit') || '50', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const offset = (page - 1) * limit;
+  const getTotal = searchParams.get('getTotal') === 'true';
   const search = searchParams.get('search');
   const category = searchParams.get('category');
   const design = searchParams.get('design');
@@ -106,10 +108,18 @@ export const GET = handleError(async (req: NextRequest) => {
     WHERE ${whereClause}
   `;
 
-  const [stockResult, countResult] = await Promise.all([
-    sql.query(stockQuery, [...params, limit, offset]),
-    sql.query(countQuery, params)
-  ]);
+  const stockPromise = sql.query(stockQuery, [...params, limit, offset]);
+
+  let countPromise = null;
+  if (getTotal) {
+    countPromise = sql.query(countQuery, params);
+  }
+
+  const stockResult = await stockPromise;
+  let countResult = null;
+  if (getTotal) {
+    countResult = await countPromise;
+  }
 
   // Define types for better type safety
   interface StockEntry {
@@ -199,17 +209,19 @@ export const GET = handleError(async (req: NextRequest) => {
     );
   });
 
-  const totalProducts = parseInt(countResult.rows[0].total_products, 10);
-  const totalStockEntries = parseInt(countResult.rows[0].total_stock_entries, 10);
+  let totalStockEntries = 0;
 
-  return NextResponse.json({
+  if (getTotal && countResult) {
+    totalStockEntries = parseInt(countResult.rows[0].total_stock_entries, 10);
+  }
+
+  const response: { data: ProductStock[]; totalCount?: number } = {
     data: groupedData,
-    totalProducts,
-    totalStockEntries,
-    pagination: {
-      limit,
-      offset,
-      hasMore: offset + limit < totalProducts
-    }
-  });
+  };
+
+  if (getTotal) {
+    response.totalCount = totalStockEntries; // Use totalStockEntries as totalCount for consistency
+  }
+
+  return NextResponse.json(response);
 });

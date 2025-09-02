@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.5.2**
+**Version: 0.5.3**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -76,9 +76,16 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.5.2)
+## Recent Updates (v0.5.3)
 
-### Code Quality Improvements
+### Pagination Bug Fixes & API Improvements
+- **Critical Pagination Fixes**: Resolved duplicate records appearing across different pages in product management
+- **Deterministic Ordering**: Added secondary sort keys (id DESC) to all paginated queries to prevent non-deterministic results
+- **API Consistency**: Standardized all pagination APIs to use page-based parameters instead of offset-based
+- **Comprehensive Audit**: Reviewed and fixed potential pagination issues across all APIs (products, inventory logs, stock management)
+- **Type Safety**: Replaced explicit 'any' types with proper TypeScript interfaces for better code reliability
+
+### Code Quality & Performance (v0.5.2)
 - **ESLint Compliance**: Fixed all ESLint warnings and errors across the codebase
 - **TypeScript Enhancements**: Replaced explicit 'any' types with proper type definitions
 - **React Hooks Optimization**: Fixed dependency warnings in useEffect hooks

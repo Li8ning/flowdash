@@ -25,9 +25,14 @@ const useProducts = (itemsPerPage: number = 50) => {
       const params = {
         ...filters,
         limit,
-        offset: (page - 1) * limit,
+        page,
+        getTotal: 'true',
       };
+      console.log('useProducts: Request params:', params);
+      console.log('useProducts: Requested page:', page, 'limit:', limit);
       const response = await api.get('/products', { params });
+      console.log('useProducts: Response data length:', response.data.data?.length);
+      console.log('useProducts: First few product IDs:', response.data.data?.slice(0, 5).map((p: Product) => p.id));
       setProducts(response.data.data);
       setTotalCount(response.data.totalCount || 0);
     } catch {

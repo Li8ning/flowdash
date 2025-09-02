@@ -64,6 +64,7 @@ export const GET = handleError(async (req: NextRequest) => {
 
   const whereString = whereClauses.join(' AND ');
 
+
   const productsPromise = sql.query(
     `SELECT
         p.*,
@@ -73,7 +74,7 @@ export const GET = handleError(async (req: NextRequest) => {
       LEFT JOIN (
         SELECT
           ptq.product_id,
-          ARRAY_AGG(pa.value) as list
+          ARRAY_AGG(pa.value ORDER BY pa.value) as list
         FROM product_to_quality ptq
         JOIN product_attributes pa ON ptq.attribute_id = pa.id
         GROUP BY ptq.product_id
@@ -81,14 +82,13 @@ export const GET = handleError(async (req: NextRequest) => {
       LEFT JOIN (
         SELECT
           ptpt.product_id,
-          ARRAY_AGG(pa.value) as list
+          ARRAY_AGG(pa.value ORDER BY pa.value) as list
         FROM product_to_packaging_type ptpt
         JOIN product_attributes pa ON ptpt.attribute_id = pa.id
         GROUP BY ptpt.product_id
       ) AS packaging ON p.id = packaging.product_id
       WHERE ${whereString}
-      GROUP BY p.id, qualities.list, packaging.list
-      ORDER BY p.created_at DESC
+      ORDER BY p.created_at DESC, p.id DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
     [...queryParams, limit, offset]
   );

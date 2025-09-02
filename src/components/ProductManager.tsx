@@ -37,20 +37,23 @@ const ProductManager = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentFilters, setCurrentFilters] = useState({ name: '', category: '', design: '', color: '' });
 
   const handleFilter = (filters: { name: string; category: string; design: string; color: string }) => {
+    setCurrentFilters(filters);
     setCurrentPage(1); // Reset to first page when applying filters
     fetchProducts(filters, 1, itemsPerPage);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchProducts({ name: '', category: '', design: '', color: '' }, page, itemsPerPage);
+    fetchProducts(currentFilters, page, itemsPerPage);
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page when changing items per page
+    fetchProducts(currentFilters, 1, newItemsPerPage);
   };
 
   const handleEdit = (product: Product) => {
@@ -65,10 +68,14 @@ const ProductManager = () => {
       addProduct(productData);
     }
     setEditingProduct(null);
+    // Refetch with current filters and page
+    fetchProducts(currentFilters, currentPage, itemsPerPage);
   };
 
   const handleArchive = (productId: number) => {
     archiveProduct(productId);
+    // Refetch with current filters and page
+    fetchProducts(currentFilters, currentPage, itemsPerPage);
   };
 
   return (

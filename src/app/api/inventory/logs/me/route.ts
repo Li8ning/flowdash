@@ -65,7 +65,7 @@ export const GET = handleError(async (req: NextRequest) => {
     FROM inventory_logs l
     JOIN products p ON l.product_id = p.id
     WHERE ${whereClause}
-    ORDER BY l.created_at DESC
+    ORDER BY l.created_at DESC, l.id DESC
     LIMIT $${paramIndex++} OFFSET $${paramIndex++}
   `;
   
