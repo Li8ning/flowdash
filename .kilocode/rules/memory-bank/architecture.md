@@ -67,7 +67,7 @@ The database schema is designed to support a multi-tenant architecture, with eac
 - **SQL Injection Prevention**: The `/api/distinct/{entity}/{field}` endpoint uses whitelisting to prevent SQL injection attacks. Only pre-approved entity names and fields are allowed.
 - **JWT Authentication**: Secure httpOnly cookies are used for token storage, protecting against XSS attacks.
 - **Role-Based Access Control**: Strict hierarchy enforced - super_admin can create admin/floor_staff, admin can only create floor_staff.
-- **Input Validation**: Zod schemas validate all inputs on both client and server sides.
+- **Input Validation**: Zod schemas validate all inputs on both client and server sides. Enhanced username validation includes length restrictions (3-20 characters), character validation (letters, numbers, dots, underscores, hyphens only), format rules (no leading/trailing/consecutive special characters), and reserved words blocking. Case-insensitive uniqueness checks prevent username conflicts within organizations.
 
 ## 🎨 **UI/UX Design Patterns**
 - **Button Color Coding**: Consistent color scheme for user actions:
