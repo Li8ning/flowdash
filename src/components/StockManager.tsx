@@ -55,9 +55,11 @@ interface ProductStock {
 
 interface StockData {
   data: ProductStock[];
-  totalProducts: number;
-  totalStockEntries: number;
-  pagination: {
+  totalCount?: number; // For standard pagination pattern
+  // Legacy fields (keeping for backward compatibility)
+  totalProducts?: number;
+  totalStockEntries?: number;
+  pagination?: {
     limit: number;
     offset: number;
     hasMore: boolean;
@@ -121,9 +123,10 @@ const StockManager = () => {
       if (currentFilters.packaging_type) params.append('packaging_type', currentFilters.packaging_type);
       if (currentFilters.showZeroStock) params.append('showZeroStock', 'true');
 
-      // Add pagination parameters
+      // Add pagination parameters (page-based)
+      params.append('page', page.toString());
       params.append('limit', limit.toString());
-      params.append('offset', ((page - 1) * limit).toString());
+      params.append('getTotal', 'true');
 
       const response = await fetch(`/api/inventory/stock?${params.toString()}`);
       if (!response.ok) {
@@ -219,7 +222,7 @@ const StockManager = () => {
     fetchStockData(appliedFilters, 1);
   };
 
-  const totalPages = Math.ceil((stockData?.totalStockEntries || 0) / itemsPerPage);
+  const totalPages = Math.ceil(((stockData?.totalCount || stockData?.totalStockEntries) || 0) / itemsPerPage);
 
 
   const getStockStatusColor = (quantity: number) => {
@@ -255,7 +258,7 @@ const StockManager = () => {
           Stock Management
         </Heading>
         <Text fontSize="sm" color="gray.600">
-          {stockData?.totalProducts} products • {stockData?.totalStockEntries} stock entries
+          {stockData?.data?.length || 0} products • {(stockData?.totalCount || stockData?.totalStockEntries || 0)} stock entries
         </Text>
       </Flex>
 
@@ -749,11 +752,11 @@ const StockManager = () => {
       )}
 
       {/* Pagination Controls */}
-      {stockData && stockData.totalStockEntries > 0 && (
+      {stockData && (stockData.totalCount || stockData.totalStockEntries || 0) > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={stockData.totalStockEntries}
+          totalItems={stockData.totalCount || stockData.totalStockEntries || 0}
           itemsPerPage={itemsPerPage}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}

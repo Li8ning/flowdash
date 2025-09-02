@@ -605,7 +605,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                             src={log.image_url || 'https://placehold.co/50'}
                             alt={log.product_name}
                             boxSize="50px"
-                            objectFit="cover"
+                            objectFit="contain"
                             borderRadius="md"
                             mr={4}
                           />
@@ -725,7 +725,7 @@ const InventoryLogs: React.FC<InventoryLogsProps> = ({ allLogs = false }) => {
                           src={log.image_url || 'https://placehold.co/50'}
                           alt={log.product_name}
                           boxSize="50px"
-                          objectFit="cover"
+                          objectFit="contain"
                           borderRadius="md"
                         />
                       </Td>
