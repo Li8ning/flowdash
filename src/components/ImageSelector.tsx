@@ -28,7 +28,7 @@ import {
   IconButton,
   Spinner,
 } from '@chakra-ui/react';
-import { SearchIcon, AddIcon, CloseIcon } from '@chakra-ui/icons';
+import { SearchIcon, AddIcon, CloseIcon, CheckIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 
 interface MediaFile {
@@ -210,14 +210,37 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
                         {mediaFiles.map((file) => (
                           <Box
                             key={file.id}
-                            borderWidth="1px"
-                            borderColor="gray.200"
+                            borderWidth={selectedFile?.id === file.id ? "3px" : "1px"}
+                            borderColor={selectedFile?.id === file.id ? 'blue.500' : 'gray.200'}
                             cursor="pointer"
                             overflow="hidden"
                             onClick={() => handleSelectImage(file)}
-                            bg={selectedFile?.id === file.id ? 'blue.50' : 'transparent'}
-                            _hover={{ bg: 'blue.25' }}
+                            opacity={selectedFile?.id === file.id ? 1 : 0.8}
+                            transform={selectedFile?.id === file.id ? 'scale(1.02)' : 'scale(1)'}
+                            transition="all 0.2s"
+                            _hover={{
+                              opacity: 1,
+                              transform: 'scale(1.02)',
+                              shadow: 'md'
+                            }}
+                            position="relative"
+                            p={selectedFile?.id === file.id ? 1 : 0}
                           >
+                            {selectedFile?.id === file.id && (
+                              <Box
+                                position="absolute"
+                                top={-2}
+                                right={-2}
+                                zIndex={2}
+                                bg="blue.500"
+                                borderRadius="0"
+                                p={2}
+                                boxShadow="sm"
+                                border="2px solid white"
+                              >
+                                <CheckIcon color="white" boxSize={5} />
+                              </Box>
+                            )}
                             <Image
                               src={file.filepath}
                               alt={file.filename}
@@ -245,17 +268,41 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
                   )}
 
                   {selectedFile && (
-                    <Box p={4} bg="blue.50" borderRadius="md">
-                      <HStack justify="space-between">
-                        <VStack align="start" spacing={1}>
-                          <Text fontWeight="medium">{t('media.selected_image')}</Text>
-                          <Text fontSize="sm">{selectedFile.filename}</Text>
-                        </VStack>
+                    <Box
+                      p={4}
+                      bg="white"
+                      borderRadius="lg"
+                      border="2px solid"
+                      borderColor="blue.500"
+                      shadow="md"
+                    >
+                      <HStack justify="space-between" align="center">
+                        <HStack spacing={3}>
+                          <Box
+                            p={2}
+                            bg="blue.500"
+                            borderRadius="md"
+                            color="white"
+                          >
+                            <CheckIcon boxSize={4} />
+                          </Box>
+                          <VStack align="start" spacing={1}>
+                            <Text fontWeight="bold" fontSize="md" color="gray.800">
+                              {t('media.selected_image')}
+                            </Text>
+                            <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                              {selectedFile.filename}
+                            </Text>
+                          </VStack>
+                        </HStack>
                         <IconButton
                           aria-label={t('common.clear')}
                           icon={<CloseIcon />}
                           size="sm"
+                          colorScheme="red"
+                          variant="ghost"
                           onClick={clearSelection}
+                          _hover={{ bg: 'red.50' }}
                         />
                       </HStack>
                     </Box>
