@@ -12,7 +12,7 @@ FlowDash is a web-based inventory management system built to address the specifi
 ## 🚀 **How It Works**
 FlowDash is a multi-tenant, web-based application with role-based access control. The key user journeys are:
 - **Floor Staff**: Log in to their account, select the products they have produced during their shift, and enter the quantities. The interface is designed to be simple and mobile-friendly for use on tablets and phones.
-- **Factory Admins**: Manage the day-to-day operations of the factory. They can add, edit, and delete products, manage user accounts, and view production logs. They can also bulk-import products and upload product images.
+- **Factory Admins**: Manage the day-to-day operations of the factory. They can add, edit, and delete products, manage user accounts, and view production logs. They can also bulk-import products, upload product images through the centralized Media Library, and manage all media assets.
 - **Factory Owners/Managers**: Get a high-level overview of the factory's operations through a dashboard. They can view production summaries, track inventory levels, and generate reports.
 
 ## ✨ **User Experience Goals**

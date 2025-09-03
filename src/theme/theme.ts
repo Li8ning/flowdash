@@ -21,6 +21,19 @@ const theme = extendTheme({
     heading: `'Inter', sans-serif`,
     body: `'Inter', sans-serif`,
   },
+  breakpoints: {
+    base: '0px',
+    xs: '401px',
+    sm: '551px',
+    md: '701px',
+    lg: '1031px',
+    xl: '1181px',
+    '2xl': '1331px',
+    '3xl': '1481px',
+    '4xl': '1631px',
+    '5xl': '1781px',
+    '6xl': '1931px',
+  },
   styles: {
     global: {
       'html, body': {

@@ -15,10 +15,13 @@ graph TD
 ## 📂 **Source Code Paths**
 - **`src/app`**: Contains the main application code, following the Next.js App Router structure.
   - **`src/app/api`**: Houses all the API endpoints for the application, organized by feature.
+    - **`src/app/api/media`**: Media management endpoints for upload, retrieval, and deletion.
   - **`src/app/(pages)/[lng]`**: Contains all language-aware pages.
     - **`src/app/(pages)/[lng]/dashboard`**: Contains the pages for the main user dashboard.
+    - **`src/app/(pages)/[lng]/dashboard/media`**: Media Library pages for centralized image management.
 - **`src/components`**: Reusable React components used throughout the application.
   - **`src/components/layout`**: Components related to the overall page structure, like headers and sidebars.
+  - **`src/components/media`**: Media Library components including gallery, viewer modal, and upload interfaces.
   - **`src/components/__tests__`**: Tests for the components.
 - **`src/lib`**: Core libraries and utility functions.
   - **`src/lib/auth.ts`**: Authentication-related functions.
@@ -36,9 +39,11 @@ graph TD
 - **Next.js App Router**: Chosen for its server-side rendering capabilities, improved performance, and simplified routing.
 - **Serverless Functions**: API endpoints are deployed as serverless functions on Vercel, providing scalability and cost-effectiveness.
 - **Vercel Postgres**: A serverless PostgreSQL database that integrates seamlessly with Vercel deployments.
+- **Vercel Blob**: Serverless file storage for media assets with automatic optimization and global CDN delivery.
 - **Chakra UI**: A component library that provides a set of accessible, reusable, and composable React components to speed up development.
 - **JWT for Authentication**: JSON Web Tokens are used for securing the API and managing user sessions. The `AuthContext` handles the post-login redirect logic to prevent race conditions.
 - **Zod for Validation**: Zod is used for schema validation on both the client and server sides, ensuring data integrity.
+- **Sharp for Image Processing**: Sharp is used for server-side image optimization, including resizing, format conversion (WebP), and quality optimization to reduce file sizes and improve loading performance.
 - **i18next for Internationalization**: `i18next` and `react-i18next` are used to handle translations in a way that is compatible with the Next.js App Router. This includes language-based routing using a dynamic `[lng]` segment in the URL. The `middleware.ts` file is the single source of truth for synchronizing the language cookie with the URL. Translation keys are organized into logical namespaces (e.g., `common`, `products`) to improve maintainability. The JSON translation files have a flat structure with keys at the root level. A comprehensive translation audit has been completed to ensure all translations are simplified from technical jargon to everyday language, making the application accessible to factory workers with limited technical literacy. The application supports English, Hindi, and Gujarati languages for the Indian factory market.
 - **Theme Configuration**: Chakra UI theme is configured in `src/theme/theme.ts`. Custom Button variants were removed to allow proper colorScheme functionality, ensuring destructive actions appear red, positive actions appear green, and primary actions appear blue.
 
@@ -50,9 +55,11 @@ graph TD
 ## 🔗 **Component Relationships**
 - The main application is wrapped in a `Providers` component that provides the necessary context for authentication, UI theme, and internationalization.
 - The `WithAuth` higher-order component is used to protect routes that require authentication.
-- The dashboard pages are composed of smaller, reusable components for managing products, users, and inventory logs.
+- The dashboard pages are composed of smaller, reusable components for managing products, users, inventory logs, and media files.
 - The `AppInitializer` component handles the initial application state, including checking for an existing user session.
 - The `GlobalSpinner` component provides a global loading state for the application.
+- The Media Library system includes `MediaLibraryPage`, `MediaGallery`, `MediaViewerModal`, and `UploadModal` components for comprehensive media management.
+- The `ImageSelector` component integrates with product forms to allow selection from the centralized media library.
 
 ## 🗃️ **Database Schema**
 The database schema is designed to support a multi-tenant architecture, with each organization's data isolated. The main tables include:
@@ -62,6 +69,8 @@ The database schema is designed to support a multi-tenant architecture, with eac
 - **`inventory_logs`**: Tracks production data logged by floor staff.
 - **`inventory`**: Provides a real-time summary of stock levels.
 - **`product_attributes`**: Stores reusable attributes for products.
+- **`media`**: Stores media files metadata with organization isolation and foreign key relationships.
+- **`product_media`**: Junction table linking products to their associated media files.
 
 ## 🔒 **Security Considerations**
 - **SQL Injection Prevention**: The `/api/distinct/{entity}/{field}` endpoint uses whitelisting to prevent SQL injection attacks. Only pre-approved entity names and fields are allowed.

@@ -17,14 +17,26 @@ import {
   Checkbox,
   CheckboxGroup,
   Stack,
-  useToast,
   Image,
   Box,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Product, ProductAttribute } from '@/types';
 import api from '@/lib/api';
+import ImageSelector from './ImageSelector';
+
+interface MediaFile {
+  id: number;
+  filename: string;
+  filepath: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+}
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -41,10 +53,8 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
   const [category, setCategory] = useState('');
   const [design, setDesign] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const toast = useToast();
+  const [selectedImageId, setSelectedImageId] = useState<number | undefined>();
+  const { isOpen: isImageSelectorOpen, onOpen: onImageSelectorOpen, onClose: onImageSelectorClose } = useDisclosure();
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [availablePackagingTypes, setAvailablePackagingTypes] = useState<string[]>([]);
   const [categories, setCategories] = useState<ProductAttribute[]>([]);
@@ -102,12 +112,9 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
       setCategory('');
       setDesign('');
       setImageUrl('');
+      setSelectedImageId(undefined);
       setAvailableQualities([]);
       setAvailablePackagingTypes([]);
-      setImageFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   }, [product]);
 
@@ -125,40 +132,18 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
     onClose();
   };
 
-  const handleImageUpload = async () => {
-    if (!imageFile) return;
-
-    const formData = new FormData();
-    formData.append('file', imageFile);
-    setIsUploading(true);
-
-    try {
-      const response = await api.post('/products/upload-image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setImageUrl(response.data.url);
-      toast({
-        title: t('success.image_upload_title'),
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-    } catch {
-      toast({
-        title: t('errors.image_upload_title'),
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsUploading(false);
+  const handleImageSelect = (mediaFile: MediaFile | null) => {
+    if (mediaFile) {
+      setImageUrl(mediaFile.filepath);
+      setSelectedImageId(mediaFile.id);
+    } else {
+      setImageUrl('');
+      setSelectedImageId(undefined);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} blockScrollOnMount={false}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{product ? t('edit_product') : t('add_product')}</ModalHeader>
@@ -203,16 +188,10 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
                 ))}
               </Select>
             </FormControl>
-            <FormControl id="imageUrl">
-              <FormLabel>{t('form.image_url')}</FormLabel>
-              <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
-                p={1}
-              />
-              <Button onClick={handleImageUpload} isLoading={isUploading} size="sm" mt={2}>
-                {t('form.upload_image')}
+            <FormControl id="image">
+              <FormLabel>{t('form.image')}</FormLabel>
+              <Button onClick={onImageSelectorOpen} colorScheme="blue" variant="outline">
+                {imageUrl ? t('form.change_image') : t('form.select_image')}
               </Button>
               {imageUrl && (
                 <Box mt={2}>
@@ -253,6 +232,13 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
           </Button>
         </ModalFooter>
       </ModalContent>
+
+      <ImageSelector
+        isOpen={isImageSelectorOpen}
+        onClose={onImageSelectorClose}
+        onSelect={handleImageSelect}
+        selectedImageId={selectedImageId}
+      />
     </Modal>
   );
 };

@@ -1,0 +1,334 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  VStack,
+  HStack,
+  Text,
+  Image,
+  Grid,
+  Box,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  useToast,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  IconButton,
+  Spinner,
+} from '@chakra-ui/react';
+import { SearchIcon, AddIcon, CloseIcon } from '@chakra-ui/icons';
+import { useTranslation } from 'react-i18next';
+
+interface MediaFile {
+  id: number;
+  filename: string;
+  filepath: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+}
+
+interface ImageSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (mediaFile: MediaFile | null) => void;
+  selectedImageId?: number;
+}
+
+export default function ImageSelector({ isOpen, onClose, onSelect, selectedImageId }: ImageSelectorProps) {
+  const { t } = useTranslation();
+  const toast = useToast();
+
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  const fetchMediaFiles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('getTotal', 'true');
+
+      const response = await fetch(`/api/media?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch media files');
+
+      const data = await response.json();
+      setMediaFiles(data.data || []);
+    } catch {
+      toast({
+        title: t('common.error'),
+        description: t('media.fetch_error'),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, toast, t]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchMediaFiles();
+    }
+  }, [isOpen, fetchMediaFiles]);
+
+  useEffect(() => {
+    if (selectedImageId) {
+      // Find and set the selected file if it exists
+      const file = mediaFiles.find(f => f.id === selectedImageId);
+      if (file) {
+        setSelectedFile(file);
+      }
+    }
+  }, [selectedImageId, mediaFiles]);
+
+
+  const handleSelectImage = (file: MediaFile) => {
+    setSelectedFile(file);
+  };
+
+  const handleConfirmSelection = () => {
+    onSelect(selectedFile);
+    onClose();
+  };
+
+  const handleUploadNewImage = async () => {
+    if (!uploadFile) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('files', uploadFile);
+
+      const response = await fetch('/api/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0 && !data.results[0].error) {
+        const newFile = data.results[0];
+        // Add the new file to the list
+        setMediaFiles(prev => [newFile, ...prev]);
+        setSelectedFile(newFile);
+        setUploadFile(null);
+
+        toast({
+          title: t('common.success'),
+          description: t('media.upload_success'),
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error(data.results[0]?.error || 'Upload failed');
+      }
+    } catch {
+      toast({
+        title: t('common.error'),
+        description: t('media.upload_error'),
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedFile(null);
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="4xl" blockScrollOnMount={false}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>{t('media.select_image')}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Tabs variant="enclosed">
+            <TabList>
+              <Tab>{t('media.select_from_library')}</Tab>
+              <Tab>{t('media.upload_new')}</Tab>
+            </TabList>
+
+            <TabPanels>
+              {/* Select from Library */}
+              <TabPanel>
+                <VStack spacing={4} align="stretch">
+                  <InputGroup>
+                    <InputLeftElement>
+                      <SearchIcon />
+                    </InputLeftElement>
+                    <Input
+                      placeholder={t('media.search_placeholder')}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </InputGroup>
+
+                  {loading ? (
+                    <Box textAlign="center" py={8}>
+                      <Spinner />
+                      <Text mt={2}>{t('common.loading')}</Text>
+                    </Box>
+                  ) : (
+                    <Box maxH="400px" overflowY="auto">
+                      <Grid templateColumns="repeat(auto-fill, minmax(120px, 1fr))" gap={4}>
+                        {mediaFiles.map((file) => (
+                          <Box
+                            key={file.id}
+                            borderWidth="2px"
+                            borderRadius="md"
+                            borderColor={selectedFile?.id === file.id ? 'blue.500' : 'gray.200'}
+                            cursor="pointer"
+                            overflow="hidden"
+                            onClick={() => handleSelectImage(file)}
+                            _hover={{ borderColor: 'blue.300' }}
+                          >
+                            <Image
+                              src={file.filepath}
+                              alt={file.filename}
+                              width="100%"
+                              height="100px"
+                              objectFit="cover"
+                              fallback={
+                                <Box
+                                  height="100px"
+                                  bg="gray.100"
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                >
+                                  <Text fontSize="xs" color="gray.500">
+                                    {t('media.image_placeholder')}
+                                  </Text>
+                                </Box>
+                              }
+                            />
+                            <Box p={2}>
+                              <Text fontSize="xs" noOfLines={1}>
+                                {file.filename}
+                              </Text>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Grid>
+                    </Box>
+                  )}
+
+                  {selectedFile && (
+                    <Box p={4} bg="blue.50" borderRadius="md">
+                      <HStack justify="space-between">
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="medium">{t('media.selected_image')}</Text>
+                          <Text fontSize="sm">{selectedFile.filename}</Text>
+                        </VStack>
+                        <IconButton
+                          aria-label={t('common.clear')}
+                          icon={<CloseIcon />}
+                          size="sm"
+                          onClick={clearSelection}
+                        />
+                      </HStack>
+                    </Box>
+                  )}
+                </VStack>
+              </TabPanel>
+
+              {/* Upload New Image */}
+              <TabPanel>
+                <VStack spacing={4} align="stretch">
+                  <Box>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      style={{ display: 'none' }}
+                      id="image-upload"
+                    />
+                    <Button
+                      as="label"
+                      htmlFor="image-upload"
+                      leftIcon={<AddIcon />}
+                      width="full"
+                    >
+                      {t('media.select_image_file')}
+                    </Button>
+                  </Box>
+
+                  {uploadFile && (
+                    <Box p={4} bg="green.50" borderRadius="md">
+                      <HStack justify="space-between">
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="medium">{t('media.selected_file')}</Text>
+                          <Text fontSize="sm">{uploadFile.name}</Text>
+                          <Text fontSize="xs" color="gray.600">
+                            {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
+                          </Text>
+                        </VStack>
+                        <IconButton
+                          aria-label={t('common.remove')}
+                          icon={<CloseIcon />}
+                          size="sm"
+                          onClick={() => setUploadFile(null)}
+                        />
+                      </HStack>
+                    </Box>
+                  )}
+
+                  <Button
+                    colorScheme="blue"
+                    onClick={handleUploadNewImage}
+                    isDisabled={!uploadFile}
+                    width="full"
+                  >
+                    {t('media.upload_and_select')}
+                  </Button>
+                </VStack>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleConfirmSelection}
+            isDisabled={!selectedFile}
+          >
+            {t('media.select_image')}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}

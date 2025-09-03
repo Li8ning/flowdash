@@ -25,22 +25,12 @@ import {
   Center,
   Icon,
 } from '@chakra-ui/react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { FiCopy, FiDownload, FiUpload, FiFile } from 'react-icons/fi';
-import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
-interface ProductAttribute {
-  id: number;
-  type: string;
-  value: string;
-}
-
-interface GroupedAttributes {
-  [key: string]: ProductAttribute[];
-}
 
 interface UploadResult {
   fileName: string;
@@ -55,38 +45,7 @@ const BulkImageUploader = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
-  const [attributes, setAttributes] = useState<GroupedAttributes>({});
 
-  useEffect(() => {
-    const fetchAttributes = async () => {
-      if (user?.organization_id) {
-        try {
-          const { data } = await api.get<ProductAttribute[]>('/settings/attributes', {
-            params: { organization_id: user.organization_id },
-          });
-          const grouped = data.reduce((acc, attr) => {
-            const { type } = attr;
-            if (!acc[type]) {
-              acc[type] = [];
-            }
-            acc[type].push(attr);
-            return acc;
-          }, {} as GroupedAttributes);
-          setAttributes(grouped);
-        } catch (err) {
-          console.error('Failed to fetch attributes', err);
-          toast({
-            title: "Error",
-            description: "Could not load product attributes for template.",
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          });
-        }
-      }
-    };
-    fetchAttributes();
-  }, [user?.organization_id, toast]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(acceptedFiles);
@@ -121,7 +80,7 @@ const BulkImageUploader = () => {
     });
 
     try {
-      const response = await fetch('/api/products/bulk-upload-images', {
+      const response = await fetch('/api/media/upload', {
         method: 'POST',
         body: formData,
       });
@@ -131,7 +90,7 @@ const BulkImageUploader = () => {
       if (!response.ok) {
         throw new Error(result.error || 'An unknown error occurred.');
       }
-      
+
       setUploadResults(result.results);
       toast({
         title: t('bulk_image_uploader.toast.upload_successful'),
@@ -167,22 +126,24 @@ const BulkImageUploader = () => {
     const successfulUploads = uploadResults.filter(r => r.url);
     if (successfulUploads.length === 0) return;
 
-    const getAttr = (type: string, index: number) => {
-        const items = attributes[type] || [];
-        return items.length > 0 ? items[index % items.length].value : '';
-    };
-
+    // Follow the bulk import product CSV format but only fill image_url column
     const csvHeader = 'name,sku,category,design,color,quality,packaging,image_url\n';
-    const csvRows = successfulUploads.map((result, i) => {
-      const sku = result.fileName.split('.').slice(0, -1).join('.');
-      const category = getAttr('category', i);
-      const design = getAttr('design', i);
-      const color = getAttr('color', i);
-      const quality = getAttr('quality', i);
-      const packaging = getAttr('packaging_type', i);
-      
-      // Creates a row with pre-filled example values, plus the uploaded image URL.
-      return `"${sku}",${sku},${category},${design},${color},"${quality}","${packaging}",${result.url}`;
+    const csvRows = successfulUploads.map((result) => {
+      // Extract filename without extension for name
+      const name = result.fileName.split('.').slice(0, -1).join('.');
+
+      // Create SKU following standard rules: lowercase, no spaces, replace spaces/underscores with hyphens, remove special chars
+      const sku = result.fileName
+        .split('.').slice(0, -1).join('.') // Remove extension
+        .toLowerCase() // Convert to lowercase
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/_+/g, '-') // Replace underscores with hyphens
+        .replace(/[^a-z0-9\-]/g, '') // Remove special characters except hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+      // Fill name and sku, leave other columns empty, only fill image_url
+      return `"${name}","${sku}",,,,,,${result.url}`;
     }).join('\n');
 
     const csvContent = csvHeader + csvRows;
@@ -196,7 +157,7 @@ const BulkImageUploader = () => {
     link.click();
     document.body.removeChild(link);
   };
-  
+
   const resetUploader = () => {
     setFiles([]);
     setUploadResults([]);
@@ -257,7 +218,7 @@ const BulkImageUploader = () => {
             <Heading as="h2" size={{ base: 'md', md: 'lg' }}>{t('bulk_image_uploader.results.title')}</Heading>
             <Button onClick={resetUploader} flexShrink={0}>{t('bulk_image_uploader.results.upload_more')}</Button>
         </HStack>
-      
+
       {uploadResults.filter(r => r.url).length > 0 && (
         <Button onClick={handleDownloadCsv} colorScheme="green" leftIcon={<FiDownload />}>
           {t('bulk_image_uploader.results.download_csv')}

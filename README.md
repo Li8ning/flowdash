@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.5.3**
+**Version: 0.6.0**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -8,6 +8,7 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
 *   **Role-Based Access Control (RBAC):** Three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
 *   **Product Management:** Create, update, and manage products with attributes like color, design, quality, and packaging types. Includes bulk CSV import and image upload capabilities.
+*   **Media Library:** Centralized image management system with upload, view, edit, and delete capabilities. Features WordPress-style interface, bulk operations, drag-and-drop uploads, and automatic image optimization.
 *   **Stock Management:** Comprehensive finished goods inventory tracking with separate rows for each product variant (quality + packaging combination). Features advanced filtering, pagination, and zero stock visibility toggle.
 *   **Inventory Logging:** Floor staff can log production quantities with detailed tracking of who made changes and when.
 *   **User Management:** Invite, edit, deactivate, and reactivate user accounts with strict role hierarchy enforcement.
@@ -76,7 +77,24 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.5.3)
+## Recent Updates (v0.6.0)
+
+### Media Library System
+- **Complete Media Management**: Implemented comprehensive centralized image management system with WordPress-style interface
+- **Drag-and-Drop Upload**: Inline expandable upload area with drag-and-drop functionality and visual feedback
+- **Bulk Operations**: WordPress-style bulk select with visual feedback, bulk delete, and bulk actions
+- **Advanced Search**: Debounced search (500ms delay) with real-time filtering across filename and metadata
+- **Image Optimization**: Automatic image processing with Sharp (resize, WebP conversion, quality optimization)
+- **Responsive Design**: Mobile-first design with custom breakpoints (2-12 columns based on screen size)
+- **Navigation Integration**: New Media submenu with Library and Upload Media options
+- **Modal Viewer**: Two-column layout with navigation arrows, file details, and direct deletion
+- **File Management**: Windows-style duplicate handling (filename.jpg, filename (1).jpg, etc.)
+- **Database Architecture**: New media tables with organization isolation and foreign key relationships
+- **API Consolidation**: Unified upload endpoint with proper error handling and progress tracking
+- **Multi-language Support**: Complete internationalization for English, Hindi, and Gujarati
+- **Security**: Role-based access control (admin/super-admin only) with proper validation
+
+### Previous Updates (v0.5.3)
 
 ### Pagination Bug Fixes & API Improvements
 - **Critical Pagination Fixes**: Resolved duplicate records appearing across different pages in product management

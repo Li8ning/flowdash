@@ -14,6 +14,7 @@ Factory owners need a simple way to track what their workers are producing on th
 ## 🔑 **Key Features We Need**
 - **Production Logging** - Workers log quantities of products they've made
 - **Product Management** - Admins can add/edit products with images and details
+- **Media Library** - Centralized image management with upload, view, edit, and delete capabilities
 - **User Management** - Role-based access for different types of users
 - **Multi-language Support** - English, Hindi, and Gujarati for Indian factories
 - **Inventory Tracking** - Real-time view of what's in stock
