@@ -166,7 +166,7 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="4xl" blockScrollOnMount={false}>
+    <Modal isOpen={isOpen} onClose={onClose} size="6xl" blockScrollOnMount={false}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{t('media.select_image')}</ModalHeader>
@@ -200,27 +200,33 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
                     </Box>
                   ) : (
                     <Box maxH="400px" overflowY="auto">
-                      <Grid templateColumns="repeat(auto-fill, minmax(120px, 1fr))" gap={4}>
+                      <Grid
+                        templateColumns={{
+                          base: "repeat(2, 1fr)",
+                          xs: "repeat(auto-fill, minmax(150px, 1fr))"
+                        }}
+                        gap={4}
+                      >
                         {mediaFiles.map((file) => (
                           <Box
                             key={file.id}
-                            borderWidth="2px"
-                            borderRadius="md"
-                            borderColor={selectedFile?.id === file.id ? 'blue.500' : 'gray.200'}
+                            borderWidth="1px"
+                            borderColor="gray.200"
                             cursor="pointer"
                             overflow="hidden"
                             onClick={() => handleSelectImage(file)}
-                            _hover={{ borderColor: 'blue.300' }}
+                            bg={selectedFile?.id === file.id ? 'blue.50' : 'transparent'}
+                            _hover={{ bg: 'blue.25' }}
                           >
                             <Image
                               src={file.filepath}
                               alt={file.filename}
                               width="100%"
-                              height="100px"
-                              objectFit="cover"
+                              height="120px"
+                              objectFit="scale-down"
                               fallback={
                                 <Box
-                                  height="100px"
+                                  height="120px"
                                   bg="gray.100"
                                   display="flex"
                                   alignItems="center"
@@ -232,11 +238,6 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
                                 </Box>
                               }
                             />
-                            <Box p={2}>
-                              <Text fontSize="xs" noOfLines={1}>
-                                {file.filename}
-                              </Text>
-                            </Box>
                           </Box>
                         ))}
                       </Grid>
