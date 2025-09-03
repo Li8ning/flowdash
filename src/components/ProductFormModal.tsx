@@ -119,16 +119,18 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
   }, [product]);
 
   const handleSave = () => {
-    onSave({
+    const productData = {
       name,
       sku,
       color,
       category,
       design,
       image_url: imageUrl,
+      media_id: selectedImageId,
       available_qualities: availableQualities,
       available_packaging_types: availablePackagingTypes,
-    });
+    };
+    onSave(productData);
     onClose();
   };
 

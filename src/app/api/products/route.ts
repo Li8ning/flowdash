@@ -129,6 +129,7 @@ export const POST = handleError(
       sku,
       color,
       image_url,
+      media_id,
       available_qualities,
       category,
       design,
@@ -166,7 +167,15 @@ export const POST = handleError(
 
       const newProductId = newProduct.id;
 
-      // 2. Handle qualities
+      // 2. Handle media relationship
+      if (media_id) {
+        await client.query(
+          `INSERT INTO product_images (product_id, media_id) VALUES ($1, $2)`,
+          [newProductId, media_id]
+        );
+      }
+
+      // 3. Handle qualities
       if (available_qualities && available_qualities.length > 0) {
         const qualitiesResult = await client.query(
           `SELECT id, value FROM product_attributes WHERE type = 'quality' AND value = ANY($1::text[])`,
@@ -187,7 +196,7 @@ export const POST = handleError(
         }
       }
 
-      // 3. Handle packaging types
+      // 4. Handle packaging types
       if (available_packaging_types && available_packaging_types.length > 0) {
         const packagingResult = await client.query(
           `SELECT id, value FROM product_attributes WHERE type = 'packaging_type' AND TRIM(value) = ANY($1::text[])`,
