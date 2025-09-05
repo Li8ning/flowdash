@@ -80,19 +80,21 @@ export const GET = handleError(async (req: NextRequest) => {
 
   // Main query to get stock data
   const stockQuery = `
-    SELECT 
+    SELECT
       p.id as product_id,
       p.name as product_name,
       p.sku,
       p.category,
       p.design,
       p.color,
-      p.image_url,
+      m.filepath as image_url,
       iss.quality,
       iss.packaging_type,
       iss.quantity,
       iss.last_updated_at
     FROM products p
+    LEFT JOIN product_images pi ON p.id = pi.product_id
+    LEFT JOIN media_library m ON pi.media_id = m.id
     LEFT JOIN inventory_summary iss ON p.id = iss.product_id
     WHERE ${whereClause}
     ORDER BY p.name ASC, iss.quality ASC, iss.packaging_type ASC
@@ -104,6 +106,8 @@ export const GET = handleError(async (req: NextRequest) => {
     SELECT COUNT(DISTINCT p.id) as total_products,
            COUNT(*) as total_stock_entries
     FROM products p
+    LEFT JOIN product_images pi ON p.id = pi.product_id
+    LEFT JOIN media_library m ON pi.media_id = m.id
     LEFT JOIN inventory_summary iss ON p.id = iss.product_id
     WHERE ${whereClause}
   `;
@@ -136,7 +140,7 @@ export const GET = handleError(async (req: NextRequest) => {
     category: string;
     design: string;
     color: string;
-    image_url: string;
+    image_url?: string;
     stock_entries: StockEntry[];
     total_quantity: number;
   }
@@ -149,7 +153,7 @@ export const GET = handleError(async (req: NextRequest) => {
     category: string;
     design: string;
     color: string;
-    image_url: string;
+    image_url?: string;
     quality: string | null;
     packaging_type: string | null;
     quantity: number | null;

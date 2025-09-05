@@ -7,12 +7,15 @@
     "color": "રંગ",
     "category": "શ્રેણી",
     "design": "ડિઝાઇન",
+    "image": "છબી",
     "image_url": "છબી URL",
     "available_qualities": "ઉપલબ્ધ ગુણવત્તાઓ",
     "available_packaging_types": "ઉપલબ્ધ પેકેજિંગના પ્રકારો",
     "select_color": "રંગ પસંદ કરો",
     "select_category": "શ્રેણી પસંદ કરો",
     "select_design": "ડિઝાઇન પસંદ કરો",
+    "select_image": "છબી પસંદ કરો",
+    "change_image": "છબી બદલો",
     "upload_image": "છબી અપલોડ કરો"
   },
   "success": {

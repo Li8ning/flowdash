@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { Box, Heading, Text } from '@chakra-ui/react';
 import { useTranslation } from '@/app/i18n/client';
-import { FiGrid, FiList, FiUsers, FiUser, FiBox, FiSettings, FiClipboard, FiLogIn, FiUpload, FiPackage } from 'react-icons/fi';
+import { FiGrid, FiList, FiUsers, FiUser, FiBox, FiSettings, FiClipboard, FiLogIn, FiUpload, FiPackage, FiImage } from 'react-icons/fi';
 
 import MainLayout from '@/components/layout/MainLayout';
 import { NavigationLink } from '@/components/layout/Sidebar';
@@ -28,8 +28,15 @@ export default function DashboardLayout({
         { href: `/${lng}/dashboard/products`, label: t('sidebar.manage_products'), icon: FiBox },
         { href: `/${lng}/dashboard/stock`, label: t('sidebar.stock_management'), icon: FiPackage },
         { href: `/${lng}/dashboard/products/bulk-import`, label: t('sidebar.bulk_import'), icon: FiUpload },
-        { href: `/${lng}/dashboard/products/bulk-image-upload`, label: t('sidebar.bulk_image_upload'), icon: FiUpload },
         { href: `/${lng}/dashboard/products/settings`, label: t('sidebar.product_settings'), icon: FiSettings },
+      ],
+    },
+    {
+      label: t('sidebar.media'),
+      icon: FiImage,
+      children: [
+        { href: `/${lng}/dashboard/media`, label: t('sidebar.media_library'), icon: FiImage },
+        { href: `/${lng}/dashboard/media/upload`, label: t('sidebar.upload_media'), icon: FiUpload },
       ],
     },
     { href: `/${lng}/dashboard/users`, label: t('sidebar.user_management'), icon: FiUsers },

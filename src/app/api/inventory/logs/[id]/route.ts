@@ -103,9 +103,11 @@ export const PUT = handleError(async (req: NextRequest, { params }: RouteContext
   }
   
   const { rows: [result] } = await sql`
-    SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, p.image_url, u.username
+    SELECT l.id, p.name as product_name, p.color, p.design, l.produced, l.created_at, l.quality, l.packaging_type, m.filepath as image_url, u.username
     FROM inventory_logs l
     JOIN products p ON l.product_id = p.id
+    LEFT JOIN product_images pi ON p.id = pi.product_id
+    LEFT JOIN media_library m ON pi.media_id = m.id
     JOIN users u ON l.user_id = u.id
     WHERE l.id = ${logId}
   `;

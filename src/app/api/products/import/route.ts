@@ -5,6 +5,10 @@ import Papa from 'papaparse';
 import { z } from 'zod';
 import { VercelPoolClient } from '@vercel/postgres';
 import { handleError, BadRequestError, ForbiddenError } from '@/lib/errors';
+import { put } from '@vercel/blob';
+import { sql } from '@vercel/postgres';
+import crypto from 'crypto';
+import sharp from 'sharp';
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -14,7 +18,7 @@ const productSchema = z.object({
   color: z.string().min(1, "Color is required"),
   quality: z.string().min(1, "Quality is required"),
   packaging: z.string().min(1, "Packaging is required"),
-  image_url: z.string().url("Image URL must be a valid URL").optional().or(z.literal('')),
+  image_url: z.string().optional(),
 });
 
 type ProductCsvRow = z.infer<typeof productSchema>;
@@ -28,6 +32,124 @@ const parseCsv = (fileContent: string): Promise<Papa.ParseResult<ProductCsvRow>>
       error: reject,
     });
   });
+};
+
+const getImageHash = (buffer: Buffer): string => {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+};
+
+const processImagesInParallel = async (products: ProductCsvRow[], organizationId: number) => {
+  const results = new Map<string, number | null>();
+  const concurrencyLimit = 3; // Safe for Vercel free plan
+
+  // Process in batches to control concurrency
+  for (let i = 0; i < products.length; i += concurrencyLimit) {
+    const batch = products.slice(i, i + concurrencyLimit);
+
+    const batchPromises = batch.map(async (product) => {
+      if (product.image_url) {
+        const mediaId = await handleImageUrl(product.image_url, organizationId, product.name);
+        results.set(product.sku, mediaId);
+      }
+    });
+
+    // Wait for current batch to complete
+    await Promise.allSettled(batchPromises);
+
+    // Small delay between batches to be respectful to Vercel
+    if (i + concurrencyLimit < products.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  return results;
+};
+
+// Optimized helper function to handle image URLs during import
+const handleImageUrl = async (imageUrl: string, organizationId: number, productName: string): Promise<number | null> => {
+  if (!imageUrl || !imageUrl.trim()) return null;
+
+  const trimmedUrl = imageUrl.trim();
+
+  try {
+    // Download image with timeout
+    const response = await fetch(trimmedUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': 'FlowDash-Import/1.0' },
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch image from ${trimmedUrl}: ${response.status}`);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.startsWith('image/')) {
+      console.warn(`Invalid content type for ${trimmedUrl}: ${contentType}`);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length === 0) {
+      console.warn(`Empty image downloaded from ${trimmedUrl}`);
+      return null;
+    }
+
+    // Generate content hash for duplicate detection
+    const contentHash = getImageHash(buffer);
+
+    // Check for existing image with same content
+    const existingImage = await sql.query(
+      'SELECT id FROM media_library WHERE content_hash = $1 AND organization_id = $2',
+      [contentHash, organizationId]
+    );
+
+    if (existingImage.rows.length > 0) {
+      console.log(`Duplicate image found for ${productName}, reusing existing media ID: ${existingImage.rows[0].id}`);
+      return existingImage.rows[0].id;
+    }
+
+    // Optimize image with Sharp
+    const optimizedBuffer = await sharp(buffer)
+      .resize(500, 500, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // Generate base filename (without extension)
+    const urlParts = trimmedUrl.split('/');
+    const originalFilename = urlParts[urlParts.length - 1] || 'imported-image.jpg';
+    const baseFilename = originalFilename.replace(/\.[^/.]+$/, ''); // Remove extension
+
+    // Let Vercel Blob handle uniqueness with random suffix
+    const blobFilename = `${baseFilename}.webp`;
+
+    // Upload to Vercel Blob
+    const blob = await put(blobFilename, optimizedBuffer, {
+      access: 'public',
+      addRandomSuffix: true, // Vercel adds random text for uniqueness
+      contentType: 'image/webp',
+    });
+
+    // Store base filename (without extension) in database
+    const mediaResult = await sql.query(
+      `INSERT INTO media_library (organization_id, filename, filepath, file_type, file_size, content_hash)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [organizationId, baseFilename, blob.url, 'image/webp', optimizedBuffer.length, contentHash]
+    );
+
+    console.log(`Successfully processed image for ${productName}: ${optimizedBuffer.length} bytes (${Math.round((buffer.length - optimizedBuffer.length) / buffer.length * 100)}% size reduction)`);
+    return mediaResult.rows[0].id;
+
+  } catch (error) {
+    console.error(`Error processing image ${trimmedUrl} for ${productName}:`, error);
+    return null;
+  }
 };
 
 export const POST = handleError(async (req: NextRequest) => {
@@ -116,11 +238,18 @@ export const POST = handleError(async (req: NextRequest) => {
         }
       }
 
+      // Process images in parallel before creating products
+      const productsWithImages = productsToInsert.filter(p => p.image_url);
+      const imageResults = await processImagesInParallel(productsWithImages, organization_id as number);
+
       for (const product of productsToInsert) {
-        // 1. Insert base product
+        // 1. Get media ID from parallel processing results
+        const mediaId = imageResults.get(product.sku) || null;
+
+        // 2. Insert base product
         const { rows: [newProduct] } = await client.query(
-          `INSERT INTO products (organization_id, name, sku, category, design, color, image_url)
-           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+          `INSERT INTO products (organization_id, name, sku, category, design, color)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [
             organization_id as number,
             product.name,
@@ -128,10 +257,17 @@ export const POST = handleError(async (req: NextRequest) => {
             product.category.trim(),
             product.design.trim(),
             product.color.trim(),
-            product.image_url || null,
           ]
         );
         const newProductId = newProduct.id;
+
+        // 3. Link media if available
+        if (mediaId) {
+          await client.query(
+            `INSERT INTO product_images (product_id, media_id) VALUES ($1, $2)`,
+            [newProductId, mediaId]
+          );
+        }
 
         // 2. Link qualities
         const qualities = product.quality.split(',').map(q => q.trim()).filter(Boolean);

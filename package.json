@@ -1,6 +1,6 @@
 {
   "name": "flowdash",
-  "version": "0.5.3",
+  "version": "0.6.3",
   "private": true,
   "scripts": {
     "dev": "next dev",

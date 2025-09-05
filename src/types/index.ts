@@ -16,7 +16,8 @@ export interface Product {
   color: string;
   category: string;
   design: string;
-  image_url: string;
+  image_url?: string; // Keep for backward compatibility during migration
+  media_id?: number;
   available_qualities: string[];
   available_packaging_types: string[];
 }
@@ -39,7 +40,7 @@ export interface InventoryLog {
   produced: number;
   created_at: string;
   username?: string;
-  image_url?: string;
+  image_url?: string; // Keep for backward compatibility during migration
   quality: string;
   packaging_type: string;
 }

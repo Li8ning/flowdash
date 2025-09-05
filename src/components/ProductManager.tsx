@@ -61,19 +61,17 @@ const ProductManager = () => {
     onOpen();
   };
 
-  const handleSave = (productData: Omit<Product, 'id' | 'quantity_on_hand'>) => {
+  const handleSave = async (productData: Omit<Product, 'id' | 'quantity_on_hand'>) => {
     if (editingProduct) {
-      updateProduct(editingProduct.id, productData);
+      await updateProduct(editingProduct.id, productData);
     } else {
-      addProduct(productData);
+      await addProduct(productData);
     }
     setEditingProduct(null);
-    // Refetch with current filters and page
-    fetchProducts(currentFilters, currentPage, itemsPerPage);
   };
 
-  const handleArchive = (productId: number) => {
-    archiveProduct(productId);
+  const handleArchive = async (productId: number) => {
+    await archiveProduct(productId);
     // Refetch with current filters and page
     fetchProducts(currentFilters, currentPage, itemsPerPage);
   };

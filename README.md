@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.5.3**
+**Version: 0.6.3**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -8,6 +8,7 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
 *   **Role-Based Access Control (RBAC):** Three-tiered role system with `super_admin` (full control), `admin` (manages floor staff and products), and `floor_staff` (limited to their own logs).
 *   **Product Management:** Create, update, and manage products with attributes like color, design, quality, and packaging types. Includes bulk CSV import and image upload capabilities.
+*   **Media Library:** Centralized image management system with upload, view, edit, and delete capabilities. Features WordPress-style interface, bulk operations, drag-and-drop uploads, and automatic image optimization.
 *   **Stock Management:** Comprehensive finished goods inventory tracking with separate rows for each product variant (quality + packaging combination). Features advanced filtering, pagination, and zero stock visibility toggle.
 *   **Inventory Logging:** Floor staff can log production quantities with detailed tracking of who made changes and when.
 *   **User Management:** Invite, edit, deactivate, and reactivate user accounts with strict role hierarchy enforcement.
@@ -76,87 +77,40 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.5.3)
+## Recent Updates (v0.6.3)
 
-### Pagination Bug Fixes & API Improvements
-- **Critical Pagination Fixes**: Resolved duplicate records appearing across different pages in product management
-- **Deterministic Ordering**: Added secondary sort keys (id DESC) to all paginated queries to prevent non-deterministic results
-- **API Consistency**: Standardized all pagination APIs to use page-based parameters instead of offset-based
-- **Comprehensive Audit**: Reviewed and fixed potential pagination issues across all APIs (products, inventory logs, stock management)
-- **Type Safety**: Replaced explicit 'any' types with proper TypeScript interfaces for better code reliability
+### Bulk Import Image Optimization
+- **Advanced Image Processing**: Implemented Sharp-based image optimization with automatic resizing (500x500px) and WebP conversion for 60-80% file size reduction
+- **Hash-Based Duplicate Detection**: Added SHA-256 content hashing to prevent storage waste from identical images across bulk import, media library, and single uploads
+- **Parallel Processing**: Implemented controlled parallel image processing (3 concurrent uploads) for 3x faster bulk imports on Vercel free plan
+- **Smart Filename Handling**: Base filenames stored in database, Vercel Blob handles uniqueness with random suffixes
+- **Comprehensive Error Handling**: 30-second timeouts, graceful failure recovery, and detailed logging for robust operation
+- **Database Schema Enhancement**: Added content_hash column with performance index for efficient duplicate detection
+- **Cross-Platform Consistency**: Unified image processing logic across bulk import, media library, and single product uploads
 
-### Code Quality & Performance (v0.5.2)
-- **ESLint Compliance**: Fixed all ESLint warnings and errors across the codebase
-- **TypeScript Enhancements**: Replaced explicit 'any' types with proper type definitions
-- **React Hooks Optimization**: Fixed dependency warnings in useEffect hooks
-- **Code Cleanup**: Removed unused variables and imports for better maintainability
-- **Performance Improvements**: Optimized component re-renders and API calls
+## Previous Updates (v0.6.2)
 
-### Previous Updates (v0.5.0)
+### Media Management UI/UX Enhancements
+- **Upload Flow Streamlining**: Removed redundant collision detection code, added upload progress feedback with visual indicators, and fixed React key warnings in ImageSelector component
+- **Deletion Experience Improvements**: Replaced browser alerts with native Chakra UI AlertDialogs for both single and bulk deletions, added comprehensive loading states, and implemented automatic media library refresh without page reloads
+- **Enhanced Error Handling**: Improved error messages with specific context and graceful failure handling for all media operations
+- **Translation System Updates**: Fixed translation message templates and added new keys for upload success messages across all supported languages (English, Hindi, Gujarati)
+- **Code Quality & Performance**: Removed debug console.log messages, optimized custom event handling for cross-component communication, and ensured clean, maintainable codebase
+- **Build Verification**: All changes compile successfully with proper TypeScript types and no linting errors
 
-### Enhanced Username Validations
-- **Comprehensive Validation Rules**: Implemented robust username validation across all user-facing forms
-- **Length Restrictions**: Usernames must be 3-20 characters long
-- **Character Validation**: Only letters, numbers, dots, underscores, and hyphens allowed
-- **Format Rules**: No leading/trailing/consecutive special characters
-- **Reserved Words Blocking**: Prevents use of common system words (admin, root, system, etc.)
-- **Case-Insensitive Uniqueness**: Usernames are unique within organizations regardless of case
-- **Real-time Validation**: Immediate feedback as users type with clear error messages
-- **Multi-language Support**: Validation messages available in English, Hindi, and Gujarati
-- **Consistent Implementation**: Applied to UserManager, Register, and UserProfileForm components
+## Previous Updates (v0.6.1)
 
-### Previous Updates (v0.4.0)
+### Product Management & UI Enhancements
+- **Smart CSV Import**: Enhanced product import with intelligent image_url support and automatic media library integration
+- **Image Preview Optimization**: Fixed image loading in edit mode, eliminated unnecessary API calls, and improved preview update handling
+- **Database Integrity**: Resolved media_id column errors and optimized product-media relationship handling
+- **UI/UX Improvements**: Added comprehensive loading feedback, removed debug messages, and cleaned up modal interfaces
+- **Media Library Fixes**: Excluded archived products from linked products list while preserving data integrity
+- **Code Quality**: Fixed all ESLint warnings, removed unused imports, and optimized React hooks dependencies
 
-### Enhanced Pagination System
-- **Dynamic Items Per Page**: Added dropdown selector allowing users to choose 25, 50, or 100 items per page (default: 25)
-- **Always Visible Controls**: Pagination controls now remain visible even when there's only one page of data
-- **Consistent UX**: Items per page selector and page information always accessible across all data tables
-- **Improved Performance**: Better handling of large datasets with user-controlled pagination limits
+---
 
-### Previous Updates (v0.3.0)
-
-### Stock Management System
-- **New Stock Page**: Dedicated stock management interface with separate rows for each product variant
-- **Advanced Filtering**: Filter by product name, category, design, color, quality, and packaging type
-- **Zero Stock Toggle**: Option to show/hide products with zero inventory
-- **Pagination**: Efficient handling of large inventories with 50 items per page
-- **Mobile Accordions**: Collapsible interface optimized for mobile devices
-- **Enhanced Stock Badges**: Large, color-coded quantity indicators (32px+ height)
-- **Real-time Updates**: Stock levels automatically updated when production is logged
-
-### Database Architecture
-- **New `inventory_summary` Table**: Optimized for fast stock queries with product variant tracking
-- **Automated UPSERT Operations**: Real-time stock updates when inventory logs are created
-- **Data Migration**: Seamless migration from existing inventory logs to new summary structure
-
-## Previous Updates (v0.2.0)
-
-### Toast Message System Refactor
-- Implemented a comprehensive localized toast message system
-- Eliminated hardcoded translations in the generic useCrud hook
-- Each component now provides its own contextually appropriate messages
-- Full support for English, Hindi, and Gujarati languages
-
-### Button Color Scheme Implementation
-- Fixed theme configuration that was preventing proper colorScheme functionality
-- Implemented consistent color coding across all components:
-  - **Red**: Destructive actions (delete, archive, logout)
-  - **Green**: Positive actions (save, reactivate)
-  - **Blue**: Primary actions (login, add, update)
-  - **Default**: Neutral actions (edit, cancel)
-
-### Security & Performance
-- Fixed SQL injection vulnerability in distinct value endpoints
-- Implemented proper input validation with Zod schemas
-- Added comprehensive error monitoring with Sentry
-- Optimized for serverless deployment on Vercel
-
-### Login Security Enhancements (v0.2.0)
-- Added user-specific login attempt tracking using IP+username composite keys
-- Implemented remaining login attempts display for better user feedback
-- Added structured error codes (RATE_LIMIT_EXCEEDED, ACCOUNT_INACTIVE, INVALID_CREDENTIALS)
-- Enhanced rate limiter to return structured error data with localized messages
-- Improved security with better error handling and user feedback
+📋 **Complete Change History**: See [CHANGELOG.md](CHANGELOG.md) for all previous versions and detailed changes.
 
 ## CI/CD
 

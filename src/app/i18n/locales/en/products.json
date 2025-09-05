@@ -7,12 +7,15 @@
     "color": "Color",
     "category": "Category",
     "design": "Design",
+    "image": "Image",
     "image_url": "Image URL",
     "available_qualities": "Available Qualities",
     "available_packaging_types": "Available Packaging Types",
     "select_color": "Select Color",
     "select_category": "Select Category",
     "select_design": "Select Design",
+    "select_image": "Select Image",
+    "change_image": "Change Image",
     "upload_image": "Upload Image"
   },
   "success": {
