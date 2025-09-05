@@ -4,6 +4,12 @@
 The application has successfully implemented a comprehensive **Media Library system** alongside the existing stock management functionality. This major feature addition provides centralized image management with WordPress-style interface, drag-and-drop uploads, bulk operations, and seamless integration with product management. The Media Library includes advanced features like automatic image optimization, responsive design, and multi-language support.
 
 ## 🔄 **Recent Changes**
+- **Product Management Enhancements (v0.6.1)**: Comprehensive improvements to product import and image management system. Enhanced CSV import with smart image_url support, updated CSV template with image_url column, fixed image preview loading in edit mode, optimized image loading to use existing URLs instead of unnecessary API calls, and resolved image preview update issues when selecting from media library.
+- **Database & API Fixes**: Fixed critical database error with media_id column handling, resolved double refresh issues by optimizing API calls, and improved data integrity across product-media relationships.
+- **UI/UX Improvements**: Added comprehensive loading feedback for save and archive operations, removed debug console.log messages, cleaned up filename display in modals, and enhanced user experience with proper loading states and error handling.
+- **Media Library Refinements**: Fixed media library to exclude archived products from linked products list while maintaining data integrity, ensuring clean UI without clutter from archived items.
+- **Code Quality & Performance**: Fixed all ESLint warnings and errors, removed unused imports and variables, optimized useEffect dependencies to prevent infinite loops, and ensured clean, maintainable codebase.
+- **Version Update**: Updated application version from 0.6.0 to 0.6.1 to reflect the comprehensive product management and UI improvements.
 - **Media Library System Implementation (v0.6.0)**: Implemented comprehensive centralized image management system with WordPress-style interface. Features include drag-and-drop uploads, bulk operations, automatic image optimization with Sharp (resize, WebP conversion), responsive design with custom breakpoints (2-12 columns), debounced search (500ms delay), and complete multi-language support (English, Hindi, Gujarati). Database architecture includes new media tables with organization isolation and foreign key relationships. Navigation restructured with Media submenu containing Library and Upload Media options.
 - **Version Update**: Updated application version from 0.5.3 to 0.6.0 to reflect the major Media Library feature addition.
 - **Pagination Bug Fixes & API Improvements (v0.5.3)**: Resolved critical pagination bugs where products were duplicating across different pages. Added deterministic ordering with secondary sort keys (id DESC) to all paginated queries. Conducted comprehensive audit of all APIs with pagination to prevent similar issues. Fixed type safety issues by replacing 'any' types with proper TypeScript interfaces.
@@ -58,11 +64,21 @@ The application has successfully implemented a comprehensive **Media Library sys
 - **Security Scan Fix**: Updated jspdf to version 3.0.2 to resolve HIGH severity vulnerability and adjusted Trivy configuration to only fail on CRITICAL severity issues, allowing CI to pass while maintaining security monitoring.
 
 ## 🚀 **Next Steps**
-The application now features a complete Media Library system alongside the existing stock management and inventory logging functionality. The codebase is stable with comprehensive image management, filtering, pagination, and mobile-optimized interfaces. Future development can focus on file upload optimization (chunked uploads for large files), order management integration, and advanced reporting features.
+The application now features a complete Media Library system alongside comprehensive product management enhancements. The codebase is stable with advanced image import capabilities, optimized UI/UX, and robust error handling. Future development can focus on advanced reporting features, order management integration, file upload optimization (chunked uploads for large files), and enhanced analytics for factory operations.
 
-## 📅 **Recent Updates (2025-09-03)**
+## 📅 **Recent Updates (2025-09-05)**
 
-### Media Library System Implementation
+### Product Management & UI Enhancements (v0.6.1)
+- **Smart CSV Import**: Enhanced product import with intelligent image_url support and automatic media library integration
+- **Image Preview Optimization**: Fixed image loading in edit mode, eliminated unnecessary API calls, and improved preview update handling
+- **Database Integrity**: Resolved media_id column errors and optimized product-media relationship handling
+- **UI/UX Improvements**: Added comprehensive loading feedback, removed debug messages, and cleaned up modal interfaces
+- **Media Library Fixes**: Excluded archived products from linked products list while preserving data integrity
+- **Code Quality**: Fixed all ESLint warnings, removed unused imports, and optimized React hooks dependencies
+
+### Previous Updates (2025-09-03)
+
+#### Media Library System Implementation
 - **Complete Media Management**: Implemented comprehensive centralized image management system with WordPress-style interface
 - **Drag-and-Drop Upload**: Inline expandable upload area with drag-and-drop functionality and visual feedback
 - **Bulk Operations**: WordPress-style bulk select with visual feedback, bulk delete, and bulk actions

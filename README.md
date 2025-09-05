@@ -1,6 +1,6 @@
 # FlowDash - Inventory Management System
 
-**Version: 0.6.0**
+**Version: 0.6.1**
 
 FlowDash is a web-based inventory management system designed specifically for small to medium-sized factories, particularly in the Indian market. It provides a simple, user-friendly platform for factory owners and floor staff to track production, manage inventory, and gain insights into their operations.
 
@@ -77,9 +77,19 @@ FlowDash is a web-based inventory management system designed specifically for sm
 
     The application will be available at `http://localhost:3000`.
 
-## Recent Updates (v0.6.0)
+## Recent Updates (v0.6.1)
 
-### Media Library System
+### Product Management & UI Enhancements
+- **Smart CSV Import**: Enhanced product import with intelligent image_url support and automatic media library integration
+- **Image Preview Optimization**: Fixed image loading in edit mode, eliminated unnecessary API calls, and improved preview update handling
+- **Database Integrity**: Resolved media_id column errors and optimized product-media relationship handling
+- **UI/UX Improvements**: Added comprehensive loading feedback, removed debug messages, and cleaned up modal interfaces
+- **Media Library Fixes**: Excluded archived products from linked products list while preserving data integrity
+- **Code Quality**: Fixed all ESLint warnings, removed unused imports, and optimized React hooks dependencies
+
+### Previous Updates (v0.6.0)
+
+#### Media Library System
 - **Complete Media Management**: Implemented comprehensive centralized image management system with WordPress-style interface
 - **Drag-and-Drop Upload**: Inline expandable upload area with drag-and-drop functionality and visual feedback
 - **Bulk Operations**: WordPress-style bulk select with visual feedback, bulk delete, and bulk actions
