@@ -68,6 +68,20 @@ The application now features a complete Media Library system alongside comprehen
 
 ## 📅 **Recent Updates (2025-09-05)**
 
+### Documentation Structure Enhancement (v0.6.3)
+- **CHANGELOG.md Creation**: Implemented comprehensive changelog following Keep a Changelog format
+- **README.md Optimization**: Streamlined README to show only recent 3 versions, moved older updates to CHANGELOG.md
+- **Documentation Best Practices**: Improved maintainability and user experience for change history
+
+### Bulk Import Image Optimization (v0.6.3)
+- **Advanced Image Processing**: Implemented Sharp-based image optimization with automatic resizing (500x500px) and WebP conversion for 60-80% file size reduction
+- **Hash-Based Duplicate Detection**: Added SHA-256 content hashing to prevent storage waste from identical images across bulk import, media library, and single uploads
+- **Parallel Processing**: Implemented controlled parallel image processing (3 concurrent uploads) for 3x faster bulk imports on Vercel free plan
+- **Smart Filename Handling**: Base filenames stored in database, Vercel Blob handles uniqueness with random suffixes
+- **Comprehensive Error Handling**: 30-second timeouts, graceful failure recovery, and detailed logging for robust operation
+- **Database Schema Enhancement**: Added content_hash column with performance index for efficient duplicate detection
+- **Cross-Platform Consistency**: Unified image processing logic across bulk import, media library, and single product uploads
+
 ### Media Management UI/UX Enhancements (v0.6.2)
 - **Upload Flow Streamlining**: Removed redundant collision detection code, added upload progress feedback with visual indicators, and fixed React key warnings in ImageSelector component
 - **Deletion Experience Improvements**: Replaced browser alerts with native Chakra UI AlertDialogs for both single and bulk deletions, added comprehensive loading states, and implemented automatic media library refresh without page reloads

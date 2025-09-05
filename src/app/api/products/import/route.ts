@@ -7,6 +7,8 @@ import { VercelPoolClient } from '@vercel/postgres';
 import { handleError, BadRequestError, ForbiddenError } from '@/lib/errors';
 import { put } from '@vercel/blob';
 import { sql } from '@vercel/postgres';
+import crypto from 'crypto';
+import sharp from 'sharp';
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -32,94 +34,120 @@ const parseCsv = (fileContent: string): Promise<Papa.ParseResult<ProductCsvRow>>
   });
 };
 
-// Helper function to handle image URLs during import
-const handleImageUrl = async (imageUrl: string, organizationId: number, productName: string): Promise<number | null> => {
-  if (!imageUrl || !imageUrl.trim()) {
-    return null;
-  }
+const getImageHash = (buffer: Buffer): string => {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+};
 
-  const trimmedUrl = imageUrl.trim();
+const processImagesInParallel = async (products: ProductCsvRow[], organizationId: number) => {
+  const results = new Map<string, number | null>();
+  const concurrencyLimit = 3; // Safe for Vercel free plan
 
-  // Check if it's already a blob URL from our media library
-  if (trimmedUrl.includes('vercel-storage.com') || trimmedUrl.includes('blob.vercel-storage.com')) {
-    // Find existing media by filepath
-    const existingMedia = await sql.query(
-      'SELECT id, filename FROM media_library WHERE filepath = $1 AND organization_id = $2',
-      [trimmedUrl, organizationId]
-    );
+  // Process in batches to control concurrency
+  for (let i = 0; i < products.length; i += concurrencyLimit) {
+    const batch = products.slice(i, i + concurrencyLimit);
 
-    if (existingMedia.rows.length > 0) {
-      // Verify the blob file still exists by making a HEAD request
-      try {
-        const headResponse = await fetch(trimmedUrl, { method: 'HEAD' });
-        if (headResponse.ok) {
-          // File exists, return the existing media ID
-          return existingMedia.rows[0].id;
-        } else {
-          // File doesn't exist, remove the stale database entry
-          console.warn(`Blob file not found for ${trimmedUrl}, removing stale database entry`);
-          await sql.query('DELETE FROM media_library WHERE id = $1', [existingMedia.rows[0].id]);
-          // Continue to download and re-upload the file
-        }
-      } catch (error) {
-        console.warn(`Error checking blob file existence for ${trimmedUrl}:`, error);
-        // If we can't verify, assume it's still valid to avoid breaking existing imports
-        return existingMedia.rows[0].id;
+    const batchPromises = batch.map(async (product) => {
+      if (product.image_url) {
+        const mediaId = await handleImageUrl(product.image_url, organizationId, product.name);
+        results.set(product.sku, mediaId);
       }
+    });
+
+    // Wait for current batch to complete
+    await Promise.allSettled(batchPromises);
+
+    // Small delay between batches to be respectful to Vercel
+    if (i + concurrencyLimit < products.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 
-  // For external URLs or re-uploading missing blob files, download and upload to blob storage
+  return results;
+};
+
+// Optimized helper function to handle image URLs during import
+const handleImageUrl = async (imageUrl: string, organizationId: number, productName: string): Promise<number | null> => {
+  if (!imageUrl || !imageUrl.trim()) return null;
+
+  const trimmedUrl = imageUrl.trim();
+
   try {
+    // Download image with timeout
     const response = await fetch(trimmedUrl, {
       method: 'GET',
-      headers: {
-        'User-Agent': 'FlowDash-Import/1.0',
-      },
+      headers: { 'User-Agent': 'FlowDash-Import/1.0' },
+      signal: AbortSignal.timeout(30000), // 30 second timeout
     });
 
     if (!response.ok) {
-      console.warn(`Failed to fetch image from ${trimmedUrl}: ${response.status} ${response.statusText}`);
+      console.warn(`Failed to fetch image from ${trimmedUrl}: ${response.status}`);
       return null;
     }
 
     const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      console.warn(`URL ${trimmedUrl} does not point to a valid image (content-type: ${contentType})`);
+    if (!contentType?.startsWith('image/')) {
+      console.warn(`Invalid content type for ${trimmedUrl}: ${contentType}`);
       return null;
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Check if buffer is empty or too small
     if (buffer.length === 0) {
-      console.warn(`Downloaded image from ${trimmedUrl} is empty`);
+      console.warn(`Empty image downloaded from ${trimmedUrl}`);
       return null;
     }
 
-    // Generate filename
-    const urlParts = trimmedUrl.split('/');
-    const originalFilename = urlParts[urlParts.length - 1] || 'imported-image.jpg';
-    const filename = `${Date.now()}-${originalFilename}`;
+    // Generate content hash for duplicate detection
+    const contentHash = getImageHash(buffer);
 
-    // Upload to Vercel Blob
-    const blob = await put(filename, buffer, {
-      access: 'public',
-      contentType,
-    });
-
-    // Create media library entry
-    const mediaResult = await sql.query(
-      `INSERT INTO media_library (organization_id, filename, filepath, file_type, file_size, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id`,
-      [organizationId, filename, blob.url, contentType, buffer.length, null] // user_id can be null for imports
+    // Check for existing image with same content
+    const existingImage = await sql.query(
+      'SELECT id FROM media_library WHERE content_hash = $1 AND organization_id = $2',
+      [contentHash, organizationId]
     );
 
+    if (existingImage.rows.length > 0) {
+      console.log(`Duplicate image found for ${productName}, reusing existing media ID: ${existingImage.rows[0].id}`);
+      return existingImage.rows[0].id;
+    }
+
+    // Optimize image with Sharp
+    const optimizedBuffer = await sharp(buffer)
+      .resize(500, 500, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // Generate base filename (without extension)
+    const urlParts = trimmedUrl.split('/');
+    const originalFilename = urlParts[urlParts.length - 1] || 'imported-image.jpg';
+    const baseFilename = originalFilename.replace(/\.[^/.]+$/, ''); // Remove extension
+
+    // Let Vercel Blob handle uniqueness with random suffix
+    const blobFilename = `${baseFilename}.webp`;
+
+    // Upload to Vercel Blob
+    const blob = await put(blobFilename, optimizedBuffer, {
+      access: 'public',
+      addRandomSuffix: true, // Vercel adds random text for uniqueness
+      contentType: 'image/webp',
+    });
+
+    // Store base filename (without extension) in database
+    const mediaResult = await sql.query(
+      `INSERT INTO media_library (organization_id, filename, filepath, file_type, file_size, content_hash)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [organizationId, baseFilename, blob.url, 'image/webp', optimizedBuffer.length, contentHash]
+    );
+
+    console.log(`Successfully processed image for ${productName}: ${optimizedBuffer.length} bytes (${Math.round((buffer.length - optimizedBuffer.length) / buffer.length * 100)}% size reduction)`);
     return mediaResult.rows[0].id;
+
   } catch (error) {
-    console.error(`Error processing image URL ${trimmedUrl} for product ${productName}:`, error);
+    console.error(`Error processing image ${trimmedUrl} for ${productName}:`, error);
     return null;
   }
 };
@@ -210,12 +238,13 @@ export const POST = handleError(async (req: NextRequest) => {
         }
       }
 
+      // Process images in parallel before creating products
+      const productsWithImages = productsToInsert.filter(p => p.image_url);
+      const imageResults = await processImagesInParallel(productsWithImages, organization_id as number);
+
       for (const product of productsToInsert) {
-        // 1. Handle image URL if provided
-        let mediaId: number | null = null;
-        if (product.image_url) {
-          mediaId = await handleImageUrl(product.image_url, organization_id as number, product.name);
-        }
+        // 1. Get media ID from parallel processing results
+        const mediaId = imageResults.get(product.sku) || null;
 
         // 2. Insert base product
         const { rows: [newProduct] } = await client.query(

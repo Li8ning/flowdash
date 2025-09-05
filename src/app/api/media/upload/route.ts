@@ -3,6 +3,7 @@ import { put } from '@vercel/blob';
 import { verifyAuth } from '../../../../lib/auth-utils';
 import sql from '../../../../lib/db';
 import sharp from 'sharp';
+import crypto from 'crypto';
 import { handleError, BadRequestError, ForbiddenError } from '../../../../lib/errors';
 
 interface UploadResult {
@@ -14,8 +15,13 @@ interface UploadResult {
   created_at: string;
   updated_at: string;
   user_id: number;
+  duplicate?: boolean;
   error?: string;
 }
+
+const getImageHash = (buffer: Buffer): string => {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+};
 
 export const POST = handleError(async (req: NextRequest) => {
   const authResult = await verifyAuth(req);
@@ -74,6 +80,31 @@ export const POST = handleError(async (req: NextRequest) => {
         .webp({ quality: 80 })
         .toBuffer();
 
+      // Generate content hash for duplicate detection
+      const contentHash = getImageHash(processedImageBuffer);
+
+      // Check for existing image with same content
+      const existingImage = await sql.query(
+        'SELECT id, filename, filepath FROM media_library WHERE content_hash = $1 AND organization_id = $2',
+        [contentHash, organization_id]
+      );
+
+      if (existingImage.rows.length > 0) {
+        // Return existing image info
+        results.push({
+          id: existingImage.rows[0].id,
+          filename: existingImage.rows[0].filename,
+          filepath: existingImage.rows[0].filepath,
+          file_type: 'image/webp',
+          file_size: processedImageBuffer.length,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id,
+          duplicate: true,
+        });
+        continue; // Skip to next image
+      }
+
       const newBlob = await put(blobFilename, processedImageBuffer, {
         access: 'public',
         addRandomSuffix: true, // Let Vercel handle uniqueness
@@ -83,8 +114,8 @@ export const POST = handleError(async (req: NextRequest) => {
       // Insert record into media library
       try {
         const insertResult = await sql.query(
-          `INSERT INTO media_library (filename, filepath, file_type, file_size, organization_id, user_id)
-           VALUES ($1, $2, $3, $4, $5, $6)
+          `INSERT INTO media_library (filename, filepath, file_type, file_size, organization_id, user_id, content_hash)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING id, filename, filepath, file_type, file_size, created_at, updated_at, user_id`,
           [
             baseFilename, // Store base name without extension
@@ -92,7 +123,8 @@ export const POST = handleError(async (req: NextRequest) => {
             'image/webp',
             processedImageBuffer.length,
             organization_id,
-            user_id
+            user_id,
+            contentHash
           ]
         );
 
