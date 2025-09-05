@@ -63,9 +63,11 @@ export const GET = handleError(async (req: NextRequest) => {
   const whereClause = conditions.join(' AND ');
 
   const logsQuery = `
-    SELECT l.id, l.product_id, p.name as product_name, p.color, p.design, p.image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
+    SELECT l.id, l.product_id, p.name as product_name, p.color, p.design, m.filepath as image_url, u.name as username, l.produced, l.created_at, l.quality, l.packaging_type
     FROM inventory_logs l
     JOIN products p ON l.product_id = p.id
+    LEFT JOIN product_images pi ON p.id = pi.product_id
+    LEFT JOIN media_library m ON pi.media_id = m.id
     JOIN users u ON l.user_id = u.id
     WHERE ${whereClause}
     ORDER BY l.created_at DESC, l.id DESC
@@ -75,6 +77,8 @@ export const GET = handleError(async (req: NextRequest) => {
   const countQuery = `
     SELECT COUNT(*) FROM inventory_logs l
     JOIN products p ON l.product_id = p.id
+    LEFT JOIN product_images pi ON p.id = pi.product_id
+    LEFT JOIN media_library m ON pi.media_id = m.id
     JOIN users u ON l.user_id = u.id
     WHERE ${whereClause}
   `;

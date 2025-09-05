@@ -3,6 +3,8 @@
 "archive": "આર્કાઇવ કરો",
 "cancel": "રદ કરો",
 "save": "સેવ કરો",
+"saving": "સેવ થઈ રહ્યું છે...",
+"archiving": "આર્કાઇવ થઈ રહ્યું છે...",
   "login.title": "લોગિન કરો",
   "login.email": "ઈમેલ",
   "login.password": "પાસવર્ડ",

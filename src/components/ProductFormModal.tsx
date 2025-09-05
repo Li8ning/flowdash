@@ -17,8 +17,8 @@ import {
   Checkbox,
   CheckboxGroup,
   Stack,
-  Image,
   Box,
+  Image,
   useDisclosure,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
@@ -52,8 +52,8 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
   const [color, setColor] = useState('');
   const [category, setCategory] = useState('');
   const [design, setDesign] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
   const [selectedImageId, setSelectedImageId] = useState<number | undefined>();
+  const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
   const { isOpen: isImageSelectorOpen, onOpen: onImageSelectorOpen, onClose: onImageSelectorClose } = useDisclosure();
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [availablePackagingTypes, setAvailablePackagingTypes] = useState<string[]>([]);
@@ -62,6 +62,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
   const [colors, setColors] = useState<ProductAttribute[]>([]);
   const [qualityOptions, setQualityOptions] = useState<ProductAttribute[]>([]);
   const [packagingOptions, setPackagingOptions] = useState<ProductAttribute[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,7 +103,7 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
       setColor(product.color);
       setCategory(product.category);
       setDesign(product.design);
-      setImageUrl(product.image_url);
+      setSelectedImageId(product.media_id);
       setAvailableQualities(product.available_qualities);
       setAvailablePackagingTypes(product.available_packaging_types);
     } else {
@@ -111,41 +112,85 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
       setColor('');
       setCategory('');
       setDesign('');
-      setImageUrl('');
       setSelectedImageId(undefined);
+      setSelectedMediaFile(null);
       setAvailableQualities([]);
       setAvailablePackagingTypes([]);
     }
   }, [product]);
 
-  const handleSave = () => {
-    const productData = {
-      name,
-      sku,
-      color,
-      category,
-      design,
-      image_url: imageUrl,
-      media_id: selectedImageId,
-      available_qualities: availableQualities,
-      available_packaging_types: availablePackagingTypes,
-    };
-    onSave(productData);
-    onClose();
+  useEffect(() => {
+    // If we have a selectedImageId but no selectedMediaFile, we need to get the media details
+    if (selectedImageId && !selectedMediaFile) {
+      // First, try to use the product's existing image_url if it matches the selectedImageId
+      if (product?.image_url && product?.media_id === selectedImageId) {
+        // Create a partial media object for immediate preview
+        const partialMediaFile = {
+          id: product.media_id,
+          filename: product.name || 'Product Image', // Use product name as fallback
+          filepath: product.image_url,
+          file_type: 'image/webp', // Assume webp, could be enhanced
+          file_size: 0, // Not available in product data
+          created_at: new Date().toISOString(), // Use current date as fallback
+          updated_at: new Date().toISOString(), // Use current date as fallback
+          user_id: 0 // Not available in product data
+        };
+        setSelectedMediaFile(partialMediaFile);
+      } else {
+        // Fetch media details for newly selected image
+        const fetchMediaFile = async () => {
+          try {
+            const response = await fetch(`/api/media/${selectedImageId}`);
+            if (response.ok) {
+              const mediaFile = await response.json();
+              setSelectedMediaFile(mediaFile);
+            } else {
+              setSelectedMediaFile(null);
+            }
+          } catch {
+            setSelectedMediaFile(null);
+          }
+        };
+        fetchMediaFile();
+      }
+    } else if (!selectedImageId) {
+      setSelectedMediaFile(null);
+    }
+    // Note: We don't include selectedMediaFile in dependencies to avoid infinite loops
+  }, [product, selectedImageId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const productData = {
+        name,
+        sku,
+        color,
+        category,
+        design,
+        media_id: selectedImageId,
+        available_qualities: availableQualities,
+        available_packaging_types: availablePackagingTypes,
+      };
+      await onSave(productData);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleImageSelect = (mediaFile: MediaFile | null) => {
     if (mediaFile) {
-      setImageUrl(mediaFile.filepath);
       setSelectedImageId(mediaFile.id);
+      setSelectedMediaFile(mediaFile);
     } else {
-      setImageUrl('');
       setSelectedImageId(undefined);
+      setSelectedMediaFile(null);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} blockScrollOnMount={false}>
+    <Modal isOpen={isOpen} onClose={isSaving ? () => {} : onClose} blockScrollOnMount={false}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{product ? t('edit_product') : t('add_product')}</ModalHeader>
@@ -193,11 +238,20 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
             <FormControl id="image">
               <FormLabel>{t('form.image')}</FormLabel>
               <Button onClick={onImageSelectorOpen} colorScheme="blue" variant="outline">
-                {imageUrl ? t('form.change_image') : t('form.select_image')}
+                {selectedImageId ? t('form.change_image') : t('form.select_image')}
               </Button>
-              {imageUrl && (
+              {selectedMediaFile && (
                 <Box mt={2}>
-                  <Image src={imageUrl} alt="Product Image" boxSize="100px" objectFit="contain" />
+                  <Image
+                    src={selectedMediaFile.filepath}
+                    alt={selectedMediaFile.filename}
+                    maxW="200px"
+                    maxH="150px"
+                    objectFit="scale-down"
+                    borderRadius="md"
+                    border="1px solid"
+                    borderColor="gray.200"
+                  />
                 </Box>
               )}
             </FormControl>
@@ -228,11 +282,11 @@ const ProductFormModal = ({ isOpen, onClose, onSave, product }: ProductFormModal
           </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onClose}>{t('cancel', { ns: 'common' })}</Button>
-          <Button colorScheme="blue" ml={3} onClick={handleSave}>
-            {t('save', { ns: 'common' })}
-          </Button>
-        </ModalFooter>
+           <Button onClick={onClose} isDisabled={isSaving}>{t('cancel', { ns: 'common' })}</Button>
+           <Button colorScheme="blue" ml={3} onClick={handleSave} isLoading={isSaving} loadingText={t('saving', { ns: 'common' })}>
+             {t('save', { ns: 'common' })}
+           </Button>
+         </ModalFooter>
       </ModalContent>
 
       <ImageSelector

@@ -47,6 +47,7 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const handleArchiveClick = (productId: number) => {
@@ -54,11 +55,16 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
     onOpen();
   };
 
-  const confirmArchive = () => {
+  const confirmArchive = async () => {
     if (selectedProductId !== null) {
-      onArchive(selectedProductId);
+      setIsArchiving(true);
+      try {
+        await onArchive(selectedProductId);
+        onClose();
+      } finally {
+        setIsArchiving(false);
+      }
     }
-    onClose();
   };
 
   if (loading) {
@@ -213,7 +219,7 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
       <AlertDialog
         isOpen={isOpen}
         leastDestructiveRef={cancelRef}
-        onClose={onClose}
+        onClose={isArchiving ? () => {} : onClose}
       >
         <AlertDialogOverlay>
           <AlertDialogContent>
@@ -226,10 +232,10 @@ const ProductTable = ({ products, onEdit, onArchive, loading, error }: ProductTa
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose}>
+              <Button ref={cancelRef} onClick={onClose} isDisabled={isArchiving}>
                 {t('cancel', { ns: 'common' })}
               </Button>
-              <Button colorScheme="red" onClick={confirmArchive} ml={3}>
+              <Button colorScheme="red" onClick={confirmArchive} ml={3} isLoading={isArchiving} loadingText={t('archiving', { ns: 'common' })}>
                 {t('archive', { ns: 'common' })}
               </Button>
             </AlertDialogFooter>

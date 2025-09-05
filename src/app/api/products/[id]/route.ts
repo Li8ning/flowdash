@@ -21,8 +21,12 @@ export const GET = handleError(async (req: NextRequest, { params }: HandlerConte
         p.*,
         COALESCE(i.quantity_on_hand, 0) as quantity_on_hand,
         COALESCE(qualities.list, '{}') AS available_qualities,
-        COALESCE(packaging.list, '{}') AS available_packaging_types
+        COALESCE(packaging.list, '{}') AS available_packaging_types,
+        m.filepath as image_url,
+        pi.media_id
       FROM products p
+      LEFT JOIN product_images pi ON p.id = pi.product_id
+      LEFT JOIN media_library m ON pi.media_id = m.id
       LEFT JOIN (
         SELECT product_id, SUM(quantity) as quantity_on_hand
         FROM inventory_summary
@@ -45,7 +49,7 @@ export const GET = handleError(async (req: NextRequest, { params }: HandlerConte
         GROUP BY ptpt.product_id
       ) AS packaging ON p.id = packaging.product_id
       WHERE p.id = ${id} AND p.organization_id = ${organization_id as number}
-      GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list
+      GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list, m.filepath, pi.media_id
   `;
 
   if (!product) {
@@ -61,7 +65,7 @@ const productUpdateSchema = z.object({
   color: z.string().optional(),
   category: z.string().optional(),
   design: z.string().optional(),
-  image_url: z.string().url().optional().or(z.literal('')),
+  media_id: z.number().optional(),
   available_qualities: z.array(z.string()).optional(),
   available_packaging_types: z.array(z.string()).optional(),
   is_archived: z.boolean().optional(),
@@ -103,7 +107,9 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
     }
 
     // 2. Update the scalar properties of the product if any are provided
-    const updateFields = Object.entries(productData).filter(([, value]) => value !== undefined);
+    // Exclude media_id since it's handled separately in the product_images table
+    const { media_id, ...productFields } = productData;
+    const updateFields = Object.entries(productFields).filter(([, value]) => value !== undefined);
     if (updateFields.length > 0) {
       const setClauses = updateFields.map(([key], i) => `${key} = $${i + 1}`);
       const updateValues = updateFields.map(([, value]) => value);
@@ -158,14 +164,32 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
 
     await client.query('COMMIT');
 
-    // 5. Fetch and return the updated product, ensuring data is consistent
+    // 5. Update media relationship if media_id is provided
+    if (media_id !== undefined) {
+      // First delete existing media relationship
+      await client.query(`DELETE FROM product_images WHERE product_id = $1`, [productId]);
+
+      // Then add new relationship if media_id is provided
+      if (media_id) {
+        await client.query(
+          `INSERT INTO product_images (product_id, media_id) VALUES ($1, $2)`,
+          [productId, media_id]
+        );
+      }
+    }
+
+    // 6. Fetch and return the updated product, ensuring data is consistent
     const { rows: [updatedProduct] } = await client.query(
       `SELECT
           p.*,
           COALESCE(i.quantity_on_hand, 0) as quantity_on_hand,
           COALESCE(qualities.list, '{}') AS available_qualities,
-          COALESCE(packaging.list, '{}') AS available_packaging_types
+          COALESCE(packaging.list, '{}') AS available_packaging_types,
+          m.filepath as image_url,
+          pi.media_id
         FROM products p
+        LEFT JOIN product_images pi ON p.id = pi.product_id
+        LEFT JOIN media_library m ON pi.media_id = m.id
         LEFT JOIN (
           SELECT product_id, SUM(quantity) as quantity_on_hand
           FROM inventory_summary
@@ -184,7 +208,7 @@ export const PATCH = handleError(async (req: NextRequest, { params }: HandlerCon
           GROUP BY ptpt.product_id
         ) AS packaging ON p.id = packaging.product_id
         WHERE p.id = $1 AND p.organization_id = $2
-        GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list`,
+        GROUP BY p.id, i.quantity_on_hand, qualities.list, packaging.list, m.filepath, pi.media_id`,
       [productId, organization_id as number]
     );
 

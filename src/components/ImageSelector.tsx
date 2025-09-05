@@ -54,6 +54,7 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
   const { t } = useTranslation();
   const toast = useToast();
 
+
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,12 +124,14 @@ export default function ImageSelector({ isOpen, onClose, onSelect, selectedImage
   }, [isOpen, fetchMediaFilesCallback]);
 
   useEffect(() => {
-    if (selectedImageId) {
-      // Find and set the selected file if it exists
+    // Only try to find the file if we have both selectedImageId AND mediaFiles loaded
+    if (selectedImageId && mediaFiles.length > 0) {
       const file = mediaFiles.find(f => f.id === selectedImageId);
       if (file) {
         setSelectedFile(file);
       }
+    } else if (!selectedImageId) {
+      setSelectedFile(null);
     }
   }, [selectedImageId, mediaFiles]);
 

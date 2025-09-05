@@ -49,7 +49,7 @@ export const GET = handleError(async (req: NextRequest, { params }: { params: { 
 
   const media = mediaResult.rows[0];
 
-  // Get linked products
+  // Get linked products (exclude archived products)
   const productsResult = await sql.query(
     `SELECT
         p.id,
@@ -61,6 +61,7 @@ export const GET = handleError(async (req: NextRequest, { params }: { params: { 
       FROM products p
       JOIN product_images pi ON p.id = pi.product_id
       WHERE pi.media_id = $1 AND p.organization_id = $2
+        AND (p.is_archived IS NULL OR p.is_archived = false)
       ORDER BY p.name`,
     [mediaId, organization_id]
   );

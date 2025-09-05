@@ -39,7 +39,7 @@ export const GET = handleError(async (req: NextRequest) => {
   const name = searchParams.get('name');
  
   const whereClauses = [
-    'organization_id = $1',
+    'p.organization_id = $1',
     '(p.is_archived IS NULL OR p.is_archived = false)',
   ];
   const queryParams: (string | number)[] = [organization_id as number];
@@ -69,8 +69,12 @@ export const GET = handleError(async (req: NextRequest) => {
     `SELECT
         p.*,
         COALESCE(qualities.list, '{}') AS available_qualities,
-        COALESCE(packaging.list, '{}') AS available_packaging_types
+        COALESCE(packaging.list, '{}') AS available_packaging_types,
+        m.filepath as image_url,
+        pi.media_id
       FROM products p
+      LEFT JOIN product_images pi ON p.id = pi.product_id
+      LEFT JOIN media_library m ON pi.media_id = m.id
       LEFT JOIN (
         SELECT
           ptq.product_id,
@@ -98,7 +102,10 @@ export const GET = handleError(async (req: NextRequest) => {
   let totalCount = 0;
   if (getTotal) {
     const countResult = await sql.query(
-      `SELECT COUNT(p.*) FROM products p WHERE ${whereString}`,
+      `SELECT COUNT(DISTINCT p.id) FROM products p
+       LEFT JOIN product_images pi ON p.id = pi.product_id
+       LEFT JOIN media_library m ON pi.media_id = m.id
+       WHERE ${whereString}`,
       queryParams
     );
     totalCount = parseInt(countResult.rows[0].count, 10);
@@ -128,12 +135,13 @@ export const POST = handleError(
       name,
       sku,
       color,
-      image_url,
       media_id,
       available_qualities,
       category,
       design,
     } = body;
+
+    const finalMediaId = media_id;
     let { available_packaging_types } = body;
 
     // Ensure 'Open' is always a packaging type
@@ -151,14 +159,13 @@ export const POST = handleError(
       const {
         rows: [newProduct],
       } = await client.query(
-        `INSERT INTO products (name, sku, color, image_url, organization_id, category, design)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
+        `INSERT INTO products (name, sku, color, organization_id, category, design)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *`,
         [
           name,
           sku,
           color,
-          image_url,
           organization_id as number,
           category,
           design,
@@ -168,10 +175,10 @@ export const POST = handleError(
       const newProductId = newProduct.id;
 
       // 2. Handle media relationship
-      if (media_id) {
+      if (finalMediaId) {
         await client.query(
           `INSERT INTO product_images (product_id, media_id) VALUES ($1, $2)`,
-          [newProductId, media_id]
+          [newProductId, finalMediaId]
         );
       }
 
@@ -220,13 +227,17 @@ export const POST = handleError(
 
       await client.query('COMMIT');
 
-      // Return the full product with aggregated arrays for consistency
+      // Return the full product with aggregated arrays and media URL for consistency
       const { rows: [finalProduct] } = await client.query(
         `SELECT
           p.*,
           COALESCE(qualities.list, '{}') AS available_qualities,
-          COALESCE(packaging.list, '{}') AS available_packaging_types
+          COALESCE(packaging.list, '{}') AS available_packaging_types,
+          m.filepath as image_url,
+          pi.media_id
         FROM products p
+        LEFT JOIN product_images pi ON p.id = pi.product_id
+        LEFT JOIN media_library m ON pi.media_id = m.id
         LEFT JOIN (
           SELECT
             ptq.product_id,
@@ -244,7 +255,7 @@ export const POST = handleError(
           GROUP BY ptpt.product_id
         ) AS packaging ON p.id = packaging.product_id
         WHERE p.id = $1
-        GROUP BY p.id, qualities.list, packaging.list`,
+        GROUP BY p.id, qualities.list, packaging.list, m.filepath, pi.media_id`,
         [newProductId]
       );
 

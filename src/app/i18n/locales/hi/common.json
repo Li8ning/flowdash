@@ -3,6 +3,8 @@
 "archive": "आर्काइव करें",
 "cancel": "रद्द करें",
 "save": "सेव करें",
+"saving": "सेव हो रहा है...",
+"archiving": "आर्काइव हो रहा है...",
   "login.title": "लॉग इन करें",
   "login.email": "ईमेल",
   "login.password": "पासवर्ड",

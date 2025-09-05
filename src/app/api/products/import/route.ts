@@ -5,6 +5,8 @@ import Papa from 'papaparse';
 import { z } from 'zod';
 import { VercelPoolClient } from '@vercel/postgres';
 import { handleError, BadRequestError, ForbiddenError } from '@/lib/errors';
+import { put } from '@vercel/blob';
+import { sql } from '@vercel/postgres';
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -14,7 +16,7 @@ const productSchema = z.object({
   color: z.string().min(1, "Color is required"),
   quality: z.string().min(1, "Quality is required"),
   packaging: z.string().min(1, "Packaging is required"),
-  image_url: z.string().url("Image URL must be a valid URL").optional().or(z.literal('')),
+  image_url: z.string().optional(),
 });
 
 type ProductCsvRow = z.infer<typeof productSchema>;
@@ -28,6 +30,98 @@ const parseCsv = (fileContent: string): Promise<Papa.ParseResult<ProductCsvRow>>
       error: reject,
     });
   });
+};
+
+// Helper function to handle image URLs during import
+const handleImageUrl = async (imageUrl: string, organizationId: number, productName: string): Promise<number | null> => {
+  if (!imageUrl || !imageUrl.trim()) {
+    return null;
+  }
+
+  const trimmedUrl = imageUrl.trim();
+
+  // Check if it's already a blob URL from our media library
+  if (trimmedUrl.includes('vercel-storage.com') || trimmedUrl.includes('blob.vercel-storage.com')) {
+    // Find existing media by filepath
+    const existingMedia = await sql.query(
+      'SELECT id, filename FROM media_library WHERE filepath = $1 AND organization_id = $2',
+      [trimmedUrl, organizationId]
+    );
+
+    if (existingMedia.rows.length > 0) {
+      // Verify the blob file still exists by making a HEAD request
+      try {
+        const headResponse = await fetch(trimmedUrl, { method: 'HEAD' });
+        if (headResponse.ok) {
+          // File exists, return the existing media ID
+          return existingMedia.rows[0].id;
+        } else {
+          // File doesn't exist, remove the stale database entry
+          console.warn(`Blob file not found for ${trimmedUrl}, removing stale database entry`);
+          await sql.query('DELETE FROM media_library WHERE id = $1', [existingMedia.rows[0].id]);
+          // Continue to download and re-upload the file
+        }
+      } catch (error) {
+        console.warn(`Error checking blob file existence for ${trimmedUrl}:`, error);
+        // If we can't verify, assume it's still valid to avoid breaking existing imports
+        return existingMedia.rows[0].id;
+      }
+    }
+  }
+
+  // For external URLs or re-uploading missing blob files, download and upload to blob storage
+  try {
+    const response = await fetch(trimmedUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'FlowDash-Import/1.0',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch image from ${trimmedUrl}: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      console.warn(`URL ${trimmedUrl} does not point to a valid image (content-type: ${contentType})`);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Check if buffer is empty or too small
+    if (buffer.length === 0) {
+      console.warn(`Downloaded image from ${trimmedUrl} is empty`);
+      return null;
+    }
+
+    // Generate filename
+    const urlParts = trimmedUrl.split('/');
+    const originalFilename = urlParts[urlParts.length - 1] || 'imported-image.jpg';
+    const filename = `${Date.now()}-${originalFilename}`;
+
+    // Upload to Vercel Blob
+    const blob = await put(filename, buffer, {
+      access: 'public',
+      contentType,
+    });
+
+    // Create media library entry
+    const mediaResult = await sql.query(
+      `INSERT INTO media_library (organization_id, filename, filepath, file_type, file_size, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [organizationId, filename, blob.url, contentType, buffer.length, null] // user_id can be null for imports
+    );
+
+    return mediaResult.rows[0].id;
+  } catch (error) {
+    console.error(`Error processing image URL ${trimmedUrl} for product ${productName}:`, error);
+    return null;
+  }
 };
 
 export const POST = handleError(async (req: NextRequest) => {
@@ -117,10 +211,16 @@ export const POST = handleError(async (req: NextRequest) => {
       }
 
       for (const product of productsToInsert) {
-        // 1. Insert base product
+        // 1. Handle image URL if provided
+        let mediaId: number | null = null;
+        if (product.image_url) {
+          mediaId = await handleImageUrl(product.image_url, organization_id as number, product.name);
+        }
+
+        // 2. Insert base product
         const { rows: [newProduct] } = await client.query(
-          `INSERT INTO products (organization_id, name, sku, category, design, color, image_url)
-           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+          `INSERT INTO products (organization_id, name, sku, category, design, color)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [
             organization_id as number,
             product.name,
@@ -128,10 +228,17 @@ export const POST = handleError(async (req: NextRequest) => {
             product.category.trim(),
             product.design.trim(),
             product.color.trim(),
-            product.image_url || null,
           ]
         );
         const newProductId = newProduct.id;
+
+        // 3. Link media if available
+        if (mediaId) {
+          await client.query(
+            `INSERT INTO product_images (product_id, media_id) VALUES ($1, $2)`,
+            [newProductId, mediaId]
+          );
+        }
 
         // 2. Link qualities
         const qualities = product.quality.split(',').map(q => q.trim()).filter(Boolean);
