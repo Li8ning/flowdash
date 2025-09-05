@@ -68,6 +68,14 @@ The application now features a complete Media Library system alongside comprehen
 
 ## 📅 **Recent Updates (2025-09-05)**
 
+### Media Management UI/UX Enhancements (v0.6.2)
+- **Upload Flow Streamlining**: Removed redundant collision detection code, added upload progress feedback with visual indicators, and fixed React key warnings in ImageSelector component
+- **Deletion Experience Improvements**: Replaced browser alerts with native Chakra UI AlertDialogs for both single and bulk deletions, added comprehensive loading states, and implemented automatic media library refresh without page reloads
+- **Enhanced Error Handling**: Improved error messages with specific context and graceful failure handling for all media operations
+- **Translation System Updates**: Fixed translation message templates and added new keys for upload success messages across all supported languages (English, Hindi, Gujarati)
+- **Code Quality & Performance**: Removed debug console.log messages, optimized custom event handling for cross-component communication, and ensured clean, maintainable codebase
+- **Build Verification**: All changes compile successfully with proper TypeScript types and no linting errors
+
 ### Product Management & UI Enhancements (v0.6.1)
 - **Smart CSV Import**: Enhanced product import with intelligent image_url support and automatic media library integration
 - **Image Preview Optimization**: Fixed image loading in edit mode, eliminated unnecessary API calls, and improved preview update handling

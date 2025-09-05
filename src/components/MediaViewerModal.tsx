@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -18,6 +18,12 @@ import {
   AlertIcon,
   IconButton,
   Input,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import { CopyIcon, DeleteIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
@@ -61,9 +67,12 @@ export default function MediaViewerModal({
 }: MediaViewerModalProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [fullMediaFile, setFullMediaFile] = useState<MediaFile | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchFullMediaDetails = useCallback(async () => {
     if (!mediaFile) return;
@@ -135,8 +144,15 @@ export default function MediaViewerModal({
   };
 
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!mediaFile) return;
+
+    setIsDeleteDialogOpen(false);
+    setDeleting(true);
 
     try {
       const response = await fetch(`/api/media/${mediaFile.id}`, {
@@ -147,24 +163,34 @@ export default function MediaViewerModal({
 
       toast({
         title: t('common.success'),
-        description: t('media.delete_success', { count: 1 }),
+        description: `Successfully deleted "${mediaFile.filename}"`,
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
 
       onClose();
-      // Trigger a refresh of the media library
-      window.location.reload();
-    } catch {
+      // Trigger a refresh of the media library without full page reload
+      window.dispatchEvent(new CustomEvent('mediaDeleted', {
+        detail: { deletedId: mediaFile.id }
+      }));
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: t('common.error'),
-        description: t('media.delete_error'),
+        description: `Failed to delete "${mediaFile.filename}": ${errorMessage}`,
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteDialogOpen(false);
   };
 
   if (!mediaFile) return null;
@@ -172,217 +198,256 @@ export default function MediaViewerModal({
   const displayFile = fullMediaFile || mediaFile;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "6xl" }}>
-      <ModalOverlay />
-      <ModalContent height="100%" maxH="85vh" maxW={{ base: "95vw", md: "90vw" }}>
-        {/* Header with navigation and close */}
-        <Box position="relative" p={4} borderBottom="1px solid" borderColor="gray.200">
-          <HStack justify="space-between" align="center">
-            <Text fontSize="lg" fontWeight="medium">{t('media.media_details')}</Text>
-            <HStack spacing={1}>
-              <IconButton
-                aria-label="Previous media"
-                icon={<ChevronLeftIcon />}
-                size="md"
-                variant="solid"
-                colorScheme="gray"
-                bg="gray.100"
-                _hover={{ bg: "gray.200" }}
-                isDisabled={currentIndex <= 0}
-                onClick={() => {
-                  if (onNavigate && currentIndex > 0) {
-                    onNavigate(currentIndex - 1);
-                  }
-                }}
-              />
-              <IconButton
-                aria-label="Next media"
-                icon={<ChevronRightIcon />}
-                size="md"
-                variant="solid"
-                colorScheme="gray"
-                bg="gray.100"
-                _hover={{ bg: "gray.200" }}
-                isDisabled={currentIndex >= mediaFiles.length - 1}
-                onClick={() => {
-                  if (onNavigate && currentIndex < mediaFiles.length - 1) {
-                    onNavigate(currentIndex + 1);
-                  }
-                }}
-              />
-              <IconButton
-                aria-label="Close modal"
-                icon={<Text fontSize="xl" fontWeight="bold">×</Text>}
-                size="md"
-                variant="solid"
-                colorScheme="red"
-                onClick={onClose}
-              />
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "6xl" }}>
+        <ModalOverlay />
+        <ModalContent height="100%" maxH="85vh" maxW={{ base: "95vw", md: "90vw" }}>
+          {/* Header with navigation and close */}
+          <Box position="relative" p={4} borderBottom="1px solid" borderColor="gray.200">
+            <HStack justify="space-between" align="center">
+              <Text fontSize="lg" fontWeight="medium">{t('media.media_details')}</Text>
+              <HStack spacing={1}>
+                <IconButton
+                  aria-label="Previous media"
+                  icon={<ChevronLeftIcon />}
+                  size="md"
+                  variant="solid"
+                  colorScheme="gray"
+                  bg="gray.100"
+                  _hover={{ bg: "gray.200" }}
+                  isDisabled={currentIndex <= 0}
+                  onClick={() => {
+                    if (onNavigate && currentIndex > 0) {
+                      onNavigate(currentIndex - 1);
+                    }
+                  }}
+                />
+                <IconButton
+                  aria-label="Next media"
+                  icon={<ChevronRightIcon />}
+                  size="md"
+                  variant="solid"
+                  colorScheme="gray"
+                  bg="gray.100"
+                  _hover={{ bg: "gray.200" }}
+                  isDisabled={currentIndex >= mediaFiles.length - 1}
+                  onClick={() => {
+                    if (onNavigate && currentIndex < mediaFiles.length - 1) {
+                      onNavigate(currentIndex + 1);
+                    }
+                  }}
+                />
+                <IconButton
+                  aria-label="Close modal"
+                  icon={<Text fontSize="xl" fontWeight="bold">×</Text>}
+                  size="md"
+                  variant="solid"
+                  colorScheme="red"
+                  onClick={onClose}
+                />
+              </HStack>
             </HStack>
-          </HStack>
-        </Box>
-
-        <ModalBody p={0} height="100%" display="flex" flexDirection="column">
-          {/* Desktop: Two Column Layout (65-35) */}
-          <Box display={{ base: "block", md: "flex" }} flex="1" minH="0">
-            {/* Image Section (65%) */}
-            <Box
-              flex={{ md: "0 0 65%" }}
-              p={{ base: 4, md: 6 }}
-              bg="gray.50"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              height={{ base: "300px", md: "100%" }}
-              borderRight={{ md: "1px solid" }}
-              borderColor={{ md: "gray.200" }}
-            >
-              <Image
-                src={displayFile.filepath}
-                alt={displayFile.filename}
-                maxH={{ base: "250px", md: "100%" }}
-                maxW="100%"
-                objectFit="contain"
-                borderRadius="0"
-                fallback={
-                  <Box
-                    height={{ base: "200px", md: "300px" }}
-                    width={{ base: "200px", md: "300px" }}
-                    bg="white"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    borderRadius="0"
-                    border="1px solid"
-                    borderColor="gray.200"
-                  >
-                    <Text color="gray.500" fontSize={{ base: "sm", md: "md" }}>{t('media.image_load_error')}</Text>
-                  </Box>
-                }
-              />
-            </Box>
-
-            {/* Information Section (35%) */}
-            <Box
-              flex={{ md: "0 0 35%" }}
-              p={{ base: 4, md: 6 }}
-              overflowY="auto"
-              height={{ base: "50vh", md: "100%" }}
-              bg="white"
-            >
-              <VStack spacing={6} align="stretch">
-                {/* File Information */}
-                <Box>
-                  <VStack align="start" spacing={2}>
-                    <Text fontSize="sm" color="gray.600">
-                      <Text as="span" fontWeight="bold">Uploaded on:</Text> {formatDate(displayFile.created_at)}
-                    </Text>
-                    {displayFile.uploaded_by_name && (
-                      <Text fontSize="sm" color="gray.600">
-                        <Text as="span" fontWeight="bold">Uploaded by:</Text> {displayFile.uploaded_by_name}
-                      </Text>
-                    )}
-                    <Text fontSize="sm" color="gray.600">
-                      <Text as="span" fontWeight="bold">File name:</Text> {displayFile.filename}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      <Text as="span" fontWeight="bold">File type:</Text> {displayFile.file_type}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      <Text as="span" fontWeight="bold">File size:</Text> {formatFileSize(displayFile.file_size)}
-                    </Text>
-                  </VStack>
-                </Box>
-
-                {/* URL Section */}
-                <Box>
-                  <Text fontSize="sm" fontWeight="bold" mb={2}>
-                    {t('media.file_url')}
-                  </Text>
-                  <Input
-                    value={displayFile.filepath}
-                    isReadOnly
-                    size="sm"
-                    fontFamily="mono"
-                    fontSize="xs"
-                  />
-                  <Button
-                    leftIcon={<CopyIcon />}
-                    size="xs"
-                    variant="outline"
-                    w="full"
-                    mt={2}
-                    onClick={() => copyToClipboard(displayFile.filepath)}
-                  >
-                    {t('media.copy_url')}
-                  </Button>
-                </Box>
-
-                {/* Delete Button */}
-                <Box pt={4}>
-                  <Button
-                    leftIcon={<DeleteIcon />}
-                    colorScheme="red"
-                    variant="solid"
-                    size="sm"
-                    w="full"
-                    onClick={handleDelete}
-                  >
-                    {t('common.delete')}
-                  </Button>
-                </Box>
-
-                {/* Linked Products */}
-                <Box>
-                  <Text fontSize="sm" fontWeight="bold" mb={3}>
-                    {t('media.linked_products')}
-                  </Text>
-
-                  {loading ? (
-                    <Box textAlign="center" py={4}>
-                      <Spinner size="sm" />
-                      <Text mt={2} fontSize="xs">{t('common.loading')}</Text>
-                    </Box>
-                  ) : displayFile.linked_products && displayFile.linked_products.length > 0 ? (
-                    <VStack spacing={2} align="stretch">
-                      {displayFile.linked_products.map((product) => (
-                        <Box key={product.id} p={2} bg="gray.50" borderRadius="0">
-                          <VStack align="start" spacing={1}>
-                            <Text fontWeight="medium" fontSize="xs">{product.name}</Text>
-                            <Text fontSize="xs" color="gray.600">
-                              SKU: {product.sku}
-                            </Text>
-                            {product.category && (
-                              <Text fontSize="xs" color="gray.600">
-                                {t('product.category')}: {product.category}
-                              </Text>
-                            )}
-                            {product.design && (
-                              <Text fontSize="xs" color="gray.600">
-                                {t('product.design')}: {product.design}
-                              </Text>
-                            )}
-                            {product.color && (
-                              <Text fontSize="xs" color="gray.600">
-                                {t('product.color')}: {product.color}
-                              </Text>
-                            )}
-                          </VStack>
-                        </Box>
-                      ))}
-                    </VStack>
-                  ) : (
-                    <Alert status="info" size="sm">
-                      <AlertIcon />
-                      <Text fontSize="xs">{t('media.no_linked_products')}</Text>
-                    </Alert>
-                  )}
-                </Box>
-              </VStack>
-            </Box>
           </Box>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+
+          <ModalBody p={0} height="100%" display="flex" flexDirection="column">
+            {/* Desktop: Two Column Layout (65-35) */}
+            <Box display={{ base: "block", md: "flex" }} flex="1" minH="0">
+              {/* Image Section (65%) */}
+              <Box
+                flex={{ md: "0 0 65%" }}
+                p={{ base: 4, md: 6 }}
+                bg="gray.50"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                height={{ base: "300px", md: "100%" }}
+                borderRight={{ md: "1px solid" }}
+                borderColor={{ md: "gray.200" }}
+              >
+                <Image
+                  src={displayFile.filepath}
+                  alt={displayFile.filename}
+                  maxH={{ base: "250px", md: "100%" }}
+                  maxW="100%"
+                  objectFit="contain"
+                  borderRadius="0"
+                  fallback={
+                    <Box
+                      height={{ base: "200px", md: "300px" }}
+                      width={{ base: "200px", md: "300px" }}
+                      bg="white"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      borderRadius="0"
+                      border="1px solid"
+                      borderColor="gray.200"
+                    >
+                      <Text color="gray.500" fontSize={{ base: "sm", md: "md" }}>{t('media.image_load_error')}</Text>
+                    </Box>
+                  }
+                />
+              </Box>
+
+              {/* Information Section (35%) */}
+              <Box
+                flex={{ md: "0 0 35%" }}
+                p={{ base: 4, md: 6 }}
+                overflowY="auto"
+                height={{ base: "50vh", md: "100%" }}
+                bg="white"
+              >
+                <VStack spacing={6} align="stretch">
+                  {/* File Information */}
+                  <Box>
+                    <VStack align="start" spacing={2}>
+                      <Text fontSize="sm" color="gray.600">
+                        <Text as="span" fontWeight="bold">Uploaded on:</Text> {formatDate(displayFile.created_at)}
+                      </Text>
+                      {displayFile.uploaded_by_name && (
+                        <Text fontSize="sm" color="gray.600">
+                          <Text as="span" fontWeight="bold">Uploaded by:</Text> {displayFile.uploaded_by_name}
+                        </Text>
+                      )}
+                      <Text fontSize="sm" color="gray.600">
+                        <Text as="span" fontWeight="bold">File name:</Text> {displayFile.filename}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        <Text as="span" fontWeight="bold">File type:</Text> {displayFile.file_type}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        <Text as="span" fontWeight="bold">File size:</Text> {formatFileSize(displayFile.file_size)}
+                      </Text>
+                    </VStack>
+                  </Box>
+
+                  {/* URL Section */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="bold" mb={2}>
+                      {t('media.file_url')}
+                    </Text>
+                    <Input
+                      value={displayFile.filepath}
+                      isReadOnly
+                      size="sm"
+                      fontFamily="mono"
+                      fontSize="xs"
+                    />
+                    <Button
+                      leftIcon={<CopyIcon />}
+                      size="xs"
+                      variant="outline"
+                      w="full"
+                      mt={2}
+                      onClick={() => copyToClipboard(displayFile.filepath)}
+                    >
+                      {t('media.copy_url')}
+                    </Button>
+                  </Box>
+
+                  {/* Delete Button */}
+                  <Box pt={4}>
+                    <Button
+                      leftIcon={<DeleteIcon />}
+                      colorScheme="red"
+                      variant="solid"
+                      size="sm"
+                      w="full"
+                      onClick={handleDeleteClick}
+                      isLoading={deleting}
+                      loadingText="Deleting..."
+                      isDisabled={deleting}
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  </Box>
+
+                  {/* Linked Products */}
+                  <Box>
+                    <Text fontSize="sm" fontWeight="bold" mb={3}>
+                      {t('media.linked_products')}
+                    </Text>
+
+                    {loading ? (
+                      <Box textAlign="center" py={4}>
+                        <Spinner size="sm" />
+                        <Text mt={2} fontSize="xs">{t('common.loading')}</Text>
+                      </Box>
+                    ) : displayFile.linked_products && displayFile.linked_products.length > 0 ? (
+                      <VStack spacing={2} align="stretch">
+                        {displayFile.linked_products.map((product) => (
+                          <Box key={product.id} p={2} bg="gray.50" borderRadius="0">
+                            <VStack align="start" spacing={1}>
+                              <Text fontWeight="medium" fontSize="xs">{product.name}</Text>
+                              <Text fontSize="xs" color="gray.600">
+                                SKU: {product.sku}
+                              </Text>
+                              {product.category && (
+                                <Text fontSize="xs" color="gray.600">
+                                  {t('product.category')}: {product.category}
+                                </Text>
+                              )}
+                              {product.design && (
+                                <Text fontSize="xs" color="gray.600">
+                                  {t('product.design')}: {product.design}
+                                </Text>
+                              )}
+                              {product.color && (
+                                <Text fontSize="xs" color="gray.600">
+                                  {t('product.color')}: {product.color}
+                                </Text>
+                              )}
+                            </VStack>
+                          </Box>
+                        ))}
+                      </VStack>
+                    ) : (
+                      <Alert status="info" size="sm">
+                        <AlertIcon />
+                        <Text fontSize="xs">{t('media.no_linked_products')}</Text>
+                      </Alert>
+                    )}
+                  </Box>
+                </VStack>
+              </Box>
+            </Box>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={handleDeleteCancel}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              {t('media.delete_confirmation_title')}
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              {t('media.delete_confirmation_body', { count: 1 })}
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={handleDeleteCancel}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleDeleteConfirm}
+                ml={3}
+                isLoading={deleting}
+                loadingText="Deleting..."
+              >
+                {t('common.delete')}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
 }

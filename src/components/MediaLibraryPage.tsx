@@ -66,6 +66,8 @@ export default function MediaLibraryPage() {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [deletingBulk, setDeletingBulk] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(0);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -170,6 +172,19 @@ export default function MediaLibraryPage() {
     }
   }, [user, fetchMediaFilesCallback]);
 
+  // Listen for media deletion events to refresh the library
+  useEffect(() => {
+    const handleMediaDeleted = () => {
+      fetchMediaFiles(1, false);
+    };
+
+    window.addEventListener('mediaDeleted', handleMediaDeleted);
+
+    return () => {
+      window.removeEventListener('mediaDeleted', handleMediaDeleted);
+    };
+  }, [fetchMediaFiles]);
+
   const handleSelectFile = (fileId: number, isSelected: boolean) => {
     if (isSelected) {
       setSelectedFiles(prev => [...prev, fileId]);
@@ -216,6 +231,9 @@ export default function MediaLibraryPage() {
   const handleDeleteSelected = async () => {
     if (selectedFiles.length === 0) return;
 
+    setDeletingBulk(true);
+    setDeleteProgress(0);
+
     try {
       const response = await fetch('/api/media/bulk-delete', {
         method: 'POST',
@@ -227,25 +245,32 @@ export default function MediaLibraryPage() {
 
       const data = await response.json();
 
+      // Optimistic UI update - remove deleted items immediately
+      setMediaFiles(prev => prev.filter(file => !selectedFiles.includes(file.id)));
+
       toast({
         title: t('common.success'),
-        description: t('media.delete_success', { count: data.deleted_count }),
+        description: `Successfully deleted ${data.deleted_count} of ${selectedFiles.length} files`,
         status: 'success',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
       });
 
       setSelectedFiles([]);
       exitBulkSelectMode(); // Revert to normal mode after successful deletion
-      fetchMediaFiles(1, false);
-    } catch {
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: t('common.error'),
-        description: t('media.delete_error'),
+        description: `Failed to delete files: ${errorMessage}`,
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setDeletingBulk(false);
+      setDeleteProgress(0);
     }
   };
 
@@ -419,6 +444,18 @@ export default function MediaLibraryPage() {
           </VStack>
         </Collapse>
 
+        {/* Bulk Deletion Progress */}
+        {deletingBulk && (
+          <Box w="full" mb={4}>
+            <Text mb={2}>Deleting {deleteProgress} of {selectedFiles.length} files...</Text>
+            <Progress
+              value={(deleteProgress / selectedFiles.length) * 100}
+              colorScheme="red"
+              size="sm"
+            />
+          </Box>
+        )}
+
         <Flex justify="space-between" align="center" direction={{ base: 'column', md: 'row' }} gap={4} w="full">
           {/* Bulk select button and controls on the left */}
           <HStack spacing={3} flex={{ base: '1', md: 'none' }}>
@@ -455,6 +492,8 @@ export default function MediaLibraryPage() {
                       colorScheme="red"
                       size="sm"
                       onClick={onDeleteOpen}
+                      isLoading={deletingBulk}
+                      isDisabled={deletingBulk}
                     />
                   </HStack>
                 )}
@@ -543,6 +582,9 @@ export default function MediaLibraryPage() {
                   onDeleteClose();
                 }}
                 ml={3}
+                isLoading={deletingBulk}
+                loadingText="Deleting..."
+                isDisabled={deletingBulk}
               >
                 {t('common.delete')}
               </Button>
