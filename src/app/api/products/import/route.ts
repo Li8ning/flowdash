@@ -38,7 +38,7 @@ const getImageHash = (buffer: Buffer): string => {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 };
 
-const processImagesInParallel = async (products: ProductCsvRow[], organizationId: number) => {
+const processImagesInParallel = async (products: ProductCsvRow[], organizationId: number, userId: number) => {
   const results = new Map<string, number | null>();
   const concurrencyLimit = 3; // Safe for Vercel free plan
 
@@ -48,7 +48,7 @@ const processImagesInParallel = async (products: ProductCsvRow[], organizationId
 
     const batchPromises = batch.map(async (product) => {
       if (product.image_url) {
-        const mediaId = await handleImageUrl(product.image_url, organizationId, product.name);
+        const mediaId = await handleImageUrl(product.image_url, organizationId, userId, product.name);
         results.set(product.sku, mediaId);
       }
     });
@@ -66,7 +66,7 @@ const processImagesInParallel = async (products: ProductCsvRow[], organizationId
 };
 
 // Optimized helper function to handle image URLs during import
-const handleImageUrl = async (imageUrl: string, organizationId: number, productName: string): Promise<number | null> => {
+const handleImageUrl = async (imageUrl: string, organizationId: number, userId: number, productName: string): Promise<number | null> => {
   if (!imageUrl || !imageUrl.trim()) return null;
 
   const trimmedUrl = imageUrl.trim();
@@ -138,9 +138,9 @@ const handleImageUrl = async (imageUrl: string, organizationId: number, productN
 
     // Store base filename (without extension) in database
     const mediaResult = await sql.query(
-      `INSERT INTO media_library (organization_id, filename, filepath, file_type, file_size, content_hash)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [organizationId, baseFilename, blob.url, 'image/webp', optimizedBuffer.length, contentHash]
+      `INSERT INTO media_library (organization_id, user_id, filename, filepath, file_type, file_size, content_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [organizationId, userId, baseFilename, blob.url, 'image/webp', optimizedBuffer.length, contentHash]
     );
 
     console.log(`Successfully processed image for ${productName}: ${optimizedBuffer.length} bytes (${Math.round((buffer.length - optimizedBuffer.length) / buffer.length * 100)}% size reduction)`);
@@ -240,7 +240,7 @@ export const POST = handleError(async (req: NextRequest) => {
 
       // Process images in parallel before creating products
       const productsWithImages = productsToInsert.filter(p => p.image_url);
-      const imageResults = await processImagesInParallel(productsWithImages, organization_id as number);
+      const imageResults = await processImagesInParallel(productsWithImages, organization_id as number, authResult.user.id as number);
 
       for (const product of productsToInsert) {
         // 1. Get media ID from parallel processing results
